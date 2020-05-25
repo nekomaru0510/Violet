@@ -1,0 +1,16 @@
+[package]
+name = "violet"
+version = "0.0.1"
+authors = ["nekomaru0510 <yama05rymy@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+register = "0.5.0"
+intrusive-collections = "0.9.0"
+
+[dependencies.lazy_static]
+version = "1.0"
+features = ["spin_no_std"]
+
+[build-dependencies]
+cc = "1.0.25"

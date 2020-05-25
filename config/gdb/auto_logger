@@ -1,0 +1,45 @@
+target remote localhost:1234
+
+# ========================== 関数定義 =========================================#
+
+# ブレークポイントの設定
+define mkbreak
+b *0xc0000018
+b *0xc0000308
+end
+
+# logger本体
+define logger
+shell echo ""
+shell echo "=====DebugStart====="
+c
+while 1
+shell echo ""
+shell echo "=====NextInstruction======"
+x/1i $pc
+shell echo ""
+regdump
+memdump
+shell echo ""
+
+ni
+
+shell echo ""
+shell echo "=====NextInstruction======"
+x/1i $pc
+shell echo ""
+regdump
+#memdump
+shell echo ""
+
+c
+end
+end
+
+# ==========================gdb開始=========================================#
+
+set logging file ./log/debug_log.txt
+log_on
+mkbreak
+logger
+
