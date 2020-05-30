@@ -1,6 +1,6 @@
 //! Interrupt Interface
 
-use crate::kernel::operator::sig::Sig;
+use crate::kernel::table::sig::Sig;
 
 pub fn entry() {
     //割込みIDを判別する。

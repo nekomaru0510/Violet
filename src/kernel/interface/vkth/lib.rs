@@ -5,7 +5,7 @@ use core::fmt;
 
 use crate::kernel::operator::stdout::Stdout;
 use crate::kernel::operator::stdin::Stdin;
-use crate::kernel::operator::sig::Sig;
+use crate::kernel::table::sig::Sig;
 
 /* 与えられたフォーマット文字列と引数からcore::fmt::Argumentsを構築する */
 #[macro_export]
