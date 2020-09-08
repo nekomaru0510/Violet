@@ -1,16 +1,42 @@
-[package]
-name = "violet"
-version = "0.0.1"
-authors = ["nekomaru0510 <yama05rymy@gmail.com>"]
-edition = "2018"
+[workspace]
+members = [
+    "violet/main",
+    "violet/class",
+    "violet/kernel",
+    "thread/vshell",
+    "library/std",
+    "object/stdin",
+    "object/stdout",
+    "resource/cpu",
+    "resource/irq",
+    #"resource/table",
+    "resource/io/serial",
+    "resource/io/timer",
+    #"resource/io/fesyscall",
+    #"driver/arch/rv32/processor",
+    "driver/arch/rv64/processor",
+    "driver/arch/rv64/entry",
+    #"driver/generic/htif",
+    "driver/board/sifive_u/uart",
+    "driver/board/sifive_u/plic",
+    "driver/board/sifive_u/clint_timer",
 
-[dependencies]
-register = "0.5.0"
-intrusive-collections = "0.9.0"
+]
 
-[dependencies.lazy_static]
-version = "1.0"
-features = ["spin_no_std"]
-
-[build-dependencies]
-cc = "1.0.25"
+[patch.crates-io]
+class = { path = "violet/class", version = "0.1.0" }
+kernel = { path = "violet/kernel", version = "0.1.0" }
+vshell = { path = "thread/vshell", version = "0.1.0" }
+std = { path = "library/std", version = "0.1.0" }
+stdin = { path = "object/stdin", version = "0.1.0" }
+stdout = { path = "object/stdout", version = "0.1.0" }
+cpu = { path = "resource/cpu", version = "0.1.0" }
+irq = { path = "resource/irq", version = "0.1.0" }
+serial = { path = "resource/io/serial", version = "0.1.0" }
+timer = { path = "resource/io/timer", version = "0.1.0" }
+uart = { path = "driver/board/sifive_u/uart", version = "0.1.0" }
+clint_timer = { path = "driver/board/sifive_u/clint_timer", version = "0.1.0" }
+plic = { path = "driver/board/sifive_u/plic", version = "0.1.0" }
+#processor = { path = "driver/arch/rv32/processor", version = "0.1.0" }
+processor = { path = "driver/arch/rv64/processor", version = "0.1.0" }
+entry = { path = "driver/arch/rv64/entry", version = "0.1.0" }
