@@ -1,9 +1,22 @@
 [target.riscv32imac-unknown-none-elf]
-# biosオプションにしないとwarningが出る(本当はkernelオプションにしたい)
 runner = "qemu-system-riscv32 -nographic -machine sifive_u -m 1M -bios "
 rustflags = [
-    "-C", "link-arg=-Tconfig/ld/sifive.ld",
+    "-C", "link-arg=-Ttools/config/ld/sifive.ld",
+]
+
+[target.riscv64imac-unknown-none-elf]
+runner = "qemu-system-riscv64 -nographic -machine sifive_u -m 1M -bios "
+rustflags = [
+    "-C", "link-arg=-Ttools/config/ld/sifive.ld",
+]
+
+[target.riscv64gc-unknown-none-elf]
+runner = "qemu-system-riscv64 -nographic -machine sifive_u -m 1M -bios "
+rustflags = [
+    "-C", "link-arg=-Ttools/config/ld/rocket_pk.ld",
 ]
 
 [build]
 target = "riscv32imac-unknown-none-elf"
+#target = "riscv64imac-unknown-none-elf"
+#target = "riscv64gc-unknown-none-elf"
