@@ -9,8 +9,9 @@
 
 use kernel::Kernel;
 
-use std::*;
+#[allow(unused_imports)]
 use entry::*;
+use std::*;
 
 use vshell::VShell;
 use vshell::KernelThread;
