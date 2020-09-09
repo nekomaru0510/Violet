@@ -1,1 +1,0 @@
-{"rustc":17845826300995066453,"features":"[]","target":12697905566055826249,"profile":14996655781355331481,"path":12412514555654656616,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"riscv64imac-unknown-none-elf/debug/.fingerprint/class-f652410c4fc9456e/dep-lib-class-f652410c4fc9456e"}}],"rustflags":["-C","link-arg=-Ttools/config/ld/sifive.ld"],"metadata":15165739301490452893}

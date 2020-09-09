@@ -1,1 +1,0 @@
-/home/ryamamoto/Violet/target/riscv64imac-unknown-none-elf/debug/libclass.rlib: /home/ryamamoto/Violet/violet/class/src/irq.rs /home/ryamamoto/Violet/violet/class/src/lib.rs /home/ryamamoto/Violet/violet/class/src/timer.rs

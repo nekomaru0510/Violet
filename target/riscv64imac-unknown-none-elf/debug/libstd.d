@@ -1,1 +1,0 @@
-/home/ryamamoto/Violet/target/riscv64imac-unknown-none-elf/debug/libstd.rlib: /home/ryamamoto/Violet/driver/board/sifive_u/uart/src/lib.rs /home/ryamamoto/Violet/library/std/src/lib.rs /home/ryamamoto/Violet/object/stdin/src/lib.rs /home/ryamamoto/Violet/object/stdout/src/lib.rs /home/ryamamoto/Violet/resource/io/serial/src/lib.rs
