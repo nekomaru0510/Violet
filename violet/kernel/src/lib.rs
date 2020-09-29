@@ -2,6 +2,8 @@
 #![no_std]
 #![feature(alloc_error_handler)]
 
+#![feature(const_raw_ptr_to_usize_cast)]
+
 pub mod minimum_allocator;
 //pub mod table;
 //pub mod rwlock; // テスト段階

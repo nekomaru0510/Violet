@@ -1,6 +1,7 @@
 //! stdout module
 #![no_std]
 
+#[allow(unused_imports)]
 use core::fmt::{self, Write};
 
 //use table::Table;
@@ -34,6 +35,7 @@ impl Stdout {
     
     pub fn write(&mut self, args: fmt::Arguments) {
         self.serial.write_fmt(args).unwrap();
+        
     }
 }
 

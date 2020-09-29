@@ -41,8 +41,9 @@ pub extern "C" fn boot_init() -> ! {
     let mut kernel = Kernel::new();
     kernel.run();
 
-    println!("Hello I'm {}!! ver.{}", "Violet", 0.1);
+    //println!("Hello I'm {}!! ver.{}", "Violet", 0.1);
 
+    println!("Hello I'm {}!! ", "Violet");
     let mut vs = VShell::new();
     vs.run();
 

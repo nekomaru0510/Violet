@@ -2,6 +2,8 @@
 
 use core::fmt::{self, Write};
 use uart::Uart;
+use class::resource::stdout::StdoutIF;
+use class::resource::Resource;
 
 pub struct Serial {
     uart: Uart,
@@ -22,7 +24,24 @@ impl Serial {
 
 }
 
+impl Resource for Serial {}
+
 impl Write for Serial {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        for c in s.bytes() {
+            self.write(c);
+        }
+        Ok(())
+    }
+}
+
+impl StdoutIF for Serial {
+
+    fn write_char(&self, c: u8) -> fmt::Result {
+        self.write(c);
+        Ok(())
+    }
+
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for c in s.bytes() {
             self.write(c);

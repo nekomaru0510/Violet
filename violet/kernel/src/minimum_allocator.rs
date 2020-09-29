@@ -14,6 +14,13 @@ struct MinimumAllocator {
     end: usize,
 }
 
+/*
+extern "C" {
+    static mut __HEAP_BASE: u32;
+    static mut __HEAP_SIZE: u32;
+    static mut __KERNEL_SP_BASE: u32;
+}
+*/
 // グローバルアロケータ
 #[global_allocator]
 static HEAP: MinimumAllocator = MinimumAllocator {

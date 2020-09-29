@@ -37,8 +37,9 @@ impl KernelThread for VShell {
     fn new() -> Self {
         /* コマンドの登録 */
         let mut vec = Vec::new();
-        //vec.push(Command{name: String::from("test"), func:test});
+        vec.push(Command{name: String::from("test"), func:test});
         vec.push(Command{name: String::from("help"), func:help});
+        vec.push(Command{name: String::from("hello"), func:hello});
         
         VShell {prompt: String::from("Violet%"), cmds: vec}
     }
@@ -113,16 +114,50 @@ pub fn help() {
     println!("Help is Working now ... ");
 }
 
+pub fn hello() {
+    println!("Hello!!");
+}
+
 //
 // 以下、無法地帯
 //
 //use table::Table;
 //use register::{cpu::RegisterReadWrite/*, register_bitfields*/};
+
 /*
+// 下のattributeは消したい
+#[allow(improper_ctypes)]
+static mut vals: Vec<u32>;
+*/
+
+/*
+use class::resource::Resource;
+use serial::Serial;
+
+struct Resources<T: Resource> {
+    res: Vec<T>,
+}
+
+impl<T:Resource> Resources<T> {
+    pub fn new() -> Self {
+        Resources { res: Vec::new()}
+    }
+}
+static mut vals: *const usize = 0 as *const usize;
+
+*/
+
 #[no_mangle]
 pub fn test() {
-    init_interrupt();
+    //unsafe {
+        //let obj = Resources<T: >::new();
+        //obj.res.push(Serial::new());
+        //vals = &obj as *const usize;
+        
+    //}
 
+    /*
+    init_interrupt();
     unsafe {
         let res = &mut Table::table();
         println!("mie: {:x}", res.cpu.core.mie.get());
@@ -138,9 +173,11 @@ pub fn test() {
 
         println!("mtimecmp: {:x}", res.io.timer.timer.read_mtimecmp());
     }
+    */
 
 }
 
+/*
 pub fn timer_handler() {
     print!("interrupt ok!");
 }

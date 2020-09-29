@@ -13,6 +13,7 @@ use handler_table::HandlerTable;
 #[allow(improper_ctypes)]
 extern "C" {
     static mut table: Table;
+    //static mut cmds: Vec<Cpu>;
 }
 
 pub struct Table {
