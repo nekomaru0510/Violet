@@ -13,7 +13,7 @@ members = [
     "resource/io/timer",
     "driver/arch/rv64/processor",
     "driver/arch/rv64/entry",
-    "driver/board/fesvr/uart",
+    "driver/board/sifive_u/uart",
     "driver/board/sifive_u/plic",
     "driver/board/sifive_u/clint_timer",
 
@@ -22,6 +22,7 @@ members = [
 [patch.crates-io]
 class = { path = "violet/class", version = "0.1.0" }
 kernel = { path = "violet/kernel", version = "0.1.0" }
+#driver_manager = { path = "violet/kernel", version = "0.1.0" }
 vshell = { path = "thread/vshell", version = "0.1.0" }
 std = { path = "library/std", version = "0.1.0" }
 stdin = { path = "object/stdin", version = "0.1.0" }
@@ -30,7 +31,7 @@ cpu = { path = "resource/cpu", version = "0.1.0" }
 irq = { path = "resource/irq", version = "0.1.0" }
 serial = { path = "resource/io/serial", version = "0.1.0" }
 timer = { path = "resource/io/timer", version = "0.1.0" }
-uart = { path = "driver/board/fesvr/uart", version = "0.1.0" }
+uart = { path = "driver/board/sifive_u/uart", version = "0.1.0" }
 clint_timer = { path = "driver/board/sifive_u/clint_timer", version = "0.1.0" }
 plic = { path = "driver/board/sifive_u/plic", version = "0.1.0" }
 processor = { path = "driver/arch/rv64/processor", version = "0.1.0" }

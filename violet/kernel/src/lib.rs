@@ -5,6 +5,8 @@
 #![feature(const_raw_ptr_to_usize_cast)]
 
 pub mod minimum_allocator;
+pub mod driver_manager;
+use driver_manager::DriverManager;
 //pub mod table;
 //pub mod rwlock; // テスト段階
 
@@ -16,6 +18,8 @@ pub struct Kernel {
 
 impl Kernel {
     pub fn new() -> Self {
+        let drvmgr = DriverManager::new();
+        drvmgr.call_initializer();
         Kernel {id: 0, }
     }
 

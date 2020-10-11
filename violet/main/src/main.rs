@@ -21,29 +21,14 @@ use vshell::KernelThread;
 
 #[no_mangle]
 pub extern "C" fn boot_init() -> ! {
-    /* 
-    unsafe{
-        let mut fe = FeSyscall::new();
-        fe.sys_write(1, &("hello".as_bytes())[0] as *const u8 , 5);
 
-        let mut buf: [u8; 32] = [0; 32];
-        
-        fe.sys_write(1, &("1\n".as_bytes())[0] as *const u8 , 2);
-         
-        while buf[0] == 0 as u8 {
-            fe.sys_read(0, &buf[0] as *const u8 , 5);
-        }
-        
-        fe.sys_write(1, &(buf[0] as u8) as *const u8 , 1);
-
-        fe.sys_exit();
-    }       */
     let mut kernel = Kernel::new();
     kernel.run();
 
     //println!("Hello I'm {}!! ver.{}", "Violet", 0.1);
-
     println!("Hello I'm {}!! ", "Violet");
+
+
     let mut vs = VShell::new();
     vs.run();
 

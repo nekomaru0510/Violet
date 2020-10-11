@@ -1,6 +1,14 @@
 #![no_std]
 
 use core::ptr::{write_volatile, read_volatile};
+extern crate alloc;
+use alloc::boxed::Box;
+
+#[macro_use]
+extern crate kernel;
+//use kernel::driver_manager::*;
+
+module_init!(init, Uart);
 
 pub struct Uart {
     base: usize,
@@ -32,4 +40,12 @@ impl Uart {
             read_volatile((self.base + RXDATA) as *const u8)
         }
     }
+}
+
+fn init() -> Uart {
+    let u = Uart::new(0x1001_0000);
+    u.write('a' as u8);
+    //let r = Box::new(Uart::new(0x1001_0000));
+    u
+    //r
 }

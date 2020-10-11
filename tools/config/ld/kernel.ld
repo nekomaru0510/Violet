@@ -30,13 +30,18 @@ SECTIONS
     .data :
     {
         *(.data .data.*);
-        vals = .;
-        . = . + 0x20; // vector
     }
 
     .bss :
     {
         *(.bss .bss.*);
+    }
+
+    .init_calls :
+    {
+        init_calls_top = .;
+        *(.init_calls .init_calls.*);
+        . = . + 0x20;
     }
 
     __HEAP_BASE = .;

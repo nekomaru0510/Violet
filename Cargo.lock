@@ -136,6 +136,9 @@ checksum = "70323afdb8082186c0986da0e10f6e4ed103d681c921c00597e98d9806dac20f"
 [[package]]
 name = "uart"
 version = "0.1.0"
+dependencies = [
+ "kernel",
+]
 
 [[package]]
 name = "vshell"
