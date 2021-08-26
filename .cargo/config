@@ -1,3 +1,9 @@
+[target.riscv32i-unknown-none-elf]
+runner = "qemu-system-riscv32 -nographic -machine sifive_u -m 1M -bios "
+rustflags = [
+    "-C", "link-arg=-Ttools/config/ld/sifive.ld",
+]
+
 [target.riscv32imac-unknown-none-elf]
 runner = "qemu-system-riscv32 -nographic -machine sifive_u -m 1M -bios "
 rustflags = [
@@ -17,6 +23,7 @@ rustflags = [
 ]
 
 [build]
-target = "riscv32imac-unknown-none-elf"
+target = "riscv32i-unknown-none-elf"
+#target = "riscv32imac-unknown-none-elf"
 #target = "riscv64imac-unknown-none-elf"
 #target = "riscv64gc-unknown-none-elf"
