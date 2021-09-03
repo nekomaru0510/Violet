@@ -1,7 +1,10 @@
+[profile.dev]
+opt-level = 0
+
 [target.riscv32i-unknown-none-elf]
 runner = "qemu-system-riscv32 -nographic -machine sifive_u -m 1M -bios "
 rustflags = [
-    "-C", "link-arg=-Ttools/config/ld/sifive.ld",
+    "-C", "link-arg=-Ttools/config/ld/garden.ld",
 ]
 
 [target.riscv32imac-unknown-none-elf]

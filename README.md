@@ -96,11 +96,9 @@ $ rustup override set nightly
 % cargo run
 ```
 
+## メモ
 
-## 名前の由来
-由来は、大きく２つ。
-* 「VIrtual machine monitor tO LET resources」の略
-    * ここで言うletは、「貸す」という意味。
-* 小さいVMMを象徴するように、小さい花として「すみれ(Violet)」を採用
-    * また、すみれの花言葉は「誠実」という意味があり、所有権を貸し借りしながら動作させるのに向いていると思った。
-
+ディスアセンブル(マングリング解除+疑似命令無効)
+```
+$ riscv64-unknown-elf-objdump --demangle --disassembler-options="no-aliases" -D target/riscv32i-unknown-none-elf/debug/main | less
+```
