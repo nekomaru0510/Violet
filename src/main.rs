@@ -6,21 +6,20 @@
 #![feature(alloc_error_handler)]
 #![no_std]
 
-//use kernel::Kernel;
-
-#[allow(unused_imports)]
 mod driver;
 mod library;
 mod resource;
 mod service;
 
 mod container;
-use container::Container;
+use container::TraitContainer;
 
 pub mod minimum_allocator;
 
-//use vshell::VShell;
-//use vshell::KernelThread;
+/* 使用するコンテナを登録 */
+mod sample_container;
+use sample_container::SampleContainer;
+use service::vshell::VShell;
 
 // test
 //use crate::kernel::resource::io::fesyscall::FeSyscall;
@@ -47,12 +46,8 @@ pub extern "C" fn boot_init() -> ! {
     //let mut kernel = Kernel::new();
     //kernel.run();
 
-    //println!("Hello I'm {}!!", "Violet");
-    let con = Container::new();
-    //let mut vs = VShell::new();
-    //vs.run();
-
-    //println!("Good Bye!!");
+    let mut con = SampleContainer::new();
+    con.run();
 
     loop {}
 }

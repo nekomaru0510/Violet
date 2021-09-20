@@ -1,4 +1,4 @@
-//! uartドライバ
+//! QEMU sifive_u向け UARTドライバ
 
 use core::ptr::{read_volatile, write_volatile};
 
@@ -22,7 +22,7 @@ const DIV   : usize = 0x1c;
 
 impl Uart {
     pub fn new(base: usize) -> Self {
-        Uart { base: base }
+        Uart { base }
     }
 }
 

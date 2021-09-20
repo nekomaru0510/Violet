@@ -1,23 +1,24 @@
-//! Machine Exception Program Counter(mepc)
+//! mtvec csr
 
 extern crate register;
 use register::{cpu::RegisterReadWrite, register_bitfields};
 
 register_bitfields! {u32,
-    pub mepc [
-        MEPC       OFFSET(0)  NUMBITS(32) []
+    pub mtvec [
+        MODE       OFFSET(0)  NUMBITS(2) [],
+        BASE       OFFSET(2)  NUMBITS(30) []
     ]
 }
 
-pub struct Mepc;
+pub struct Mtvec;
 
-impl RegisterReadWrite<u32, mepc::Register> for Mepc {
+impl RegisterReadWrite<u32, mtvec::Register> for Mtvec {
     /// Reads the raw bits of the CPU register.
     #[inline(always)]
     fn get(&self) -> u32 {
         let reg;
         unsafe {
-            llvm_asm!("csrr $0, mepc" : "=r"(reg) ::: "volatile");
+            asm!("csrr $0, mtvec" : "=r"(reg) ::: "volatile");
         }
         reg
     }
@@ -26,7 +27,8 @@ impl RegisterReadWrite<u32, mepc::Register> for Mepc {
     #[inline(always)]
     fn set(&self, value: u32) {
         unsafe {
-            llvm_asm!("csrw mepc, $0" :: "r"(value) :: "volatile");
+            asm!("csrw mtvec, $0" :: "r"(value) :: "volatile");
         }
     }
 }
+

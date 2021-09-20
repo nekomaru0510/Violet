@@ -31,7 +31,7 @@ impl RegisterReadWrite<u32, mip::Register> for Mip {
     fn get(&self) -> u32 {
         let reg;
         unsafe {
-            llvm_asm!("csrr $0, mip" : "=r"(reg) ::: "volatile");
+            asm!("csrr $0, mip" : "=r"(reg) ::: "volatile");
         }
         reg
     }
@@ -40,7 +40,7 @@ impl RegisterReadWrite<u32, mip::Register> for Mip {
     #[inline(always)]
     fn set(&self, value: u32) {
         unsafe {
-            llvm_asm!("csrw mip, $0" :: "r"(value) :: "volatile");
+            asm!("csrw mip, $0" :: "r"(value) :: "volatile");
         }
     }
 }

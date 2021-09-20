@@ -51,10 +51,6 @@ where
     pub fn print(&mut self, args: fmt::Arguments) {
         self.tty.write_fmt(args).unwrap();
     }
-
-    pub fn getc(&self) -> u8 {
-        self.tty.read()
-    }
 }
 
 impl<T> TraitStd for Std<T>

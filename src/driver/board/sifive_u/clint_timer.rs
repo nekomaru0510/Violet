@@ -1,9 +1,6 @@
 //! Sifive Core-Local Interruptor(CLINT)'s timer module
-#![no_std]
 
 use core::ptr::{write_volatile, read_volatile};
-//use interface::driver::TimerAttr;
-use class::timer::TimerAttr;
 
 pub struct ClintTimer {
     base: usize, /* 0x0200_4000 */
@@ -12,15 +9,13 @@ pub struct ClintTimer {
 const MTIMECMP0: usize = 0x0;
 const MTIME0: usize = 0x7ff8;
 
-impl TimerAttr for ClintTimer {
-    fn new() -> Self {
-        ClintTimer {base: 0x0200_4000,}
-
-    }
-    /* pub fn new(base: usize) -> Self {
+//impl TimerAttr for ClintTimer {
+impl ClintTimer {    
+    
+    pub fn new(base: usize) -> Self {
         ClintTimer {base: base,}
 
-    } */
+    }
 
     fn write(&self, t: u64) {
         self.write_mtime(t);
@@ -30,7 +25,7 @@ impl TimerAttr for ClintTimer {
         self.read_mtime()
     }
 
-    fn enable_interrupt(&self) {
+    pub fn enable_interrupt(&self) {
         // nothing to do
     }
 
@@ -38,7 +33,7 @@ impl TimerAttr for ClintTimer {
         self.write_mtimecmp(0xffff_ffff_ffff_ffff);
     }
 
-    fn set_interrupt_time(&self, t: u64) {
+    pub fn set_interrupt_time(&self, t: u64) {
         self.write_mtimecmp(t);
     }
 

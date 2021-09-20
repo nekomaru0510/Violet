@@ -47,7 +47,7 @@ impl RegisterReadWrite<u32, mstatus::Register> for Mstatus {
     fn get(&self) -> u32 {
         let reg;
         unsafe {
-            llvm_asm!("csrr $0, mstatus" : "=r"(reg) ::: "volatile");
+            asm!("csrr $0, mstatus" : "=r"(reg) ::: "volatile");
         }
         reg
     }
@@ -56,7 +56,7 @@ impl RegisterReadWrite<u32, mstatus::Register> for Mstatus {
     #[inline(always)]
     fn set(&self, value: u32) {
         unsafe {
-            llvm_asm!("csrw mstatus, $0" :: "r"(value) :: "volatile");
+            asm!("csrw mstatus, $0" :: "r"(value) :: "volatile");
         }
     }
 }

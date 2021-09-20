@@ -10,7 +10,7 @@ use crate::library::traits::std::TraitStd;
 /* サービス用トレイト */
 use crate::service::TraitService;
 
-//todo remove
+/* [todo delete] std以下に配置したい */
 use crate::print;
 use crate::println;
 
