@@ -1,22 +1,23 @@
 #![no_main]
-
 #![feature(asm)]
 #![feature(naked_functions)]
 #![feature(stmt_expr_attributes)]
 #![feature(associated_type_bounds)]
-
+#![feature(alloc_error_handler)]
 #![no_std]
 
 //use kernel::Kernel;
 
 #[allow(unused_imports)]
-//use entry::*;
-//use std::*;
-mod driver; 
+mod driver;
+mod library;
 mod resource;
+mod service;
 
 mod container;
 use container::Container;
+
+pub mod minimum_allocator;
 
 //use vshell::VShell;
 //use vshell::KernelThread;
@@ -26,19 +27,19 @@ use container::Container;
 
 #[no_mangle]
 pub extern "C" fn boot_init() -> ! {
-    /* 
+    /*
     unsafe{
         let mut fe = FeSyscall::new();
         fe.sys_write(1, &("hello".as_bytes())[0] as *const u8 , 5);
 
         let mut buf: [u8; 32] = [0; 32];
-        
+
         fe.sys_write(1, &("1\n".as_bytes())[0] as *const u8 , 2);
-         
+
         while buf[0] == 0 as u8 {
             fe.sys_read(0, &buf[0] as *const u8 , 5);
         }
-        
+
         fe.sys_write(1, &(buf[0] as u8) as *const u8 , 1);
 
         fe.sys_exit();
@@ -53,7 +54,7 @@ pub extern "C" fn boot_init() -> ! {
 
     //println!("Good Bye!!");
 
-    loop{}
+    loop {}
 }
 
 /* 無いとコンパイルエラー(言語仕様) */
@@ -61,11 +62,11 @@ use core::panic::PanicInfo;
 #[panic_handler]
 #[no_mangle]
 pub fn panic(_info: &PanicInfo) -> ! {
-    loop{}
+    loop {}
 }
 
 /* 無いとコンパイルエラー */
 #[no_mangle]
 pub extern "C" fn abort(_info: &PanicInfo) -> ! {
-    loop{}
+    loop {}
 }

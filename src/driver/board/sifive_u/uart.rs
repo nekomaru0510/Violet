@@ -1,8 +1,11 @@
-#![no_std]
+//! uartドライバ
 
-use core::ptr::{write_volatile, read_volatile};
+use core::ptr::{read_volatile, write_volatile};
+
+/* ドライバ用トレイト */
 use crate::driver::traits::serial::TraitSerial;
 
+/* 構造体 */
 pub struct Uart {
     base: usize,
 }
@@ -19,21 +22,18 @@ const DIV   : usize = 0x1c;
 
 impl Uart {
     pub fn new(base: usize) -> Self {
-        Uart {base: base,}
+        Uart { base: base }
     }
 }
-impl TraitSerial for Uart {
-    
 
+impl TraitSerial for Uart {
     fn write(&self, c: u8) {
         unsafe {
             write_volatile((self.base + TXDATA) as *mut u8, c);
         }
     }
 
-    /*pub*/ fn read(&self) -> u8 {
-        unsafe {
-            read_volatile((self.base + RXDATA) as *const u8)
-        }
+    fn read(&self) -> u8 {
+        unsafe { read_volatile((self.base + RXDATA) as *const u8) }
     }
 }

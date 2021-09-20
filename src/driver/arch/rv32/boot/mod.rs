@@ -1,4 +1,3 @@
-
 #[link_section = ".reset.boot"]
 #[export_name = "_start"]
 #[naked]

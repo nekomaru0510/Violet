@@ -1,42 +1,55 @@
+//! シリアルリソース
 
-use crate::driver::traits::serial::TraitSerial;
 use core::fmt::{self, Write};
 
+/* リソース用トレイト */
+use crate::resource::traits::tty::TraitTty;
 
-/*
-pub struct Serial {
-    uart: Uart,
-}
-*/
+/* ドライバ用トレイト */
+use crate::driver::traits::serial::TraitSerial;
+
 pub struct Serial<T: TraitSerial> {
     uart: T,
 }
 
-impl<T> Serial<T> 
-    where
-        T: TraitSerial,
+impl<T> Serial<T>
+where
+    T: TraitSerial,
 {
     pub fn new(uart: T) -> Self {
-        Serial{uart,}
+        Serial { uart }
     }
-
-    pub fn write(&self, c:u8) {
-        self.uart.write(c);
-    }
-
-    pub fn read(&self) -> u8 {
-        self.uart.read()
-    }
-
 }
 
-/*
-impl Write for Serial<T> {
+impl<T> TraitTty for Serial<T>
+where
+    T: TraitSerial,
+{
+    /*
+    fn write(&self, c: u8) {
+        self.uart.write(c);
+    }
+    */
+    fn write(&self, s: &str) -> fmt::Result {
+        for c in s.bytes() {
+            self.uart.write(c);
+        }
+        Ok(())
+    }
+
+    fn read(&self) -> u8 {
+        self.uart.read()
+    }
+}
+
+impl<T> Write for Serial<T>
+where
+    T: TraitSerial,
+{
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for c in s.bytes() {
-            self.write(c);
+            self.uart.write(c);
         }
         Ok(())
     }
 }
-*/
