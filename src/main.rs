@@ -23,6 +23,18 @@ use service::vshell::VShell;
 
 // test
 //use crate::kernel::resource::io::fesyscall::FeSyscall;
+use lazy_static::lazy_static;
+/*
+lazy_static! {
+    static ref SAMPLE_CONTAINER: SampleContainer = SampleContainer::new();
+}*/
+
+//static mut SAMPLE_CONTAINER: SampleContainer = SampleContainer::new();
+//static mut SAMPLE_CONTAINER: SampleContainer;
+#[allow(improper_ctypes)]
+extern "C" {
+    static mut SAMPLE_CONTAINER: SampleContainer;
+}
 
 #[no_mangle]
 pub extern "C" fn boot_init() -> ! {
@@ -45,11 +57,38 @@ pub extern "C" fn boot_init() -> ! {
     }       */
     //let mut kernel = Kernel::new();
     //kernel.run();
-
-    let mut con = SampleContainer::new();
-    con.run();
+    
+    unsafe {
+        SAMPLE_CONTAINER = SampleContainer::new();
+        SAMPLE_CONTAINER.run();
+    }
+    //let mut con = SampleContainer::new();
+    //con.run();
 
     loop {}
+}
+
+#[no_mangle]
+pub extern "C" fn interrupt_handler(cont: &mut Context) {
+    unsafe {
+        /* 各種コンテナへ割込みの振分け */
+        SAMPLE_CONTAINER.interrupt(cont);
+    }
+}
+
+/* 割込み元のコンテキストを示す */
+#[derive(Clone, Copy)]
+pub struct Context {
+    cpuid: u8,
+    regs : [usize; 32],
+    sp : *mut usize,
+    regsize: u32,
+}
+
+impl Context {
+    pub fn new() -> Self {
+        Context{cpuid:0, regs: [0; 32], sp:0 as *mut usize, regsize:0, }
+    }
 }
 
 /* 無いとコンパイルエラー(言語仕様) */

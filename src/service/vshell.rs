@@ -14,17 +14,20 @@ use crate::service::TraitService;
 use crate::print;
 use crate::println;
 
+/* [todo delete] 割込み用 */
+use crate::Context;
+
 // Violet Shell
-pub struct VShell<T: TraitStd> {
+pub struct VShell<T: TraitStd + core::clone::Clone> {
     std: T,
     prompt: String,
-    cmds: Vec<Command>,
+    cmds: Vec<Command<T>>,
 }
 
 #[derive(Clone)]
-struct Command {
+struct Command<T> where T: TraitStd, T: core::clone::Clone{
     name: String,
-    func: fn(),
+    func: fn(T),
 }
 
 const DEL: u8 = 0x7F;
@@ -36,22 +39,28 @@ const SPACE: u8 = 0x20;
 
 impl<T> TraitService for VShell<T>
 where
-    T: TraitStd,
+    T: TraitStd + core::clone::Clone,
 {
+    /* 実行 */
     fn run(&mut self) {
         self.exec();
+    }
+
+    /* 割込みハンドラ */
+    fn interrupt(&mut self, cont: &mut Context) {
+        print!(self.std, "Interrupt OK! {}", cont.sp as usize);
     }
 }
 
 impl<T> VShell<T>
 where
-    T: TraitStd,
+    T: TraitStd + core::clone::Clone,
 {
     pub fn new(std: T) -> Self {
         /* コマンドの登録 */
         let mut vec = Vec::new();
         //vec.push(Command{name: String::from("test"), func:test});
-        vec.push(Command{name: String::from("help"), func:help});
+        vec.push(Command{name: String::from("help"), func: help});
         
         VShell {std, prompt: String::from("Violet%"), cmds: vec}
     }
@@ -102,7 +111,7 @@ where
         }
     }
 
-    fn search_cmd(&self, name: &String) -> Option<Command> {
+    fn search_cmd(&self, name: &String) -> Option<Command<T>> {
         for (i, cmd) in self.cmds.iter().enumerate() {
             if cmd.name == *name {
                 return Some(self.cmds[i].clone())
@@ -111,13 +120,23 @@ where
         return None;
     }
 
-    fn execute_cmd(&mut self, cmd: Command) {
-        (cmd.func)();
+    fn execute_cmd(&mut self, cmd: Command<T>) {
+        /* [todo fix] clone使うのはちょっとダサい？ */
+        (cmd.func)(self.std.clone());
     }
 }
 
-pub fn help() {
-    //println!(self.std, "Help is Working now ... ");
+pub fn help<T:TraitStd>(mut std:T) {
+    println!(std, "Help is Working now ... ");
+}
+
+pub fn sched<T:TraitStd>(mut std:T) {
+    //割込み受付
+    //コンテキストの保存
+    //ランキューの更新
+    //次タスクを決定
+    //次タスクのコンテキストの設定
+    //割込みリターン
 }
 
 //

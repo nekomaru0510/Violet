@@ -8,6 +8,7 @@ use crate::resource::traits::tty::TraitTty;
 /* ドライバ用トレイト */
 use crate::driver::traits::serial::TraitSerial;
 
+#[derive(Clone)]
 pub struct Serial<T: TraitSerial> {
     uart: T,
 }

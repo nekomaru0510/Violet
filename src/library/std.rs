@@ -4,20 +4,24 @@ use core::fmt::{self, Write};
 
 /* リソース用トレイト */
 use crate::resource::traits::tty::TraitTty;
+use crate::resource::traits::timer::TraitTimerRs;
 
 /* ライブラリ用トレイト */
 use crate::library::traits::std::TraitStd;
 
-pub struct Std<T: TraitTty> {
+#[derive(Clone)]
+pub struct Std<T: TraitTty, U: TraitTimerRs> {
     tty: T,
+    timer: U, 
 }
 
-impl<T> Std<T>
+impl<T, U> Std<T, U>
 where
     T: TraitTty,
+    U: TraitTimerRs,
 {
-    pub fn new(tty: T) -> Self {
-        Std { tty }
+    pub fn new(tty: T, timer: U) -> Self {
+        Std { tty, timer, }
     }
 
     /*
@@ -44,18 +48,20 @@ macro_rules! println {
     ($self:expr, $fmt:expr, $($arg:tt)*) => (print!($self, concat!($fmt, "\n"), $($arg)*));
 }
 
-impl<T> Std<T>
+impl<T, U> Std<T, U>
 where
     T: TraitTty + core::fmt::Write,
+    U: TraitTimerRs,
 {
     pub fn print(&mut self, args: fmt::Arguments) {
         self.tty.write_fmt(args).unwrap();
     }
 }
 
-impl<T> TraitStd for Std<T>
+impl<T, U> TraitStd for Std<T, U>
 where
     T: TraitTty + core::fmt::Write,
+    U: TraitTimerRs,
 {
     fn puts(&self, s: &str) {
         self.tty.write(s);
@@ -68,4 +74,17 @@ where
     fn getc(&self) -> u8 {
         self.tty.read()
     }
+
+    fn gettime(&self) -> u64 {
+        self.timer.read()
+    }
+
+    fn settime(&self, t:u64) {
+        self.timer.write(t);
+    }
+
+    fn set_alerm(&self, t: u64) {
+        self.timer.set_interrupt_time(t);
+    }
+
 }

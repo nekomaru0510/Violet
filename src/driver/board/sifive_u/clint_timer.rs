@@ -2,21 +2,19 @@
 
 use core::ptr::{write_volatile, read_volatile};
 
+/* ドライバ用トレイト */
+use crate::driver::traits::timer::TraitTimer;
+
+#[derive(Clone)]
 pub struct ClintTimer {
-    base: usize, /* 0x0200_4000 */
+    base: usize,
 }
 
 const MTIMECMP0: usize = 0x0;
 const MTIME0: usize = 0x7ff8;
 
-//impl TimerAttr for ClintTimer {
-impl ClintTimer {    
+impl TraitTimer for ClintTimer {
     
-    pub fn new(base: usize) -> Self {
-        ClintTimer {base: base,}
-
-    }
-
     fn write(&self, t: u64) {
         self.write_mtime(t);
     }
@@ -25,7 +23,7 @@ impl ClintTimer {
         self.read_mtime()
     }
 
-    pub fn enable_interrupt(&self) {
+    fn enable_interrupt(&self) {
         // nothing to do
     }
 
@@ -33,13 +31,17 @@ impl ClintTimer {
         self.write_mtimecmp(0xffff_ffff_ffff_ffff);
     }
 
-    pub fn set_interrupt_time(&self, t: u64) {
+    fn set_interrupt_time(&self, t: u64) {
         self.write_mtimecmp(t);
     }
 
 }
 
 impl ClintTimer {
+    pub fn new(base: usize) -> Self {
+        ClintTimer {base: base,}
+    }
+
     pub fn write_mtimecmp(&self, t: u64) {
         unsafe {
             write_volatile((self.base + MTIMECMP0) as *mut u64, t);

@@ -70,7 +70,8 @@ pub extern "C" fn _start_trap() {
             sw   a6, 14*4(sp)
             sw   a7, 15*4(sp)
 
-            jal ra, interrupt_handler
+            addi a0, sp, 0
+            jal ra, get_context
 
             // Restore the registers from the stack.
             lw   ra, 0*4(sp)

@@ -1,6 +1,5 @@
 //! RV32I CPU ドライバ
 
-//#![feature(llvm_asm)]
 #![feature(naked_functions)]
 
 pub mod boot;
@@ -50,33 +49,22 @@ impl Processor {
 
 }
 
-/*
+/* カーネル本体の割込みハンドラ */
+use crate::interrupt_handler;
+use crate::Context;
 
-*/
-use crate::driver::board::sifive_u::clint_timer::ClintTimer;
-use crate::driver::board::sifive_u::uart::Uart;
-use crate::driver::board::sifive_u::plic::Plic;
-use crate::resource::io::serial::Serial;
-use crate::library::std::Std;
-use crate::print;
-use crate::println;
-
-/// 割込みハンドラ
+// CPU内 割込みハンドラ
 #[no_mangle]
-pub extern "C" fn interrupt_handler() {
-    let uart = Uart::new(0x1001_0000);
-    let serial = Serial::new(uart);
-    let mut std = Std::new(serial);
-    let intc = Plic::new(0x0C00_0000);
-    println!(std, "int num : {}", intc.get_claim_complete());
-    
-    /*
-    unsafe {
-        let res = &mut Table::table().resource;
-        res.io.timer.disable_interrupt();
-        res.cpu.disable_interrupt();
-    }
-    vkth::int::entry();
-    */
+pub extern "C" fn get_context(sp :*mut usize) {
+
+    let mut cont = Context::new();
+    cont.regsize = 16;
+    let ret = interrupt_handler(&mut cont);
+
+    /* [todo fix] 割込みごとに(レジスタを読むために)毎回newするのはよろしくない気がするので、なるべくやめる */
+    let cpu = Processor::new(0);
+    cpu.mstatus.modify(mstatus::MPIE::SET); /* mstatusのMPIEには割込み元でのMIEビットが入る */
+    cpu.mip.modify(mip::MTIP::CLEAR);       /* タイマ割込みがペンディングされてる？ためクリア(必要か？) */
+
 }
 

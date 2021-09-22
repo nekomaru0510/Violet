@@ -6,6 +6,7 @@ use core::ptr::{read_volatile, write_volatile};
 use crate::driver::traits::serial::TraitSerial;
 
 /* 構造体 */
+#[derive(Clone)]
 pub struct Uart {
     base: usize,
 }
