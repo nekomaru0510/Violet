@@ -6,34 +6,37 @@
 #![feature(alloc_error_handler)]
 #![no_std]
 
+/* Violetの中核機能(なるべく小さくしたい) */
+mod kernel;
+
+/* Violetコンテナ(一般的なコンテナとは違う)。ここにカーネルを構築する */
+mod container;
+
+/* コンテナの構成要素 */
 mod driver;
 mod library;
 mod resource;
 mod service;
 
-mod container;
-use container::TraitContainer;
-
-pub mod minimum_allocator;
-
 /* 使用するコンテナを登録 */
-mod sample_container;
-use sample_container::SampleContainer;
-use service::vshell::VShell;
+use container::TraitContainer;
+//use container::sample_container::SampleContainer;
+use container::hypervisor_container::HypervisorContainer;
 
 // test
 //use crate::kernel::resource::io::fesyscall::FeSyscall;
-use lazy_static::lazy_static;
+//use lazy_static::lazy_static;
 /*
 lazy_static! {
     static ref SAMPLE_CONTAINER: SampleContainer = SampleContainer::new();
 }*/
 
-//static mut SAMPLE_CONTAINER: SampleContainer = SampleContainer::new();
-//static mut SAMPLE_CONTAINER: SampleContainer;
+/* [todo fix] 可変なグローバル変数として登録。割込み処理時に必須だが、unsafeなのでなんとかしたい */
+/* [todo fix] リンカスクリプトに記載する必要があり、移植性度外視なので、消したい */
 #[allow(improper_ctypes)]
 extern "C" {
-    static mut SAMPLE_CONTAINER: SampleContainer;
+    //static mut SAMPLE_CONTAINER: SampleContainer;
+    static mut SAMPLE_CONTAINER: HypervisorContainer;
 }
 
 #[no_mangle]
@@ -59,7 +62,8 @@ pub extern "C" fn boot_init() -> ! {
     //kernel.run();
     
     unsafe {
-        SAMPLE_CONTAINER = SampleContainer::new();
+        //SAMPLE_CONTAINER = SampleContainer::new();
+        SAMPLE_CONTAINER = HypervisorContainer::new();
         SAMPLE_CONTAINER.run();
     }
     //let mut con = SampleContainer::new();

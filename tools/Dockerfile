@@ -14,7 +14,6 @@ RUN git clone -b rvv-0.9.x --single-branch https://github.com/riscv/riscv-gnu-to
 	cd riscv-gnu-toolchain && git checkout 5842fde8ee5bb3371643b60ed34906eff7a5fa31 && \
 	git submodule update --init --recursive
 RUN cd riscv-gnu-toolchain && mkdir build && cd build && ../configure --prefix=${RISCV} --enable-multilib && make
-RUN cd riscv-gnu-toolchain && mkdir build2 && cd build2 && ../configure --prefix=${RISCV} --enable-multilib && make linux
 
 # QEMUのビルド
 RUN apt update && \
@@ -30,30 +29,3 @@ RUN wget https://download.qemu.org/qemu-5.0.0.tar.xz && \
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y 
 
 RUN chsh -s /usr/bin/fish
-
-# Linux(64bit)のビルド(ハイパーバイザ動作用)
-RUN git clone https://github.com/torvalds/linux && \
-	cd linux && \
-	git checkout v5.4
-	
-RUN	cd linux && \
-	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- defconfig && \
-	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- -j 2
-
-RUN apt update && \
-	apt install -y cpio
-
-# busybox(64bit)のビルド(ハイパーバイザ動作用)
-RUN git clone https://git.busybox.net/busybox && \
-	cd busybox && \
-	CROSS_COMPILE=riscv64-unknown-linux-gnu- make defconfig && \
-	sed -e 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config && \
-	CROSS_COMPILE=riscv64-unknown-linux-gnu- make -j 2 && \
-	CROSS_COMPILE=riscv64-unknown-linux-gnu- make install && \
-	cd ../_install && \
-	find . | cpio -o --format=newc > ../rootfs.img
-
-# opensbiのビルド
-RUN git clone https://github.com/riscv-software-src/opensbi.git && \
-	cd opensbi && \
-	make CROSS_COMPILE=riscv64-unknown-elf- PLATFORM=generic

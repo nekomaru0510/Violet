@@ -1,7 +1,0 @@
-target remote localhost:1234
-
-define mkbreak
-b *0x60011214
-b *0x600112d0
-b *0x600112e0
-end

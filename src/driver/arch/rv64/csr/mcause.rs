@@ -28,7 +28,7 @@ impl RegisterReadWrite<u32, mcause::Register> for Mcause {
     fn get(&self) -> u32 {
         let reg;
         unsafe {
-            llvm_asm!("csrr $0, mcause" : "=r"(reg) ::: "volatile");
+            asm!("csrr $0, mcause" : "=r"(reg) ::: "volatile");
         }
         reg
     }
@@ -37,7 +37,7 @@ impl RegisterReadWrite<u32, mcause::Register> for Mcause {
     #[inline(always)]
     fn set(&self, value: u32) {
         unsafe {
-            llvm_asm!("csrw mcause, $0" :: "r"(value) :: "volatile");
+            asm!("csrw mcause, $0" :: "r"(value) :: "volatile");
         }
     }
 }

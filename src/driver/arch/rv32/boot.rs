@@ -1,3 +1,4 @@
+#[cfg(target_arch = "riscv32")]
 #[link_section = ".reset.boot"]
 #[export_name = "_start"]
 #[naked]
@@ -38,7 +39,7 @@ pub extern "C" fn _start() {
     }
 }
 
-
+#[cfg(target_arch = "riscv32")]
 #[export_name = "_start_trap"]
 #[naked]
 pub extern "C" fn _start_trap() {

@@ -9,7 +9,7 @@ function Debug()
 
 function Monitor()
 {
-    riscv64-unknown-elf-gdb target/riscv64gc-unknown-none-elf/debug/violet -x ./config/gdb/connect
+    riscv64-unknown-elf-gdb ../target/riscv64imac-unknown-none-elf/debug/Violet -x ./gdb/connect
 }
 
 

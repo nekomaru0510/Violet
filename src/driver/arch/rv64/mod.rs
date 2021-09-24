@@ -1,4 +1,4 @@
-//! RV32I CPU ドライバ
+//! RV64I CPU ドライバ
 
 #![feature(naked_functions)]
 
@@ -54,7 +54,7 @@ use crate::interrupt_handler;
 use crate::Context;
 
 // CPU内 割込みハンドラ
-#[cfg(target_arch = "riscv32")]
+#[cfg(target_arch = "riscv64")]
 #[no_mangle]
 pub extern "C" fn get_context(sp :*mut usize) {
 

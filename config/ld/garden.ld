@@ -6,7 +6,7 @@ EXTERN(abort);
 SECTIONS
 {
     /* Memory : 0x8000_000 ~ 0x8008_0000 (256KiB)*/
-    __START_BASE = 0x00000000;
+    __START_BASE = 0x80000000;
     __RODATA_BASE = __START_BASE + 0x00020000;
     __DATA_BASE = __START_BASE + 0x00028000;
     __BSS_BASE = __START_BASE + 0x00030000;
@@ -18,7 +18,8 @@ SECTIONS
 
     .reset : 
     {
-        KEEP(*(.reset.boot));
+        /*KEEP(*(.reset.boot));*/
+        *(.reset.boot));
     }
 
     /* text: Program code section */

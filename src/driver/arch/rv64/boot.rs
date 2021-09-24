@@ -1,33 +1,36 @@
-#![no_std]
-
-#![feature(llvm_asm)]
-#![feature(naked_functions)]
-
-//#[cfg(all(target_arch = "riscv64", target_os = "none"))]
+#[cfg(target_arch = "riscv64")]
 #[link_section = ".reset.boot"]
 #[export_name = "_start"]
 #[naked]
+#[no_mangle]
 pub extern "C" fn _start() {
     unsafe {
-        llvm_asm! ("
-            .align 4
-            //set sp
-            csrr    t0, mhartid
-            la      t1, __STACK_SIFT
-            sll     t0, t0, t1
-            la      sp, __KERNEL_SP_BASE
-            add     sp, sp, t0
+        asm! ("
+        .option norvc
+        //.section .reset.boot, \"ax\",@progbits
+        .align 8
+                // set trap_vector
+                la      t0, _start_trap
+                csrw    mtvec, t0
+                csrr    t1, mtvec
 
-            # AP wait for interrupt
-            csrr    a0, mhartid
-            bnez    a0, ap
+                // set sp
+                csrr    t0, mhartid
+                li      t1, 14
+                sll     t0, t0, t1
+                la      sp, __KERNEL_SP_BASE
+                add     sp, sp, t0
 
-            j       boot_init
+                // AP wait for interrupt
+                csrr    a0, mhartid
+                bnez    a0, ap
 
-    ap:
-            wfi
-            j       boot_init        
-            "
+                j       boot_init
+
+        ap:
+                wfi
+                j       boot_init
+        "
         :
         :
         :
@@ -35,27 +38,14 @@ pub extern "C" fn _start() {
     }
 }
 
-/// 割込みハンドラ
-#[no_mangle]
-pub extern "C" fn interrupt_handler() {
-    /*
-    unsafe {
-        let res = &mut Table::table().resource;
-        res.io.timer.disable_interrupt();
-        res.cpu.disable_interrupt();
-    }
-    vkth::int::entry();
-    */
-}
-
-/// 割込みトラップのエントリポイント
+#[cfg(target_arch = "riscv64")]
 #[export_name = "_start_trap"]
 #[naked]
 pub extern "C" fn _start_trap() {
     unsafe {
-        llvm_asm! ("
+        asm! ("
         // from kernel
-        .align 4
+        .align 8
             csrrw sp, 0x340, sp // CSR=0x340=mscratch
 
             addi sp, sp, -16*4
@@ -80,7 +70,8 @@ pub extern "C" fn _start_trap() {
             sw   a6, 14*4(sp)
             sw   a7, 15*4(sp)
 
-            jal ra, interrupt_handler
+            addi a0, sp, 0
+            jal ra, get_context
 
             // Restore the registers from the stack.
             lw   ra, 0*4(sp)
