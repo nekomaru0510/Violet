@@ -1,10 +1,10 @@
-//! Machine Status Register (mstatus)
+//! Supervisor Status Register (sstatus)
 
 extern crate register;
 use register::{cpu::RegisterReadWrite, register_bitfields};
 
-register_bitfields! {u64,
-    pub mstatus [
+register_bitfields! {u32,
+    pub sstatus [
         /// U-mode InterruptEnable
         UIE       OFFSET(0)  NUMBITS(1) [], 
         /// S-mode Interrupt Enable
@@ -37,35 +37,29 @@ register_bitfields! {u64,
         TVM       OFFSET(20) NUMBITS(1) [],
         TW        OFFSET(21) NUMBITS(1) [],
         TSR       OFFSET(22) NUMBITS(1) [],
-        WPRI      OFFSET(23) NUMBITS(9) [],
-        UXL       OFFSET(32) NUMBITS(2) [],
-        SXL       OFFSET(34) NUMBITS(2) [],
-        SBE       OFFSET(36) NUMBITS(1) [],
-        MBE       OFFSET(37) NUMBITS(1) [],
-        GVA       OFFSET(38) NUMBITS(1) [],
-        MPV       OFFSET(39) NUMBITS(1) [],
-        SD        OFFSET(63) NUMBITS(1) []
+        WPRI      OFFSET(23) NUMBITS(8) [],
+        SD        OFFSET(31) NUMBITS(1) []
     ]
 }
 
-pub struct Mstatus;
+pub struct Sstatus;
 
-impl RegisterReadWrite<u64, mstatus::Register> for Mstatus {
+impl RegisterReadWrite<u32, sstatus::Register> for Sstatus {
     /// Reads the raw bits of the CPU register.
     #[inline(always)]
-    fn get(&self) -> u64 {
+    fn get(&self) -> u32 {
         let reg;
         unsafe {
-            asm!("csrr $0, mstatus" : "=r"(reg) ::: "volatile");
+            asm!("csrr $0, sstatus" : "=r"(reg) ::: "volatile");
         }
         reg
     }
 
     /// Writes raw bits to the CPU register.
     #[inline(always)]
-    fn set(&self, value: u64) {
+    fn set(&self, value: u32) {
         unsafe {
-            asm!("csrw mstatus, $0" :: "r"(value) :: "volatile");
+            asm!("csrw sstatus, $0" :: "r"(value) :: "volatile");
         }
     }
 }

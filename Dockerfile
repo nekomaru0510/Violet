@@ -38,6 +38,7 @@ RUN git clone https://github.com/torvalds/linux && \
 	
 RUN	cd linux && \
 	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- defconfig && \
+	# CONFIG_DEBUG_INFOを有効にする
 	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- -j 2
 
 RUN apt update && \

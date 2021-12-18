@@ -1,6 +1,6 @@
 //! stdライブラリ
 
-use core::fmt::{self, Write};
+use core::fmt;
 
 /* リソース用トレイト */
 use crate::resource::traits::tty::TraitTty;

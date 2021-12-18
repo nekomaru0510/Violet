@@ -60,7 +60,7 @@ impl HypervisorContainer
 
         let timer = Timer::new(ctimer);
         
-        cpu.enable_interrupt();
+        //cpu.enable_interrupt();
 
         let uart = Uart::new(0x1000_0000);
         let serial = Serial::new(uart);

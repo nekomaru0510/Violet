@@ -1,24 +1,23 @@
-//! mtvec csr
+//! Hypervisor Interrupt Delegation Register (hideleg)
 
 extern crate register;
 use register::{cpu::RegisterReadWrite, register_bitfields};
 
 register_bitfields! {u64,
-    pub mtvec [
-        MODE       OFFSET(0)  NUMBITS(2) [],
-        BASE       OFFSET(2)  NUMBITS(62) []
+    pub hideleg [
+        HIDELEG       OFFSET(0)  NUMBITS(64) []
     ]
 }
 
-pub struct Mtvec;
+pub struct Hideleg;
 
-impl RegisterReadWrite<u64, mtvec::Register> for Mtvec {
+impl RegisterReadWrite<u64, hideleg::Register> for Hideleg {
     /// Reads the raw bits of the CPU register.
     #[inline(always)]
     fn get(&self) -> u64 {
         let reg;
         unsafe {
-            asm!("csrr $0, mtvec" : "=r"(reg) ::: "volatile");
+            asm!("csrr $0, 0x603" : "=r"(reg) ::: "volatile");
         }
         reg
     }
@@ -27,8 +26,7 @@ impl RegisterReadWrite<u64, mtvec::Register> for Mtvec {
     #[inline(always)]
     fn set(&self, value: u64) {
         unsafe {
-            asm!("csrw mtvec, $0" :: "r"(value) :: "volatile");
+            asm!("csrw 0x603, $0" :: "r"(value) :: "volatile");
         }
     }
 }
-

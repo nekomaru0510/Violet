@@ -9,14 +9,25 @@ function Debug()
 
 function Monitor()
 {
-    riscv64-unknown-elf-gdb ../target/riscv64imac-unknown-none-elf/debug/Violet -x ./gdb/connect
+    riscv64-unknown-elf-gdb ../target/riscv64imac-unknown-none-elf/debug/violet -x ./gdb/connect
 }
 
+function MonitorLinux()
+{
+    riscv64-unknown-elf-gdb /opt/riscv/linux/vmlinux -x ./gdb/connect
+}
 
-
+function MonitorOpenSBI()
+{
+    riscv64-unknown-elf-gdb /opt/riscv/opensbi/build/platform/generic/firmware/fw_jump.elf -x ./gdb/connect
+}
 
 if [ $# -eq 0 ]; then
     Debug
 elif [ $1 == "-m" ]; then
     Monitor
+elif [ $1 == "-ml" ]; then
+    MonitorLinux    
+elif [ $1 == "-ms" ]; then
+    MonitorOpenSBI  
 fi

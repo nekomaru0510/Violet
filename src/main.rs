@@ -20,54 +20,30 @@ mod service;
 
 /* 使用するコンテナを登録 */
 use container::TraitContainer;
-//use container::sample_container::SampleContainer;
+use container::sample_container::SampleContainer;
 use container::hypervisor_container::HypervisorContainer;
 
-// test
-//use crate::kernel::resource::io::fesyscall::FeSyscall;
-//use lazy_static::lazy_static;
 /*
 lazy_static! {
-    static ref SAMPLE_CONTAINER: SampleContainer = SampleContainer::new();
+    static ref CONTAINERS: SampleContainer = SampleContainer::new();
 }*/
 
 /* [todo fix] 可変なグローバル変数として登録。割込み処理時に必須だが、unsafeなのでなんとかしたい */
 /* [todo fix] リンカスクリプトに記載する必要があり、移植性度外視なので、消したい */
 #[allow(improper_ctypes)]
 extern "C" {
-    //static mut SAMPLE_CONTAINER: SampleContainer;
-    static mut SAMPLE_CONTAINER: HypervisorContainer;
+    static mut CONTAINERS: SampleContainer;
+    //static mut CONTAINERS: HypervisorContainer;
 }
 
 #[no_mangle]
 pub extern "C" fn boot_init() -> ! {
-    /*
-    unsafe{
-        let mut fe = FeSyscall::new();
-        fe.sys_write(1, &("hello".as_bytes())[0] as *const u8 , 5);
-
-        let mut buf: [u8; 32] = [0; 32];
-
-        fe.sys_write(1, &("1\n".as_bytes())[0] as *const u8 , 2);
-
-        while buf[0] == 0 as u8 {
-            fe.sys_read(0, &buf[0] as *const u8 , 5);
-        }
-
-        fe.sys_write(1, &(buf[0] as u8) as *const u8 , 1);
-
-        fe.sys_exit();
-    }       */
-    //let mut kernel = Kernel::new();
-    //kernel.run();
     
     unsafe {
-        //SAMPLE_CONTAINER = SampleContainer::new();
-        SAMPLE_CONTAINER = HypervisorContainer::new();
-        SAMPLE_CONTAINER.run();
+        CONTAINERS = SampleContainer::new();
+        //CONTAINERS = HypervisorContainer::new();
+        CONTAINERS.run();
     }
-    //let mut con = SampleContainer::new();
-    //con.run();
 
     loop {}
 }
@@ -76,7 +52,7 @@ pub extern "C" fn boot_init() -> ! {
 pub extern "C" fn interrupt_handler(cont: &mut Context) {
     unsafe {
         /* 各種コンテナへ割込みの振分け */
-        SAMPLE_CONTAINER.interrupt(cont);
+        CONTAINERS.interrupt(cont);
     }
 }
 

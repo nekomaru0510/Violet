@@ -130,15 +130,6 @@ pub fn help<T:TraitStd>(mut std:T) {
     println!(std, "Help is Working now ... ");
 }
 
-pub fn sched<T:TraitStd>(mut std:T) {
-    //割込み受付
-    //コンテキストの保存
-    //ランキューの更新
-    //次タスクを決定
-    //次タスクのコンテキストの設定
-    //割込みリターン
-}
-
 //
 // 以下、無法地帯
 //
