@@ -30,13 +30,21 @@ use csr::sie::*;
 use csr::sip::*;
 use csr::scause::*;
 
+pub const PRV_MODE_U : u8 = 0x0;
+pub const PRV_MODE_S : u8 = 0x1;
+pub const PRV_MODE_M : u8 = 0x3;
+
 pub struct Processor {
     pub index: u32,
+    pub mode: u8,         /* 動作モード */
     pub mtvec: Mtvec,
+    pub stvec: Stvec,
     pub mie: Mie,
+    pub sie: Sie,
     pub mip: Mip,
     pub mepc: Mepc,
     pub mstatus: Mstatus,
+    pub sstatus: Sstatus,
     pub mcause: Mcause,
 }
 
@@ -45,8 +53,65 @@ pub struct Processor {
 ////////////////////////////////
 impl Processor {
     pub fn new(index: u32) -> Self {
-        Processor{index, mtvec: Mtvec {}, mie: Mie {}, mip: Mip {}, mepc: Mepc {}, mstatus: Mstatus {}, mcause: Mcause {}, }
+        Processor{index, mode:PRV_MODE_S, mtvec: Mtvec {}, stvec: Stvec {}, mie: Mie {}, sie: Sie {}, mip: Mip {}, mepc: Mepc {}, mstatus: Mstatus {}, sstatus: Sstatus {}, mcause: Mcause {}, }
     }
+    // 現在の動作モードを返す
+    pub fn current_privilege_mode(self) -> u8 {
+        self.mode
+    }
+
+    pub fn enable_interrupt(&self) {
+        match self.mode {
+            PRV_MODE_M => {
+                self.mie.modify(mie::MSIE::SET);
+                self.mie.modify(mie::MTIE::SET);
+                self.mie.modify(mie::MEIE::SET);
+                self.mstatus.modify(mstatus::MIE::SET);
+            },
+            PRV_MODE_S => {
+                self.sie.modify(sie::SSIE::SET);
+                self.sie.modify(sie::STIE::SET);
+                self.sie.modify(sie::SEIE::SET);
+                self.sstatus.modify(sstatus::SIE::SET);
+            },
+            _ => {},
+        }
+    }
+
+    pub fn disable_interrupt(&self) {
+        match self.mode {
+            PRV_MODE_M => {
+                self.mie.modify(mie::MSIE::CLEAR);
+                self.mie.modify(mie::MTIE::CLEAR);
+                self.mie.modify(mie::MEIE::CLEAR);
+                self.mstatus.modify(mstatus::MIE::CLEAR);
+            },
+            PRV_MODE_S => {
+                self.sie.modify(sie::SSIE::CLEAR);
+                self.sie.modify(sie::STIE::CLEAR);
+                self.sie.modify(sie::SEIE::CLEAR);
+                self.sstatus.modify(sstatus::SIE::CLEAR);
+            },
+            _ => {},
+        }
+    }
+
+    pub fn set_default_vector(&self) {
+        self.set_vector(_start_trap as usize);
+    }
+
+    pub fn set_vector(&self, addr: usize) {
+        match self.mode {
+            PRV_MODE_M => {
+                self.mtvec.set(addr as u64);
+            },
+            PRV_MODE_S => {
+                self.stvec.set(addr as u64);
+            },
+            _ => {},
+        }
+    }
+
 }
 
 ////////////////////////////////
@@ -55,22 +120,11 @@ impl Processor {
 // そもそもオブジェクトで管理しているのは、リソース競合を気にしているため。
 // しかし、自プロセッサであれば他コンテナで動作しているわけがないため、公開関数として実装
 
-pub const PRV_MODE_U : u8 = 0x0;
-pub const PRV_MODE_S : u8 = 0x1;
-pub const PRV_MODE_M : u8 = 0x3;
 
 #[no_mangle]
-pub extern "C" fn jump_hyp_mode(next_addr: usize, arg1: usize, arg2: usize) -> usize {
+pub extern "C" fn switch_hs_mode(next_addr: usize, arg1: usize, arg2: usize) -> usize {
+
     let mstatus = Mstatus{};
-
-    /*
-    if mstatus.read(mstatus::MPV) == 1 {
-        return 1;
-    }*/
-
-    //let sstatus = Sstatus{};
-    //sstatus.modify(sstatus::SPP::SET);
-
     mstatus.modify(mstatus::MPP::SUPERVISOR);
     mstatus.modify(mstatus::MPV::SET);
 
@@ -91,11 +145,8 @@ pub extern "C" fn jump_hyp_mode(next_addr: usize, arg1: usize, arg2: usize) -> u
     return 0;
 }
 
-//pub fn jump_next_mode(mode: u8, next_addr: usize, arg1: usize, arg2: usize) {
-//extern crate core;
-//use core::intrinsics::transmute;
 #[no_mangle]
-pub extern "C" fn jump_next_mode(next_addr: usize, arg1: usize, arg2: usize) {
+pub extern "C" fn jump_guest_kernel(next_addr: usize, arg1: usize, arg2: usize) {
     let sstatus = Sstatus{};
     sstatus.modify(sstatus::SPP::SET);
 
@@ -104,12 +155,10 @@ pub extern "C" fn jump_next_mode(next_addr: usize, arg1: usize, arg2: usize) {
     
     let hedeleg = Hedeleg{};
     hedeleg.set((1 << 0) | (1 << 3) | (1 << 8) | (1 << 12) | (1 << 13) | (1 << 15));
-    //hedeleg.set(0xffff_ffff ^ 0x400);
 
     let hideleg = Hideleg{};
     hideleg.set((1 << 10) | (1 << 6) | (1 << 2));
-    //hideleg.set(0xffff_ffff);
-    
+
     //let hvip = Hvip{};
     //hvip.set(0);
 
@@ -134,49 +183,10 @@ pub extern "C" fn jump_next_mode(next_addr: usize, arg1: usize, arg2: usize) {
 
 }
 
-pub fn setup_vector() {
-    /*
-    let mtvec = Mtvec{};
-    mtvec.set(_start_trap as u64);
-    */
-    let stvec = Stvec{};
-    stvec.set(_start_trap as u64);
-}
-
 pub fn get_cpuid() -> u64 {
     let mhartid = Mhartid{};
     mhartid.get()
 }
-
-pub fn enable_interrupt() {
-/*
-    let mie = Mie{};
-    let mstatus = Mstatus{};
-    
-    mie.modify(mie::MSIE::SET);
-    mie.modify(mie::MTIE::SET);
-    mie.modify(mie::MEIE::SET);
-    mstatus.modify(mstatus::MIE::SET);
-*/
-    let sie = Sie{};
-    let sstatus = Sstatus{};
-    
-    sie.modify(sie::SSIE::SET);
-    sie.modify(sie::STIE::SET);
-    sie.modify(sie::SEIE::SET);
-    sstatus.modify(sstatus::SIE::SET);
-}
-
-pub fn disable_interrupt() {
-    let mie = Mie{};
-    let mstatus = Mstatus{};
-
-    mie.modify(mie::MSIE::CLEAR);
-    mie.modify(mie::MTIE::CLEAR);
-    mie.modify(mie::MEIE::CLEAR);
-    mstatus.modify(mstatus::MIE::CLEAR);
-}
-
 
 ////////////////////////////////
 /* 関数(アセンブリから飛んでくる関数) */
@@ -249,9 +259,6 @@ pub extern "C" fn get_context(sp :*mut RegisterStack) {
     let mut cont = Context::new();
     cont.regsize = 16;
     let ret = interrupt_handler(&mut cont);
-    
-    let hideleg = Hideleg{};
-    hideleg.set(0xffff_ffff);
 
     unsafe {
         let scause = Scause{};
@@ -269,29 +276,9 @@ pub extern "C" fn get_context(sp :*mut RegisterStack) {
             let mut a4: usize = (*(sp)).reg[12];
             let mut a5: usize = (*(sp)).reg[13];
 
-            if (*(sp)).reg[15] == 0x6 {
-                ext = 0x52464E43;
-                fid = 1;
-                a0 = 1;
-                a1 = 1;
-                a2 = (*(sp)).reg[8];
-                a3 = (*(sp)).reg[9];
-            }
             let ret = do_ecall(ext, fid, a0, a1, a2, a3 , a4, a5);
             (*(sp)).reg[8] = ret.0;
             (*(sp)).reg[9] = ret.1;
-        }
-        else if i == 1 && e == 0x5 {
-            let sie = Sie{};
-            let sip = Sip{};
-
-            sip.modify(sip::STIP::CLEAR);
-            sie.modify(sie::VSTIE::SET);
-
-            let hedeleg = Hedeleg{};
-            hedeleg.set(0xffff_ffff ^ 0x400);
-            let hideleg = Hideleg{};
-            hideleg.set(0xffff_ffff);
         }
     }
 

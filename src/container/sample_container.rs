@@ -62,20 +62,11 @@ impl SampleContainer
 
         let timer = Timer::new(ctimer);
 
-        //let uart = Uart::new(0x1001_0000);
-        let uart = Uart::new(0x1000_0000);
+        let uart = Uart::new(0x1001_0000);
         let serial = Serial::new(uart);
         let mut std = Std::new(serial, timer);
 
-        //jump_hyp_mode(0x8010_0000, 0, 0x8220_0000);
-
         println!(std, "Hello I'm {}", "Violet");
-        enable_interrupt();
-        setup_vector();
-        jump_next_mode(0x8020_0000, 0, 0x8220_0000);
-
-        setup_vector();
-        enable_interrupt();
 
         //let mut srv = VShell::new(std);
         let mut srv = Scheduler::new(std);
@@ -86,7 +77,7 @@ impl SampleContainer
     /* 割込みハンドラ */
     pub fn interrupt(&mut self, cont: &mut Context) {
         /* 各種サービスへ割込みの振分け */
-        //self.srv.interrupt(cont);
+        self.srv.interrupt(cont);
     }
 
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # デバッグオプション
-DEBUG_ON=1
+DEBUG_ON=0
 if [ ${DEBUG_ON} = 1 ]; then
     QEMU_DEBUG_OPTION="-gdb tcp::12345 -S"
 else

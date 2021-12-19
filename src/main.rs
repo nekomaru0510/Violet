@@ -4,6 +4,11 @@
 #![feature(stmt_expr_attributes)]
 #![feature(associated_type_bounds)]
 #![feature(alloc_error_handler)]
+/* テスト用 */
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::container::hypervisor_container::test_runner)]
+#![reexport_test_harness_main = "test_main"]
+
 #![no_std]
 
 /* Violetの中核機能(なるべく小さくしたい) */
@@ -38,7 +43,8 @@ extern "C" {
 
 #[no_mangle]
 pub extern "C" fn boot_init() -> ! {
-    
+    #[cfg(test)]
+    test_main();
     unsafe {
         CONTAINERS = SampleContainer::new();
         //CONTAINERS = HypervisorContainer::new();
