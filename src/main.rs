@@ -37,8 +37,8 @@ lazy_static! {
 /* [todo fix] リンカスクリプトに記載する必要があり、移植性度外視なので、消したい */
 #[allow(improper_ctypes)]
 extern "C" {
-    static mut CONTAINERS: SampleContainer;
-    //static mut CONTAINERS: HypervisorContainer;
+    //static mut CONTAINERS: SampleContainer;
+    static mut CONTAINERS: HypervisorContainer;
 }
 
 #[no_mangle]
@@ -46,8 +46,8 @@ pub extern "C" fn boot_init() -> ! {
     #[cfg(test)]
     test_main();
     unsafe {
-        CONTAINERS = SampleContainer::new();
-        //CONTAINERS = HypervisorContainer::new();
+        //CONTAINERS = SampleContainer::new();
+        CONTAINERS = HypervisorContainer::new();
         CONTAINERS.run();
     }
 
