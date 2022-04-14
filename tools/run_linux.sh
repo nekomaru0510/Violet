@@ -82,20 +82,22 @@ function run_linux_with_violet () {
 
 # Violet+Linuxの起動2
 function run_linux_with_violet2 () {
-    qemu-system-riscv64 -nographic -machine virt \
+    #qemu-system-riscv64 -nographic -machine virt \
+    qemu-system-riscv64 -cpu rv64 -M virt -nographic  \
         -bios ${OPENSBI_BIN_PATH}/fw_jump.elf \
         -kernel ${LINUX_PATH}/linux/arch/riscv/boot/Image \
         -initrd ${BUSYBOX_PATH}/rootfs.img \
         -append "root=/dev/ram rdinit=/bin/sh console=ttyS0" \
-        -cpu rv64,x-h=true \
         -device loader,file=${VIOLET_BIN_PATH}/violet.bin,addr=0x80100000,force-raw=true \
         ${QEMU_DEBUG_OPTION}
         #-device guest-loader,addr=0x80100000,kernel=${VIOLET_BIN_PATH}/Violet \
+                #-cpu rv64,x-h=true \
 }
 
 function run_linux_with_violet_nosbi () {
     #qemu-system-riscv64 -nographic -machine virt \
-    qemu-system-riscv64 -nographic -machine sifive_u \
+    #qemu-system-riscv64 -nographic -machine sifive_u \
+    qemu-system-riscv64 -cpu rv64 -M virt -nographic  \
         -m 512M \
         -bios ${VIOLET_BIN_PATH}/violet \
         -kernel ${LINUX_PATH}/linux/arch/riscv/boot/Image \
