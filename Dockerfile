@@ -45,8 +45,9 @@ RUN apt update && \
 	apt install -y cpio
 
 # busybox(64bit)のビルド(ハイパーバイザ動作用)
-RUN git clone https://git.busybox.net/busybox && \
-	cd busybox && \
+RUN wget https://busybox.net/downloads/busybox-1.33.1.tar.bz2 && \
+	tar -C . -xvf ./busybox-1.33.1.tar.bz2 && \
+	cd busybox-1.33.1 && \
 	CROSS_COMPILE=riscv64-unknown-linux-gnu- make defconfig && \
 	sed -e 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config && \
 	CROSS_COMPILE=riscv64-unknown-linux-gnu- make -j 2 && \
