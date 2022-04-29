@@ -31,7 +31,7 @@ SECTIONS
     {
         *(.data .data.*);
         CONTAINERS = .;
-    }
+    } > RAM
 
     .bss :
     {

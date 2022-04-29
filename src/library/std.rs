@@ -1,14 +1,41 @@
 //! stdライブラリ
 
-use core::fmt;
+//H/Wに依存するので、記載したくない
+use crate::environment::qemu::PERIPHERALS;
 
+
+
+use core::fmt::{self, Write};
+
+#[macro_export]
+macro_rules! print{
+     ($($arg:tt)*) => ($crate::library::std::print(format_args!($($arg)*)));
+}
+
+#[macro_export]
+macro_rules! println {
+    ($fmt:expr) => (print!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => (print!(concat!($fmt, "\n"), $($arg)*));
+}
+
+pub fn print(args: fmt::Arguments) {
+    let mut serial= unsafe { PERIPHERALS.take_serial() };
+    serial.write_fmt(args).unwrap();
+    unsafe { PERIPHERALS.release_serial(serial) };
+}
+
+
+
+/*
 /* リソース用トレイト */
 use crate::resource::traits::tty::TraitTty;
 use crate::resource::traits::timer::TraitTimerRs;
 
 /* ライブラリ用トレイト */
 use crate::library::traits::std::TraitStd;
+*/
 
+/*
 #[derive(Clone)]
 pub struct Std<T: TraitTty, U: TraitTimerRs> {
     tty: T,
@@ -88,3 +115,4 @@ where
     }
 
 }
+*/

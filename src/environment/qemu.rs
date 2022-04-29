@@ -45,12 +45,13 @@ impl Qemu
 
     /* シリアルポートの取得 */
     /* 呼出し元は、 ジェネリック型として受け取る。トレイト境界は設定する */
+    //pub fn take_serial<T: TraitSerial>(&mut self) -> T {
     pub fn take_serial(&mut self) -> Uart {
         let p = replace(&mut self.serial, None);
         p.unwrap()
     }
     
-    pub fn return_serial(&mut self, uart: Uart) {
+    pub fn release_serial(&mut self, uart: Uart) {
         let p = replace(&mut self.serial, Some(uart));
     }
 

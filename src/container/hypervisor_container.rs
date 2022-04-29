@@ -33,8 +33,8 @@ use crate::service::TraitService;
 /* ライブラリ */
 use crate::library::std::Std;
 
-use crate::environment::qemu::init_peripherals;
-use crate::system::hypervisor::boot_guest;
+//use crate::environment::qemu::init_peripherals;
+//use crate::system::hypervisor::boot_guest;
 
 /* [todo delete] std以下に配置したい */
 use crate::print;
@@ -89,8 +89,8 @@ impl HypervisorContainer
         let mut std = Std::new(serial, timer);
 
         println!(std, "Hello I'm {} ", "Violet");
-        init_peripherals();
-        boot_guest();
+        //init_peripherals();
+        //boot_guest();
 
         cpu.enable_interrupt();
         cpu.set_default_vector();
