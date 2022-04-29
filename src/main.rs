@@ -23,6 +23,7 @@ mod library;
 mod resource;
 mod service;
 mod environment;
+mod system;
 
 /* 使用するコンテナを登録 */
 use container::TraitContainer;

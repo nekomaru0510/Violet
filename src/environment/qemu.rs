@@ -13,7 +13,7 @@ use crate::driver::traits::serial::TraitSerial;
 use crate::driver::traits::timer::TraitTimer;
 
 
-static mut PERIPHERALS: Qemu = Qemu {
+pub static mut PERIPHERALS: Qemu = Qemu {
     cpu: None,
     serial: None,
     timer: None,
@@ -24,6 +24,14 @@ pub struct Qemu {
     cpu: Option<Processor>,
     serial: Option<Uart>,
     timer: Option<ClintTimer>, 
+}
+
+pub fn init_peripherals() {
+    unsafe {
+        PERIPHERALS.cpu = Some(Processor::new(0));
+        PERIPHERALS.serial = Some(Uart::new(0x1000_0000));
+        PERIPHERALS.timer = Some(ClintTimer::new(0x0200_4000));
+    }
 }
 
 impl Qemu
@@ -37,8 +45,15 @@ impl Qemu
 
     /* シリアルポートの取得 */
     /* 呼出し元は、 ジェネリック型として受け取る。トレイト境界は設定する */
-    fn take_serial(&mut self) -> Uart {
+    pub fn take_serial(&mut self) -> Uart {
         let p = replace(&mut self.serial, None);
+        p.unwrap()
+    }
+
+    /* CPUの取得 */
+    /* 呼出し元は、 ジェネリック型として受け取る。トレイト境界は設定する */
+    pub fn take_cpu(&mut self) -> Processor {
+        let p = replace(&mut self.cpu, None);
         p.unwrap()
     }
 }

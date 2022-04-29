@@ -82,7 +82,6 @@ function run_linux_with_violet () {
 
 # Violet+Linuxの起動2
 function run_linux_with_violet2 () {
-    #qemu-system-riscv64 -nographic -machine virt \
     qemu-system-riscv64 -cpu rv64 -M virt -nographic  \
         -bios ${OPENSBI_BIN_PATH}/fw_jump.elf \
         -kernel ${LINUX_PATH}/linux/arch/riscv/boot/Image \
@@ -95,8 +94,6 @@ function run_linux_with_violet2 () {
 }
 
 function run_linux_with_violet_nosbi () {
-    #qemu-system-riscv64 -nographic -machine virt \
-    #qemu-system-riscv64 -nographic -machine sifive_u \
     qemu-system-riscv64 -cpu rv64 -M virt -nographic  \
         -m 512M \
         -bios ${VIOLET_BIN_PATH}/violet \

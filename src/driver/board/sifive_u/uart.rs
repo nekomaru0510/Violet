@@ -1,7 +1,7 @@
 //! QEMU sifive_u向け UARTドライバ
 
 use core::ptr::{read_volatile, write_volatile};
-
+use core::fmt::{self, Write};
 /* ドライバ用トレイト */
 use crate::driver::traits::serial::TraitSerial;
 
@@ -36,5 +36,14 @@ impl TraitSerial for Uart {
 
     fn read(&self) -> u8 {
         unsafe { read_volatile((self.base + RXDATA) as *const u8) }
+    }
+}
+
+impl Write for Uart {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        for c in s.bytes() {
+            self.write(c);
+        }
+        Ok(())
     }
 }
