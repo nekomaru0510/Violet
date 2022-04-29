@@ -20,6 +20,7 @@ macro_rules! println2 {
 pub fn print(args: fmt::Arguments) {
     let mut serial = unsafe { PERIPHERALS.take_serial() };
     serial.write_fmt(args).unwrap();
+    unsafe { PERIPHERALS.return_serial(serial) };
 }
 
 pub fn boot_guest() {

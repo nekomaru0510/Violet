@@ -49,6 +49,10 @@ impl Qemu
         let p = replace(&mut self.serial, None);
         p.unwrap()
     }
+    
+    pub fn return_serial(&mut self, uart: Uart) {
+        let p = replace(&mut self.serial, Some(uart));
+    }
 
     /* CPUの取得 */
     /* 呼出し元は、 ジェネリック型として受け取る。トレイト境界は設定する */
