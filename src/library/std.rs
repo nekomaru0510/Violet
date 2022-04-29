@@ -1,9 +1,7 @@
 //! stdライブラリ
 
-//H/Wに依存するので、記載したくない
-use crate::environment::qemu::PERIPHERALS;
-
-
+use crate::PERIPHERALS;
+use crate::environment::traits::serial::HasSerial;
 
 use core::fmt::{self, Write};
 

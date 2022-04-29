@@ -1,12 +1,13 @@
 //! Hypervisor機能本体
 
-//H/Wに依存するので、記載したくない
-use crate::environment::qemu::PERIPHERALS;
+use crate::PERIPHERALS;
 use crate::driver::arch::rv64::*;
 use core::fmt::{self, Write};
 use crate::driver::traits::cpu::TraitCpu;
 //use crate::system::hypervisor::print;
-use crate::driver::traits::serial::TraitSerial;
+//use crate::driver::traits::serial::TraitSerial;
+
+use crate::environment::traits::cpu::HasCpu;
 
 use crate::print;
 use crate::println;

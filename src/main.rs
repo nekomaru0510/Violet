@@ -32,9 +32,6 @@ use container::sample_container::SampleContainer;
 use container::hypervisor_container::HypervisorContainer;
 */
 
-use crate::environment::qemu::init_peripherals;
-use crate::system::hypervisor::Hypervisor;
-
 /*
 lazy_static! {
     static ref CONTAINERS: SampleContainer = SampleContainer::new();
@@ -49,6 +46,20 @@ extern "C" {
     //static mut CONTAINERS: HypervisorContainer;
 }
 */
+
+/* 環境依存 */
+use crate::environment::qemu::Qemu;
+use crate::environment::qemu::init_peripherals;
+
+pub static mut PERIPHERALS: Qemu = Qemu {
+    cpu: None,
+    serial: None,
+    timer: None,
+};
+
+/* システム依存 */
+use crate::system::hypervisor::Hypervisor;
+
 #[no_mangle]
 pub extern "C" fn boot_init() -> ! {
     #[cfg(test)]
