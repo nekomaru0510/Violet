@@ -2,6 +2,9 @@
 
 #![feature(naked_functions)]
 
+/* ドライバ用トレイト */
+use crate::driver::traits::cpu::TraitCpu;
+
 pub mod boot;
 use boot::_start_trap;
 
@@ -60,7 +63,26 @@ impl Processor {
         self.mode
     }
 
-    pub fn enable_interrupt(&self) {
+    pub fn set_default_vector(&self) {
+        self.set_vector(_start_trap as usize);
+    }
+
+    pub fn set_vector(&self, addr: usize) {
+        match self.mode {
+            PRV_MODE_M => {
+                self.mtvec.set(addr as u64);
+            },
+            PRV_MODE_S => {
+                self.stvec.set(addr as u64);
+            },
+            _ => {},
+        }
+    }
+
+}
+
+impl TraitCpu for Processor {
+    fn enable_interrupt(&self) {
         match self.mode {
             PRV_MODE_M => {
                 self.mie.modify(mie::MSIE::SET);
@@ -78,7 +100,7 @@ impl Processor {
         }
     }
 
-    pub fn disable_interrupt(&self) {
+    fn disable_interrupt(&self) {
         match self.mode {
             PRV_MODE_M => {
                 self.mie.modify(mie::MSIE::CLEAR);
@@ -95,23 +117,6 @@ impl Processor {
             _ => {},
         }
     }
-
-    pub fn set_default_vector(&self) {
-        self.set_vector(_start_trap as usize);
-    }
-
-    pub fn set_vector(&self, addr: usize) {
-        match self.mode {
-            PRV_MODE_M => {
-                self.mtvec.set(addr as u64);
-            },
-            PRV_MODE_S => {
-                self.stvec.set(addr as u64);
-            },
-            _ => {},
-        }
-    }
-
 }
 
 ////////////////////////////////

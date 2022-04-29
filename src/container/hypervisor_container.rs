@@ -13,6 +13,7 @@ use crate::driver::board::sifive_u::plic::Plic;
 
 /* ドライバ用トレイト */
 use crate::driver::traits::serial::TraitSerial;
+use crate::driver::traits::cpu::TraitCpu;
 
 /* リソース */
 use crate::resource::io::serial::Serial;
