@@ -245,7 +245,7 @@ pub extern "C" fn do_ecall(ext: i32, fid: i32, mut arg0: usize, mut arg1: usize,
         : "+r"(err), "+r"(val)
         : "r"(arg0), "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5), "r"(fid), "r"(ext)
         : "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"
-        : "memory");
+        : );
         
         return (err, val);
     }
