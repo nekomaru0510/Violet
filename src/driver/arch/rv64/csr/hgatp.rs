@@ -16,6 +16,7 @@ register_bitfields! {u64,
     ]
 }
 
+#[derive(Clone)]
 pub struct Hgatp;
 
 impl RegisterReadWrite<u64, hgatp::Register> for Hgatp {

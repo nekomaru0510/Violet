@@ -37,6 +37,7 @@ pub const PRV_MODE_U : u8 = 0x0;
 pub const PRV_MODE_S : u8 = 0x1;
 pub const PRV_MODE_M : u8 = 0x3;
 
+#[derive(Clone)]
 pub struct Processor {
     pub index: u32,
     pub mode: u8,         /* 動作モード */

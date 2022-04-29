@@ -48,6 +48,7 @@ register_bitfields! {u64,
     ]
 }
 
+#[derive(Clone)]
 pub struct Mstatus;
 
 impl RegisterReadWrite<u64, mstatus::Register> for Mstatus {

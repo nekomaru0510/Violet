@@ -10,6 +10,7 @@ register_bitfields! {u64,
     ]
 }
 
+#[derive(Clone)]
 pub struct Stvec;
 
 impl RegisterReadWrite<u64, stvec::Register> for Stvec {

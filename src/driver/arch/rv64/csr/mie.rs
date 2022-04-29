@@ -26,6 +26,7 @@ register_bitfields! {u32,
     ]
 }
 
+#[derive(Clone)]
 pub struct Mie;
 
 impl RegisterReadWrite<u32, mie::Register> for Mie {

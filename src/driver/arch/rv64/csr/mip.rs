@@ -23,6 +23,7 @@ register_bitfields! {u32,
     ]
 }
 
+#[derive(Clone)]
 pub struct Mip;
 
 impl RegisterReadWrite<u32, mip::Register> for Mip {

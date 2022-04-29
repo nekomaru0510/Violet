@@ -9,6 +9,7 @@ register_bitfields! {u32,
     ]
 }
 
+#[derive(Clone)]
 pub struct Mepc;
 
 impl RegisterReadWrite<u32, mepc::Register> for Mepc {

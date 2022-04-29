@@ -42,6 +42,7 @@ register_bitfields! {u32,
     ]
 }
 
+#[derive(Clone)]
 pub struct Sstatus;
 
 impl RegisterReadWrite<u32, sstatus::Register> for Sstatus {

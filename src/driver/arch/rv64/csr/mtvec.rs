@@ -10,6 +10,7 @@ register_bitfields! {u64,
     ]
 }
 
+#[derive(Clone)]
 pub struct Mtvec;
 
 impl RegisterReadWrite<u64, mtvec::Register> for Mtvec {

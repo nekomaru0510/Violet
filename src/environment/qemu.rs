@@ -14,12 +14,14 @@ use crate::driver::traits::timer::TraitTimer;
 
 
 static mut PERIPHERALS: Qemu = Qemu {
+    cpu: None,
     serial: None,
     timer: None,
 };
 
 #[derive(Clone)]
 pub struct Qemu {    
+    cpu: Option<Processor>,
     serial: Option<Uart>,
     timer: Option<ClintTimer>, 
 }
@@ -27,9 +29,10 @@ pub struct Qemu {
 impl Qemu
 {
     pub fn new() -> Self {
+        let cpu = Processor::new(0);
         let uart = Uart::new(0x1000_0000);
         let ctimer = ClintTimer::new(0x0200_4000);
-        Qemu { serial:Some(uart), timer:Some(ctimer), }
+        Qemu { cpu: Some(cpu), serial:Some(uart), timer:Some(ctimer), }
     }
 
     /* シリアルポートの取得 */

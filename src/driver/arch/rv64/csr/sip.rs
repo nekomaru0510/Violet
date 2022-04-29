@@ -23,6 +23,7 @@ register_bitfields! {u32,
     ]
 }
 
+#[derive(Clone)]
 pub struct Sip;
 
 impl RegisterReadWrite<u32, sip::Register> for Sip {

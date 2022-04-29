@@ -10,6 +10,7 @@ register_bitfields! {u64,
     ]
 }
 
+#[derive(Clone)]
 pub struct Scause;
 
 impl RegisterReadWrite<u64, scause::Register> for Scause {

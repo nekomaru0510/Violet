@@ -9,6 +9,7 @@ register_bitfields! {u64,
     ]
 }
 
+#[derive(Clone)]
 pub struct Hedeleg;
 
 impl RegisterReadWrite<u64, hedeleg::Register> for Hedeleg {

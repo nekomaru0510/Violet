@@ -26,6 +26,7 @@ register_bitfields! {u64,
     ]
 }
 
+#[derive(Clone)]
 pub struct Sie;
 
 impl RegisterReadWrite<u64, sie::Register> for Sie {
