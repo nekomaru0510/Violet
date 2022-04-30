@@ -4,6 +4,7 @@
 #![feature(stmt_expr_attributes)]
 #![feature(associated_type_bounds)]
 #![feature(alloc_error_handler)]
+#![feature(const_fn)]
 /* テスト用 */
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::container::hypervisor_container::test_runner)]
@@ -57,11 +58,18 @@ pub static mut PERIPHERALS: Qemu = Qemu {
     timer: None,
 };
 
+//pub static mut MEMORY
+
 /* システム依存 */
 use crate::system::hypervisor::Hypervisor;
 
+use crate::kernel::slab_allocator::init_allocater;
+
 #[no_mangle]
 pub extern "C" fn boot_init() -> ! {
+    /* メモリアロケータの初期化 */
+    init_allocater(0x8004_0000, 0x8006_0000);
+
     #[cfg(test)]
     test_main();
 
