@@ -4,19 +4,9 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-/*  ライブラリ用トレイト */
-//use crate::library::traits::std::TraitStd;
-
-/* サービス用トレイト */
-//use crate::service::TraitService;
-
 use crate::print;
 use crate::println;
-
 use crate::library::std::getc;
-
-/* [todo delete] 割込み用 */
-use crate::Context;
 
 // Violet Shell
 pub struct VShell {
@@ -25,9 +15,9 @@ pub struct VShell {
 }
 
 #[derive(Clone)]
-struct Command {
-    name: String,
-    func: fn(),
+pub struct Command {
+    pub name: String,
+    pub func: fn(),
 }
 
 const DEL: u8 = 0x7F;
@@ -36,23 +26,6 @@ const NULL: u8 = 0x00;
 const BACK_SPACE: u8 = 0x08;
 const SPACE: u8 = 0x20;
 //const CTRL_A:u8 = 0x01;
-
-/*
-impl<T> TraitService for VShell<T>
-where
-    T: TraitStd + core::clone::Clone,
-{
-    /* 実行 */
-    fn run(&mut self) {
-        self.exec();
-    }
-
-    /* 割込みハンドラ */
-    fn interrupt(&mut self, cont: &mut Context) {
-        print!(self.std, "Interrupt OK! {}", cont.sp as usize);
-    }
-}
- */
 
 impl VShell
 {
@@ -68,6 +41,11 @@ impl VShell
     /* 実行 */
     pub fn run(&mut self) {
         self.exec();
+    }
+
+    /* コマンドの追加 */
+    pub fn add_cmd(&mut self, command: Command) {
+        self.cmds.push(command);
     }
 
     fn exec(&mut self) {

@@ -27,8 +27,16 @@ RUN wget https://download.qemu.org/qemu-7.0.0.tar.xz && \
 	make install
 
 # Rustのインストール
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y 
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
+# cargo-makeのインストール [todo fix] cargo installからインストールできるようにする
+RUN wget https://github.com/sagiegurari/cargo-make/releases/download/0.35.11/cargo-make-v0.35.11-x86_64-unknown-linux-musl.zip && \
+	unzip cargo-make-v0.35.11-x86_64-unknown-linux-musl.zip && \
+	cd cargo-make-v0.35.11-x86_64-unknown-linux-musl && \
+	cp cargo-make /root/.cargo/bin/ && \
+	cp makers /root/.cargo/bin/
+
+# シェルの変更
 RUN chsh -s /usr/bin/fish
 
 # Linux(64bit)のビルド(ハイパーバイザ動作用)

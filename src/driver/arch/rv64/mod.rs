@@ -1,7 +1,5 @@
 //! RV64I CPU ドライバ
 
-#![feature(naked_functions)]
-
 /* ドライバ用トレイト */
 use crate::driver::traits::cpu::TraitCpu;
 

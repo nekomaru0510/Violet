@@ -1,0 +1,46 @@
+[env]
+VIOLET_PATH = { script = ["pwd"] }
+VIOLET_RLS_BIN_PATH = "${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/release"
+VIOLET_DBG_BIN_PATH = "${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/debug"
+VIOLET_BIN_PATH = "${VIOLET_DBG_BIN_PATH}"
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.rebuild]
+command = "cargo"
+args = ["build"]
+dependencies = ["clean"]
+
+[tasks.build]
+command = "cargo"
+args = ["build"]
+
+[tasks.objcopy]
+script = "riscv64-unknown-elf-objcopy -O binary ${VIOLET_BIN_PATH}/violet ${VIOLET_BIN_PATH}/violet.bin"
+
+[tasks.all]
+run_task = [
+    { name = ["build", "objcopy"] },
+]
+
+[tasks.run]
+script = "tools/run_linux.sh"
+
+[tasks.test]
+command = "cargo"
+args = ["test"]
+dependencies = ["clean"]
+
+[tasks.format]
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt", "--", "--emit=files"]
+
+[tasks.my-flow]
+dependencies = [
+    "format",
+    "build",
+    "test"
+]

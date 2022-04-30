@@ -64,7 +64,7 @@ function run_linux_only () {
         ${QEMU_DEBUG_OPTION}
 }
 
-# Violet+Linuxの起動2
+# Violet+Linuxの起動
 function run_linux_with_violet () {
     qemu-system-riscv64 -cpu rv64 -M virt -nographic  \
         -bios ${OPENSBI_BIN_PATH}/fw_jump.elf \
@@ -94,6 +94,7 @@ if [ $# -eq 0 ]; then
     run_linux_with_violet
 elif [ $1 == "-b" ]; then
     build_violet
+    run_linux_with_violet
 elif [ $1 == "-d" ]; then
     QEMU_DEBUG_OPTION="-gdb tcp::12345 -S"
     run_linux_with_violet

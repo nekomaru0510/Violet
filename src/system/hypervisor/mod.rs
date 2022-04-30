@@ -1,5 +1,8 @@
 //! Hypervisor機能本体
 
+extern crate alloc;
+use alloc::string::String;
+
 use crate::PERIPHERALS;
 
 use crate::environment::traits::cpu::HasCpu;
@@ -7,7 +10,7 @@ use crate::driver::traits::cpu::TraitCpu;
 
 use crate::driver::arch::rv64::*; /* todo delete*/
 
-use crate::library::vshell::VShell;
+use crate::library::vshell::{VShell, Command};
 
 use crate::print;
 use crate::println;
@@ -32,6 +35,7 @@ impl Hypervisor {
     pub fn run(&self) {
         println!("Hello I'm {} ", "Violet Hypervisor");
         let mut vshell = VShell::new();
+        vshell.add_cmd(Command{name: String::from("boot"), func: boot_guest});
         vshell.run();
         boot_guest();
     }
