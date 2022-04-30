@@ -1,4 +1,4 @@
-pub mod vshell;
+//pub mod vshell;
 pub mod sched;
 
 /* [todo delete] 割込み用 */

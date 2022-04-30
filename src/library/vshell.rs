@@ -5,29 +5,29 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 /*  ライブラリ用トレイト */
-use crate::library::traits::std::TraitStd;
+//use crate::library::traits::std::TraitStd;
 
 /* サービス用トレイト */
-use crate::service::TraitService;
+//use crate::service::TraitService;
 
-/* [todo delete] std以下に配置したい */
 use crate::print;
 use crate::println;
+
+use crate::library::std::getc;
 
 /* [todo delete] 割込み用 */
 use crate::Context;
 
 // Violet Shell
-pub struct VShell<T: TraitStd + core::clone::Clone> {
-    std: T,
+pub struct VShell {
     prompt: String,
-    cmds: Vec<Command<T>>,
+    cmds: Vec<Command>,
 }
 
 #[derive(Clone)]
-struct Command<T> where T: TraitStd, T: core::clone::Clone{
+struct Command {
     name: String,
-    func: fn(T),
+    func: fn(),
 }
 
 const DEL: u8 = 0x7F;
@@ -37,6 +37,7 @@ const BACK_SPACE: u8 = 0x08;
 const SPACE: u8 = 0x20;
 //const CTRL_A:u8 = 0x01;
 
+/*
 impl<T> TraitService for VShell<T>
 where
     T: TraitStd + core::clone::Clone,
@@ -51,18 +52,22 @@ where
         print!(self.std, "Interrupt OK! {}", cont.sp as usize);
     }
 }
+ */
 
-impl<T> VShell<T>
-where
-    T: TraitStd + core::clone::Clone,
+impl VShell
 {
-    pub fn new(std: T) -> Self {
+    pub fn new() -> Self {
         /* コマンドの登録 */
         let mut vec = Vec::new();
         //vec.push(Command{name: String::from("test"), func:test});
         vec.push(Command{name: String::from("help"), func: help});
         
-        VShell {std, prompt: String::from("Violet%"), cmds: vec}
+        VShell {prompt: String::from("Violet%"), cmds: vec}
+    }
+
+    /* 実行 */
+    pub fn run(&mut self) {
+        self.exec();
     }
 
     fn exec(&mut self) {
@@ -72,7 +77,7 @@ where
     fn main_loop(&mut self) {
         loop{
             /* プロンプトの出力 */
-            print!(self.std, "{} ", self.prompt);
+            print!("{} ", self.prompt);
             
             /* コマンドの実行 */
             let line: String = self.get_line();
@@ -89,29 +94,29 @@ where
 
         loop {
             /* 入力の受付 */
-            c = self.std.getc();
+            c = getc();
             
             match c {
                 ENTER => {
-                    print!(self.std, "\n");
+                    print!("\n");
                     break cmd;
                 },
                 NULL => {},
                 DEL | BACK_SPACE => {
-                    print!(self.std, "{}", BACK_SPACE as char);
-                    print!(self.std, "{}", SPACE as char);
-                    print!(self.std, "{}", BACK_SPACE as char);
+                    print!("{}", BACK_SPACE as char);
+                    print!("{}", SPACE as char);
+                    print!("{}", BACK_SPACE as char);
                     cmd.pop();
                 },
                 _ => {
-                    print!(self.std, "{}", c as char);
+                    print!("{}", c as char);
                     cmd.push(c as char);
                 }
             }
         }
     }
 
-    fn search_cmd(&self, name: &String) -> Option<Command<T>> {
+    fn search_cmd(&self, name: &String) -> Option<Command> {
         for (i, cmd) in self.cmds.iter().enumerate() {
             if cmd.name == *name {
                 return Some(self.cmds[i].clone())
@@ -120,14 +125,13 @@ where
         return None;
     }
 
-    fn execute_cmd(&mut self, cmd: Command<T>) {
-        /* [todo fix] clone使うのはちょっとダサい？ */
-        (cmd.func)(self.std.clone());
+    fn execute_cmd(&mut self, cmd: Command) {
+        (cmd.func)();
     }
 }
 
-pub fn help<T:TraitStd>(mut std:T) {
-    println!(std, "Help is Working now ... ");
+pub fn help() {
+    println!("Help is Working now ... ");
 }
 
 //

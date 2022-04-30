@@ -2,7 +2,7 @@
 
 use crate::PERIPHERALS;
 use crate::environment::traits::serial::HasSerial;
-
+use crate::driver::traits::serial::TraitSerial;
 use core::fmt::{self, Write};
 
 #[macro_export]
@@ -22,7 +22,12 @@ pub fn print(args: fmt::Arguments) {
     unsafe { PERIPHERALS.release_serial(serial) };
 }
 
-
+pub fn getc() -> u8 {
+    let mut serial= unsafe { PERIPHERALS.take_serial() };
+    let res = serial.read();
+    unsafe { PERIPHERALS.release_serial(serial) };
+    res
+}
 
 /*
 /* リソース用トレイト */

@@ -12,7 +12,6 @@ extern crate register;
 use register::{cpu::RegisterReadWrite/*, register_bitfields*/};
 
 extern crate alloc;
-use alloc::string::String;
 
 pub mod csr;
 use csr::mtvec::*;

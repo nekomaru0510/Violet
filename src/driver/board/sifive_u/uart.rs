@@ -12,7 +12,7 @@ pub struct Uart {
 }
 
 const TXDATA: usize = 0x00;
-const RXDATA: usize = 0x04;
+const RXDATA: usize = 0x00;
 /*
 const TXCTRL: usize = 0x08;
 const RXCTRL: usize = 0x0c;
