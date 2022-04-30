@@ -1,12 +1,6 @@
 #!/bin/bash
 
-# デバッグオプション
-DEBUG_ON=0
-if [ ${DEBUG_ON} = 1 ]; then
-    QEMU_DEBUG_OPTION="-gdb tcp::12345 -S"
-else
-    QEMU_DEBUG_OPTION=""
-fi
+
 
 
 # 各種ツールのパス設定
@@ -37,7 +31,7 @@ function build_opensbi () {
 }
 
 # OpenSBIのビルド2(Violet挟む用)
-function build_opensbi2 () {
+function build_opensbi_for_Violet () {
     cd ${OPENSBI_PATH}
     make clean
     # リンカスクリプトをクリアしないと、Violetのアドレスが変わらない
@@ -70,18 +64,8 @@ function run_linux_only () {
         ${QEMU_DEBUG_OPTION}
 }
 
-# Violet+Linuxの起動
-function run_linux_with_violet () {
-    qemu-system-riscv64 -nographic -machine virt \
-        -bios ${OPENSBI_BIN_PATH}/fw_payload.elf \
-        -kernel ${LINUX_PATH}/linux/arch/riscv/boot/Image \
-        -initrd ${BUSYBOX_PATH}/rootfs.img \
-        -append "root=/dev/ram rdinit=/bin/sh console=ttyS0" \
-        ${QEMU_DEBUG_OPTION}
-}
-
 # Violet+Linuxの起動2
-function run_linux_with_violet2 () {
+function run_linux_with_violet () {
     qemu-system-riscv64 -cpu rv64 -M virt -nographic  \
         -bios ${OPENSBI_BIN_PATH}/fw_jump.elf \
         -kernel ${LINUX_PATH}/linux/arch/riscv/boot/Image \
@@ -103,15 +87,16 @@ function run_linux_with_violet_nosbi () {
         ${QEMU_DEBUG_OPTION}
 }
 
-# Linux単体
-#build_opensbi
-#run_linux_only
+# デバッグオプション
+QEMU_DEBUG_OPTION=""
 
-# Linux+Violet
-#build_opensbi2
-build_violet
-run_linux_with_violet2
-
-#build_opensbi2
-#run_linux_with_violet
-#run_linux_with_violet_nosbi
+if [ $# -eq 0 ]; then
+    run_linux_with_violet
+elif [ $1 == "-b" ]; then
+    build_violet
+elif [ $1 == "-d" ]; then
+    QEMU_DEBUG_OPTION="-gdb tcp::12345 -S"
+    run_linux_with_violet
+elif [ $1 == "-lo" ]; then
+    run_linux_only
+fi
