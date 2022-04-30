@@ -13,7 +13,11 @@ struct MinimumAllocator {
     head: UnsafeCell<usize>,
     end: usize,
 }
-
+/*
+extern "C" {
+    static mut __HEAP_BASE: u32 = 0;
+}*/
+//static mut HEAP: u8 = 0;
 // グローバルアロケータ
 #[global_allocator]
 static HEAP: MinimumAllocator = MinimumAllocator {
