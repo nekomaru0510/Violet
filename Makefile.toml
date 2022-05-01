@@ -30,6 +30,9 @@ dependencies = [
     "objcopy",
 ]
 
+[tasks.target_add]
+script = "rustup target add riscv64imac-unknown-none-elf"
+
 #######################
 # 他プロジェクトのビルド
 #######################
@@ -52,7 +55,7 @@ dependencies = [
 
 [tasks.all]
 run_task = [
-    { name = ["build", "build_projects"] },
+    { name = ["target_add", "build", "build_projects"] },
 ]
 
 #######################

@@ -17,7 +17,7 @@ function build_busybox () {
     cd ${RISCV_PATH}
     export ARCH=riscv
 	export CROSS_COMPILE=riscv64-unknown-linux-gnu-
-    cp -f ${VIOLET_PATH}/configs/busybox/busybox-1.33.1_defconfig busybox/.config  && \
+    cp -f ${VIOLET_PATH}/config/busybox/busybox-1.33.1_defconfig busybox/.config  && \
 	make -C busybox oldconfig
 	make -C busybox install
 	mkdir -p busybox/_install/etc/init.d
