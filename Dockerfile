@@ -54,17 +54,25 @@ RUN apt update && \
 	apt install -y cpio
 
 # busybox(64bit)のビルド(ハイパーバイザ動作用)
-RUN wget https://busybox.net/downloads/busybox-1.33.1.tar.bz2 && \
-	tar -C . -xvf ./busybox-1.33.1.tar.bz2 && \
-	cd busybox-1.33.1 && \
-	CROSS_COMPILE=riscv64-unknown-linux-gnu- make defconfig && \
-	sed -e 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config && \
-	CROSS_COMPILE=riscv64-unknown-linux-gnu- make -j 2 && \
-	CROSS_COMPILE=riscv64-unknown-linux-gnu- make install && \
-	cd ../busybox-1.33.1/_install && \
-	find . | cpio -o --format=newc > ../rootfs.img
-
+RUN export ARCH=riscv && \
+	export CROSS_COMPILE=riscv64-unknown-linux-gnu-  && \
+	wget https://busybox.net/downloads/busybox-1.33.1.tar.bz2  && \
+	tar -C . -xvf ./busybox-1.33.1.tar.bz2  && \
+	mv ./busybox-1.33.1 ./busybox  && \	
+	make -C busybox defconfig  && \
+	make -C busybox install && \
+	mkdir -p busybox/_install/etc/init.d && \
+	mkdir -p busybox/_install/dev && \
+	mkdir -p busybox/_install/proc && \
+	mkdir -p busybox/_install/sys && \
+	mkdir -p busybox/_install/apps && \
+	ln -sf /sbin/init busybox/_install/init && \
+	cd busybox/_install; find ./ | cpio -o -H newc > ../rootfs.img
+	#git clone https://github.com/kvm-riscv/howto.git  && \
+	#cp -f ./howto/configs/busybox-1.33.1_defconfig busybox/.config  && \
+	
 # opensbiのビルド
 RUN git clone https://github.com/riscv-software-src/opensbi.git && \
 	cd opensbi && \
+	git checkout 51113fe && \
 	make CROSS_COMPILE=riscv64-unknown-elf- PLATFORM=generic

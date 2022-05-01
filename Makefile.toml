@@ -4,6 +4,10 @@ VIOLET_RLS_BIN_PATH = "${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/releas
 VIOLET_DBG_BIN_PATH = "${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/debug"
 VIOLET_BIN_PATH = "${VIOLET_DBG_BIN_PATH}"
 
+#######################
+# Violet自体のビルド
+#######################
+
 [tasks.clean]
 command = "cargo"
 args = ["clean"]
@@ -13,21 +17,54 @@ command = "cargo"
 args = ["build"]
 dependencies = ["clean"]
 
-[tasks.build]
+[tasks.build_elf]
 command = "cargo"
 args = ["build"]
 
 [tasks.objcopy]
+dependencies = ["build_elf"]
 script = "riscv64-unknown-elf-objcopy -O binary ${VIOLET_BIN_PATH}/violet ${VIOLET_BIN_PATH}/violet.bin"
+
+[tasks.build]
+dependencies = [
+    "objcopy",
+]
+
+#######################
+# 他プロジェクトのビルド
+#######################
+
+[tasks.build_opensbi]
+script = "tools/build_another_project.sh -o"
+
+[tasks.build_linux]
+script = "tools/build_another_project.sh -l"
+
+[tasks.build_busybox]
+script = "tools/build_another_project.sh -b"
+
+[tasks.build_projects]
+dependencies = [
+    "build_opensbi",
+    #"build_linux",
+    "build_busybox",
+]
 
 [tasks.all]
 run_task = [
-    { name = ["build", "objcopy"] },
+    { name = ["build", "build_projects"] },
 ]
+
+#######################
+# Violetの実行
+#######################
 
 [tasks.run]
 script = "tools/run_linux.sh"
 
+#######################
+# テストなど、そのほか
+#######################
 [tasks.test]
 command = "cargo"
 args = ["test"]
@@ -37,10 +74,3 @@ dependencies = ["clean"]
 install_crate = "rustfmt"
 command = "cargo"
 args = ["fmt", "--", "--emit=files"]
-
-[tasks.my-flow]
-dependencies = [
-    "format",
-    "build",
-    "test"
-]
