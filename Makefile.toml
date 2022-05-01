@@ -21,20 +21,12 @@ dependencies = ["clean"]
 command = "cargo"
 args = ["build"]
 
-[tasks.objcopy]
+[tasks.build]
 dependencies = ["build_elf"]
 script = "riscv64-unknown-elf-objcopy -O binary ${VIOLET_BIN_PATH}/violet ${VIOLET_BIN_PATH}/violet.bin"
 
-[tasks.build]
-dependencies = [
-    "objcopy",
-]
-
-[tasks.target_add]
-script = "rustup target add riscv64imac-unknown-none-elf"
-
 #######################
-# 他プロジェクトのビルド
+# 開発環境構築
 #######################
 
 [tasks.build_opensbi]
@@ -45,6 +37,9 @@ script = "tools/build_another_project.sh -l"
 
 [tasks.build_busybox]
 script = "tools/build_another_project.sh -b"
+
+[tasks.target_add]
+script = "rustup target add riscv64imac-unknown-none-elf"
 
 [tasks.build_projects]
 dependencies = [
@@ -64,6 +59,12 @@ run_task = [
 
 [tasks.run]
 script = "tools/run_linux.sh"
+
+[tasks.debug]
+script = "tools/run_linux.sh -d"
+
+[tasks.monitor]
+script = "tools/debug.sh -m"
 
 #######################
 # テストなど、そのほか

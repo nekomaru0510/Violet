@@ -56,6 +56,7 @@ pub static mut PERIPHERALS: Qemu = Qemu {
     cpu: None,
     serial: None,
     timer: None,
+    intc: None,
 };
 
 //pub static mut MEMORY
@@ -87,7 +88,7 @@ pub extern "C" fn boot_init() -> ! {
 
     loop {}
 }
-
+/*
 #[no_mangle]
 pub extern "C" fn interrupt_handler(cont: &mut Context) {
     unsafe {
@@ -95,7 +96,7 @@ pub extern "C" fn interrupt_handler(cont: &mut Context) {
         //CONTAINERS.interrupt(cont);
     }
 }
-
+ */
 /* 割込み元のコンテキストを示す */
 #[derive(Clone, Copy)]
 pub struct Context {

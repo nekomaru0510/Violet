@@ -3,7 +3,7 @@
 extern crate register;
 use register::{cpu::RegisterReadWrite, register_bitfields};
 
-register_bitfields! {u32,
+register_bitfields! {u64,
     pub sstatus [
         /// U-mode InterruptEnable
         UIE       OFFSET(0)  NUMBITS(1) [], 
@@ -45,10 +45,10 @@ register_bitfields! {u32,
 #[derive(Clone)]
 pub struct Sstatus;
 
-impl RegisterReadWrite<u32, sstatus::Register> for Sstatus {
+impl RegisterReadWrite<u64, sstatus::Register> for Sstatus {
     /// Reads the raw bits of the CPU register.
     #[inline(always)]
-    fn get(&self) -> u32 {
+    fn get(&self) -> u64 {
         let reg;
         unsafe {
             asm!("csrr $0, sstatus" : "=r"(reg) ::: "volatile");
@@ -58,7 +58,7 @@ impl RegisterReadWrite<u32, sstatus::Register> for Sstatus {
 
     /// Writes raw bits to the CPU register.
     #[inline(always)]
-    fn set(&self, value: u32) {
+    fn set(&self, value: u64) {
         unsafe {
             asm!("csrw sstatus, $0" :: "r"(value) :: "volatile");
         }

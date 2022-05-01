@@ -2,6 +2,10 @@
 
 /* ドライバ用トレイト */
 use crate::driver::traits::cpu::TraitCpu;
+use crate::driver::traits::arch::riscv::TraitRisvCpu;
+use crate::driver::traits::arch::riscv::Registers;
+//use crate::driver::traits::arch::riscv::Exception;
+//use crate::driver::traits::arch::riscv::Interrupt;
 
 pub mod boot;
 use boot::_start_trap;
@@ -123,26 +127,43 @@ impl TraitCpu for Processor {
 // そもそもオブジェクトで管理しているのは、リソース競合を気にしているため。
 // しかし、自プロセッサであれば他コンテナで動作しているわけがないため、公開関数として実装
 
+static mut IS_HSMODE:usize = 0;
 
 #[no_mangle]
 pub extern "C" fn switch_hs_mode(next_addr: usize, arg1: usize, arg2: usize) -> usize {
 
-    let mstatus = Mstatus{};
-    mstatus.modify(mstatus::MPP::SUPERVISOR);
-    mstatus.modify(mstatus::MPV::SET);
+    //let mstatus = Mstatus{};
+    let mstatus = Sstatus{};
 
+    /* [todo delete] */
+    let mut isHsmode = 0;
     unsafe {
-        asm! ("
-        .align 8
-                csrw mepc, $0
-                addi a0, $1, 0
-                addi a1, $2, 0
-                mret
-        "
-        :
-        : "r"(next_addr), "r"(arg1), "r"(arg2) 
-        :
-        : "volatile");
+        isHsmode = IS_HSMODE;
+    }
+
+    if (isHsmode == 1) {
+        return 0;
+    }
+    else {
+        unsafe {
+            IS_HSMODE = 1;
+        }
+        mstatus.modify(sstatus::MPP::SUPERVISOR);
+        //mstatus.modify(sstatus::MPV::SET);
+    
+        unsafe {
+            asm! ("
+            .align 8
+                    csrw mepc, $0
+                    addi a0, $1, 0
+                    addi a1, $2, 0
+                    mret
+            "
+            :
+            : "r"(next_addr), "r"(arg1), "r"(arg2) 
+            :
+            : "volatile");
+        }
     }
 
     return 0;
@@ -152,7 +173,7 @@ pub extern "C" fn switch_hs_mode(next_addr: usize, arg1: usize, arg2: usize) -> 
 pub extern "C" fn jump_guest_kernel(next_addr: usize, arg1: usize, arg2: usize) {
     let sstatus = Sstatus{};
     sstatus.modify(sstatus::SPP::SET);
-
+    
     //let hstatus = Hstatus{};
     //hstatus.modify(hstatus::SPV::SET);
     
@@ -199,7 +220,6 @@ pub fn get_cpuid() -> u64 {
 use crate::boot_init;
 
 /* カーネル本体の割込みハンドラ */
-use crate::interrupt_handler;
 use crate::Context;
 
 // CPU初期化処理 ブート直後に実行される
@@ -259,14 +279,30 @@ pub extern "C" fn do_ecall(ext: i32, fid: i32, mut arg0: usize, mut arg1: usize,
 #[no_mangle]
 pub extern "C" fn get_context(sp :*mut RegisterStack) {
 
-    let mut cont = Context::new();
-    cont.regsize = 16;
-    let ret = interrupt_handler(&mut cont);
+    let mut regs = Registers::new();
+    //cont.regsize = 16;
+    //let ret = interrupt_handler(&mut cont);
 
     unsafe {
         let scause = Scause{};
-        let e = scause.read(scause::EXCEPTION);
-        let i = scause.read(scause::INTERRUPT);
+        let e: usize = scause.read(scause::EXCEPTION) as usize;
+        let i: usize = scause.read(scause::INTERRUPT) as usize;
+
+        match i {
+            0 => {
+                match EXCEPTION_HANDLER.get(e) {
+                    Some(func) => func.unwrap()(e, regs),
+                    None => (),
+                }
+            }
+            1 => {
+                match INTERRUPT_HANDLER.get(e) {
+                    Some(func) => func.unwrap()(e, regs),
+                    None => (),
+                }
+            }
+            _ => ()
+        };
 
         /* VS-modeからのecallのみ、リダイレクトする */
         if e == 10 && i == 0 {
@@ -292,5 +328,32 @@ pub extern "C" fn get_context(sp :*mut RegisterStack) {
     cpu.mip.modify(mip::MTIP::CLEAR);       /* タイマ割込みがペンディングされてる？ためクリア(必要か？) */
     */
 
+}
+
+const NUM_OF_INTERRUPTS: usize = 32;
+const NUM_OF_EXCEPTIONS: usize = 32;
+
+pub static mut INTERRUPT_HANDLER: [Option<fn(int_num: usize, regs: Registers)>; NUM_OF_INTERRUPTS] = [None; NUM_OF_INTERRUPTS];
+pub static mut EXCEPTION_HANDLER: [Option<fn(exc_num: usize, regs: Registers)>; NUM_OF_EXCEPTIONS] = [None; NUM_OF_EXCEPTIONS];
+
+impl TraitRisvCpu for Processor {
+    fn register_interrupt(&self, int_num: usize, func: fn(int_num: usize, regs: Registers)) {
+        if ( int_num >= NUM_OF_INTERRUPTS ) {
+            ()        
+        }
+        unsafe {
+            INTERRUPT_HANDLER[int_num] = Some(func);    
+        }
+    }
+
+    fn register_exception(&self, exc_num: usize, func: fn(exc_num: usize, regs: Registers)) {
+        if ( exc_num >= NUM_OF_EXCEPTIONS ) {
+            ()        
+        }
+        unsafe {
+            EXCEPTION_HANDLER[exc_num] = Some(func);
+        }
+    }
+    
 }
 

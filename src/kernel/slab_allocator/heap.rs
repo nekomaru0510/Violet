@@ -1,8 +1,8 @@
 //! 
 
 extern crate alloc;
-use alloc::alloc::{GlobalAlloc, Layout};
-//use alloc::allocator::{Alloc, AllocErr, Layout};
+use alloc::alloc::Layout;
+//use alloc::alloc::GlobalAlloc;
 
 use super::slab::Slab;
 
@@ -116,7 +116,6 @@ impl Heap {
     pub fn layout_to_allocator(layout: &Layout) -> HeapAllocator {
         if layout.size() > 4096 {
             panic!("Alloc more 4096Bytes!! ");
-            HeapAllocator::Slab4096Bytes
             //HeapAllocator::LinkedListAllocator
         } else if layout.size() <= 64 && layout.align() <= 64 {
             HeapAllocator::Slab64Bytes
@@ -179,6 +178,5 @@ unsafe impl GlobalAlloc for Heap {
 #[alloc_error_handler]
 fn on_oom(_layout: Layout) -> ! {
     panic!("Alloc Error !");
-    loop{}
 }
 

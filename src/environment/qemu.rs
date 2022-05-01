@@ -31,6 +31,7 @@ pub struct Qemu {
     pub cpu: Option<Processor>,
     pub serial: Option<Uart>,
     pub timer: Option<ClintTimer>, 
+    pub intc: Option<Plic>, 
 }
 
 impl Qemu
@@ -39,7 +40,13 @@ impl Qemu
         let cpu = Processor::new(0);
         let uart = Uart::new(0x1000_0000);
         let ctimer = ClintTimer::new(0x0200_4000);
-        Qemu { cpu: Some(cpu), serial:Some(uart), timer:Some(ctimer), }
+        let intc = Plic::new(0x0c00_0000);
+        Qemu { 
+            cpu: Some(cpu), 
+            serial:Some(uart), 
+            timer:Some(ctimer), 
+            intc: Some(intc),
+        }
     }
 }
 

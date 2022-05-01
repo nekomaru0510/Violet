@@ -5,6 +5,7 @@ use core::ptr::{write_volatile, read_volatile};
 /* ドライバ用トレイト */
 use crate::driver::traits::intc::TraitIntc;
 
+#[derive(Clone)]
 pub struct Plic {
     base: usize,
 }
