@@ -42,7 +42,7 @@ RUN chsh -s /usr/bin/fish
 # Linuxの取得
 RUN git clone https://github.com/torvalds/linux && \
 	cd linux && \
-	git checkout v5.4
+	git checkout v5.17
 	
 # Linuxのビルド	(ハイパーバイザ動作用)
 RUN	cd linux && \

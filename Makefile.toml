@@ -21,9 +21,12 @@ dependencies = ["clean"]
 command = "cargo"
 args = ["build"]
 
-[tasks.build]
+[tasks.objcopy]
 dependencies = ["build_elf"]
 script = "riscv64-unknown-elf-objcopy -O binary ${VIOLET_BIN_PATH}/violet ${VIOLET_BIN_PATH}/violet.bin"
+
+[tasks.build]
+dependencies = ["objcopy"]
 
 #######################
 # 開発環境構築
