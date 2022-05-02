@@ -18,21 +18,25 @@ use crate::library::vshell::{VShell, Command};
 use crate::print;
 use crate::println;
 
-fn echo_test(exc_num: usize, regs: Registers) {
+fn echo_test(exc_num: usize, regs: &mut Registers) {
     println!("exceptioin occur!: {}", exc_num);
 }
 
 pub fn boot_guest() {
-    
-    switch_hs_mode(0x8020_0000, 0, 0x8220_0000);
-    //switch_hs_mode(boot_guest as usize, 0, 0x8220_0000);
-    
     let cpu = unsafe { PERIPHERALS.take_cpu() };
     
     cpu.enable_interrupt();
     cpu.set_default_vector();
-    //cpu.register_interrupt(5, echo_test);
-    //cpu.register_exception(10, echo_test);
+
+    unsafe {
+        INTERRUPT_HANDLER = [Some(echo_test);32];
+        EXCEPTION_HANDLER = [Some(echo_test);32];
+    }
+    
+    cpu.register_interrupt(5, do_supervisor_timer_interrupt);
+    cpu.register_interrupt(6, echo_test);
+    cpu.register_exception(10, do_ecall_from_vsmode);
+
     unsafe { PERIPHERALS.release_cpu(cpu) };
     jump_guest_kernel(0x8020_0000, 0, 0x8220_0000);    
 }
@@ -48,7 +52,7 @@ impl Hypervisor {
     }
 
     pub fn run(&self) {
-    switch_hs_mode(0x8020_0000, 0, 0x8220_0000);
+        switch_hs_mode(0x8010_0000, 0, 0x8220_0000);
 
         println!("Hello I'm {} ", "Violet Hypervisor");
         

@@ -67,7 +67,7 @@ function build_violet () {
 # Linuxのビルド
 function build_linux () {
     cd ${LINUX_PATH}
-	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- defconfig
+	#make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- defconfig
 	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- -j 2
 }
 
@@ -78,7 +78,7 @@ elif [ $1 == "-v" ]; then
 elif [ $1 == "-o" ]; then
     build_opensbi_for_Violet
 elif [ $1 == "-l" ]; then
-    build_opensbi_for_Violet
+    build_linux
 elif [ $1 == "-b" ]; then    
     build_busybox
 fi

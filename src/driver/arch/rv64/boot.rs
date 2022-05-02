@@ -124,11 +124,19 @@ pub extern "C" fn _start_trap() {
             sd   a7, 15*8(sp)
 
             csrr t0, sepc
-            addi t0, t0, 4
-            csrw sepc, t0
+            sd   t0, 16*8(sp)
+            csrr t0, scause
+            sd   t0, 17*8(sp)
+            csrr t0, stval
+            sd   t0, 18*8(sp)
+            csrr t0, sscratch
+            sd   t0, 19*8(sp)
 
             addi a0, sp, 0
             jal ra, get_context
+
+            ld   t0, 16*8(sp)
+            csrw sepc, t0
 
             // Restore the registers from the stack.
             ld   ra, 0*8(sp)
