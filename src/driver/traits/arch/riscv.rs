@@ -3,7 +3,7 @@
 /* 割込み・例外元のコンテキストを示す */
 #[derive(Clone, Copy)]
 pub struct Registers {
-    cpuid: u8,
+    epc: usize,
     regs : [usize; 32],
     sp : *mut usize,
     regsize: u32,
@@ -18,6 +18,6 @@ pub trait TraitRisvCpu {
 
 impl Registers {
     pub fn new() -> Registers {
-        Registers {cpuid: 0, regs: [0;32], sp: 0 as *mut usize, regsize: 0, }
+        Registers {epc: 0, regs: [0;32], sp: 0 as *mut usize, regsize: 0, }
     }
 }

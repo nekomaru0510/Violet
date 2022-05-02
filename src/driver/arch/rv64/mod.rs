@@ -32,9 +32,18 @@ use csr::hcounteren::*;
 use csr::hvip::*;
 use csr::hie::*;
 use csr::hgatp::*;
+use csr::hgeie::*;
 use csr::sie::*;
 use csr::sip::*;
 use csr::scause::*;
+use csr::sepc::*;
+use csr::stval::*;
+use csr::vsstatus::*;
+use csr::vsepc::*;
+use csr::vstvec::*;
+use csr::vscause::*;
+use csr::vstval::*;
+use csr::vsie::*;
 
 pub const PRV_MODE_U : u8 = 0x0;
 pub const PRV_MODE_S : u8 = 0x1;
@@ -179,24 +188,32 @@ pub extern "C" fn jump_guest_kernel(next_addr: usize, arg1: usize, arg2: usize) 
     let sstatus = Sstatus{};
     sstatus.modify(sstatus::SPP::SET);
     
-    //
+    // sret後に、仮想化モードに移行させる(必須)
     let hstatus = Hstatus{};
     hstatus.modify(hstatus::SPV::SET);
     
     // 割込みを無効かすることで、delegできるか？
     let hie = Hie{};
-    let _h = hie.get();
-    hie.set(0);
     let sie = Sie{};
-    sie.set(0);
+    //hie.set(0);
+    //hie.modify(hie::VSTIE::SET);
+    hie.set(0xffff_ffff);
+    //sie.set(0);
+    sie.set(0x000);
+    let _h = hie.get();
     let _s = sie.get();
+
+    //let hgeie = Hgeie{};
+    //hgeie.set(0xffff_ffff_ffff_ffff);
 
     let hedeleg = Hedeleg{};
     hedeleg.set((1 << 0) | (1 << 3) | (1 << 8) | (1 << 12) | (1 << 13) | (1 << 15));
+    //hedeleg.set((1 << 0) | (1 << 3) | (1 << 8) | (1 << 13) | (1 << 15));
+    //hedeleg.set(0);
     //hedeleg.set(0xffff_ffff);
 
     let hideleg = Hideleg{};
-    hideleg.set((1 << 10) | (1 << 6) | (1 << 5) | (1 << 2));
+    hideleg.set((1 << 10) | (1 << 6) | (1 << 2));
     //hideleg.set(0);
     
     //
@@ -350,13 +367,48 @@ pub extern "C" fn get_context(sp :*mut RegisterStack) {
             let mut a3: usize = (*(sp)).reg[11];
             let mut a4: usize = (*(sp)).reg[12];
             let mut a5: usize = (*(sp)).reg[13];
-
-            let ret = do_ecall(ext, fid, a0, a1, a2, a3 , a4, a5);
-            (*(sp)).reg[8] = ret.0;
-            (*(sp)).reg[9] = ret.1;
+            
+            if (ext != 6) {
+                let ret = do_ecall(ext, fid, a0, a1, a2, a3 , a4, a5);
+                (*(sp)).reg[8] = ret.0;
+                (*(sp)).reg[9] = ret.1;
+            }
+            if (ext == 6) {
+                ext = 0x52464E43;
+                fid = 6;
+                a2 = a1;
+                a3 = a2;
+                a0 = 1;
+                a1 = 0;
+                let ret = do_ecall(ext, fid, a0, a1, a2, a3 , a4, a5);
+                (*(sp)).reg[8] = ret.0;
+                (*(sp)).reg[9] = ret.1;
+            }
+            
+            //let hvip = Hvip{};
+            //hvip.set(0x060);
+        }
+        /* 割込みはguestにリダイレクトする */
+        if e == 5 && i == 1 {
+            let hvip = Hvip{};
+            //hvip.set(0x040);
+            //hvip.set(0x020);
+            //redirect_to_guest();
+        }
+        if e == 9 && i == 1 {
+            let hvip = Hvip{};
+            //hvip.set(0x040);
+            //hvip.set(0x600);
+            //redirect_to_guest();
+        }
+        if e == 12 && i == 0 {
+            //redirect_to_guest();
         }
     }
 
+    let vsstatus = Vsstatus{};
+    let _vs = vsstatus.get();
+    let _vs2 = vsstatus.get();
     /* [todo fix] 割込みごとに(レジスタを読むために)毎回newするのはよろしくない気がするので、なるべくやめる */
     /*
     let cpu = Processor::new(0);
@@ -364,6 +416,60 @@ pub extern "C" fn get_context(sp :*mut RegisterStack) {
     cpu.mip.modify(mip::MTIP::CLEAR);       /* タイマ割込みがペンディングされてる？ためクリア(必要か？) */
     */
 
+}
+
+pub fn redirect_to_guest() {
+    let hstatus = Hstatus{};
+    let sstatus = Sstatus{};
+    let vsstatus = Vsstatus{};
+    let vsepc = Vsepc{};
+    let sepc = Sepc{};
+    let vscause = Vscause{};
+    let scause = Scause{};
+    let vstvec = Vstvec{};
+    let stval = Stval{};
+    let vstval = Vstval{};
+    
+    //1. vsstatus.SPP = sstatus.SPP
+    match sstatus.read(sstatus::SPP) {
+        1 => vsstatus.modify(vsstatus::SPP::SET),
+        0 => vsstatus.modify(vsstatus::SPP::CLEAR),
+        _ => ()
+    }
+        
+    //2. vsstatus.SPIE = vsstatus.SIE
+    let _s = vsstatus.read(vsstatus::SIE);
+    match vsstatus.read(vsstatus::SIE) {
+        1 => vsstatus.modify(vsstatus::SPIE::SET),
+        0 => vsstatus.modify(vsstatus::SPIE::CLEAR),
+        _ => ()
+    }
+    let _s2 = vsstatus.read(vsstatus::SIE);
+    let _v = Vsie{}.get();
+    // vsstatus.SIE = 0
+    vsstatus.modify(vsstatus::SIE::CLEAR);
+
+    // vscause = scause
+    vscause.set(scause.get());
+    // vstval = stval
+    vstval.set(stval.get());
+    // vsepc = sepc
+    vsepc.set(sepc.get());
+
+    //3. sepc = vstvec
+    sepc.set(vstvec.get());
+    //4. sret  
+//b *0x80101b64
+// b run_init_process
+// b exec_binprm
+// b search_binary_handler
+// mt->load_binary(bprm);の2回目
+// b *0xffffffe0000355a0 
+// b *0x0000000080200000
+// b handle_exception 
+// b start_thread
+// 0xffffffe00762fac8に*hart_maskが
+// 0xffffffe000035858 
 }
 
 const NUM_OF_INTERRUPTS: usize = 32;
