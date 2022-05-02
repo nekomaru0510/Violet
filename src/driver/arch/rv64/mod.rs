@@ -28,7 +28,9 @@ use csr::sstatus::*;
 use csr::hstatus::*;
 use csr::hedeleg::*;
 use csr::hideleg::*;
+use csr::hcounteren::*;
 use csr::hvip::*;
+use csr::hie::*;
 use csr::hgatp::*;
 use csr::sie::*;
 use csr::sip::*;
@@ -132,8 +134,8 @@ static mut IS_HSMODE:usize = 0;
 #[no_mangle]
 pub extern "C" fn switch_hs_mode(next_addr: usize, arg1: usize, arg2: usize) -> usize {
 
-    //let mstatus = Mstatus{};
-    let mstatus = Sstatus{};
+    let hstatus = Hstatus{};
+    let sstatus = Sstatus{};
 
     /* [todo delete] */
     let mut isHsmode = 0;
@@ -148,8 +150,11 @@ pub extern "C" fn switch_hs_mode(next_addr: usize, arg1: usize, arg2: usize) -> 
         unsafe {
             IS_HSMODE = 1;
         }
-        mstatus.modify(sstatus::MPP::SUPERVISOR);
-        //mstatus.modify(sstatus::MPV::SET);
+        sstatus.modify(sstatus::SPP::SET);
+        sstatus.modify(sstatus::SPIE::SET);
+        hstatus.set(0);
+        hstatus.modify(hstatus::SPV::SET);
+        hstatus.modify(hstatus::SPVP::SET);
     
         unsafe {
             asm! ("
@@ -174,15 +179,27 @@ pub extern "C" fn jump_guest_kernel(next_addr: usize, arg1: usize, arg2: usize) 
     let sstatus = Sstatus{};
     sstatus.modify(sstatus::SPP::SET);
     
-    //let hstatus = Hstatus{};
-    //hstatus.modify(hstatus::SPV::SET);
+    //
+    let hstatus = Hstatus{};
+    hstatus.modify(hstatus::SPV::SET);
     
+    // 割込みを無効かすることで、delegできるか？
+    let hie = Hie{};
+    let _h = hie.get();
+    hie.set(0);
+    let sie = Sie{};
+    sie.set(0);
+    let _s = sie.get();
+
     let hedeleg = Hedeleg{};
     hedeleg.set((1 << 0) | (1 << 3) | (1 << 8) | (1 << 12) | (1 << 13) | (1 << 15));
+    //hedeleg.set(0xffff_ffff);
 
     let hideleg = Hideleg{};
-    hideleg.set((1 << 10) | (1 << 6) | (1 << 2));
-
+    hideleg.set((1 << 10) | (1 << 6) | (1 << 5) | (1 << 2));
+    //hideleg.set(0);
+    
+    //
     //let hvip = Hvip{};
     //hvip.set(0);
 
@@ -190,6 +207,10 @@ pub extern "C" fn jump_guest_kernel(next_addr: usize, arg1: usize, arg2: usize) 
     //hgatp.modify(hgatp::SV39X4::SET);
     //hgatp.modify(hgatp::MODE::BARE);
     hgatp.set(0);
+
+    //
+    let hcounteren = Hcounteren{};
+    hcounteren.set(0xffff_ffff);
 
     unsafe {
         asm! ("
@@ -288,21 +309,36 @@ pub extern "C" fn get_context(sp :*mut RegisterStack) {
         let e: usize = scause.read(scause::EXCEPTION) as usize;
         let i: usize = scause.read(scause::INTERRUPT) as usize;
 
+        /* 割込み元のモードを確認 */
+        let hstatus = Hstatus{};
+        let sstatus = Sstatus{};
+        let _spv = hstatus.read(hstatus::SPV);
+        let _spp = sstatus.read(sstatus::SPP);
+
+        let hideleg = Hideleg{};
+        let _i = hideleg.get();
+
+        let hedeleg = Hedeleg{};
+        let _e = hedeleg.get();
+
         match i {
             0 => {
-                match EXCEPTION_HANDLER.get(e) {
-                    Some(func) => func.unwrap()(e, regs),
+                match EXCEPTION_HANDLER[e] {
+                    Some(func) => func(e, regs),
                     None => (),
                 }
             }
             1 => {
-                match INTERRUPT_HANDLER.get(e) {
-                    Some(func) => func.unwrap()(e, regs),
+                match INTERRUPT_HANDLER[e] {
+                    Some(func) => func(e, regs),
                     None => (),
                 }
             }
             _ => ()
         };
+
+        //let hvip = Hvip{};
+        //hvip.set(0);
 
         /* VS-modeからのecallのみ、リダイレクトする */
         if e == 10 && i == 0 {
@@ -339,16 +375,16 @@ pub static mut EXCEPTION_HANDLER: [Option<fn(exc_num: usize, regs: Registers)>; 
 impl TraitRisvCpu for Processor {
     fn register_interrupt(&self, int_num: usize, func: fn(int_num: usize, regs: Registers)) {
         if ( int_num >= NUM_OF_INTERRUPTS ) {
-            ()        
+            return ();
         }
         unsafe {
-            INTERRUPT_HANDLER[int_num] = Some(func);    
+            INTERRUPT_HANDLER[int_num] = Some(func);
         }
     }
 
     fn register_exception(&self, exc_num: usize, func: fn(exc_num: usize, regs: Registers)) {
         if ( exc_num >= NUM_OF_EXCEPTIONS ) {
-            ()        
+            return ();
         }
         unsafe {
             EXCEPTION_HANDLER[exc_num] = Some(func);

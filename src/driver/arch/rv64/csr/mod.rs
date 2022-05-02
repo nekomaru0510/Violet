@@ -16,4 +16,6 @@ pub mod hstatus;
 pub mod hedeleg;
 pub mod hideleg;
 pub mod hvip;
+pub mod hie;
 pub mod hgatp;
+pub mod hcounteren;

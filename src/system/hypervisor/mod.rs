@@ -24,14 +24,15 @@ fn echo_test(exc_num: usize, regs: Registers) {
 
 pub fn boot_guest() {
     
-    switch_hs_mode(0x8020_0000, 0, 0x8220_0000);
-
+    //switch_hs_mode(0x8020_0000, 0, 0x8220_0000);
+    //switch_hs_mode(boot_guest as usize, 0, 0x8220_0000);
+    
     let cpu = unsafe { PERIPHERALS.take_cpu() };
     
     cpu.enable_interrupt();
     cpu.set_default_vector();
+    cpu.register_exception(16, echo_test);
     cpu.register_exception(10, echo_test);
-    cpu.register_exception(7, echo_test);
     unsafe { PERIPHERALS.release_cpu(cpu) };
     jump_guest_kernel(0x8020_0000, 0, 0x8220_0000);    
 }
@@ -47,8 +48,9 @@ impl Hypervisor {
     }
 
     pub fn run(&self) {
-        println!("Hello I'm {} ", "Violet Hypervisor");
+        //switch_hs_mode(0x8020_0000, 0, 0x8220_0000);
 
+        println!("Hello I'm {} ", "Violet Hypervisor");
         
         let mut vshell = VShell::new();
         vshell.add_cmd(Command{name: String::from("boot"), func: boot_guest});
