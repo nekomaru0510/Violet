@@ -4,8 +4,10 @@
 use crate::driver::traits::cpu::TraitCpu;
 use crate::driver::traits::arch::riscv::TraitRisvCpu;
 use crate::driver::traits::arch::riscv::Registers;
-//use crate::driver::traits::arch::riscv::Exception;
-//use crate::driver::traits::arch::riscv::Interrupt;
+use crate::driver::traits::arch::riscv::PrivilegeMode;
+use crate::driver::traits::arch::riscv::PagingMode;
+use crate::driver::traits::arch::riscv::Exception;
+use crate::driver::traits::arch::riscv::Interrupt;
 
 pub mod boot;
 use boot::_start_trap;
@@ -16,6 +18,7 @@ use register::{cpu::RegisterReadWrite/*, register_bitfields*/};
 extern crate alloc;
 
 pub mod csr;
+use csr::Csr;
 use csr::mtvec::*;
 use csr::stvec::*;
 use csr::mie::*;
@@ -50,26 +53,19 @@ pub const PRV_MODE_S : u8 = 0x1;
 pub const PRV_MODE_M : u8 = 0x3;
 
 #[derive(Clone)]
-pub struct Processor {
-    pub index: u32,
-    pub mode: u8,         /* 動作モード */
-    pub mtvec: Mtvec,
-    pub stvec: Stvec,
-    pub mie: Mie,
-    pub sie: Sie,
-    pub mip: Mip,
-    pub mepc: Mepc,
-    pub mstatus: Mstatus,
-    pub sstatus: Sstatus,
-    pub mcause: Mcause,
+pub struct Rv64 {
+    pub index: u32,     /* CPUのid */
+    pub mode: u8,       /* 動作モード */
+    pub csr: Csr,           /* CSR */
 }
 
+
 ////////////////////////////////
-/* インスタンス化されたCPUのメソッド(他プロセッサからの処理要求) */
-////////////////////////////////
-impl Processor {
+/* ハードウェア依存の機能の実装 */
+///////////////////////////////
+impl Rv64 {
     pub fn new(index: u32) -> Self {
-        Processor{index, mode:PRV_MODE_S, mtvec: Mtvec {}, stvec: Stvec {}, mie: Mie {}, sie: Sie {}, mip: Mip {}, mepc: Mepc {}, mstatus: Mstatus {}, sstatus: Sstatus {}, mcause: Mcause {}, }
+        Rv64{index, mode:PRV_MODE_S, csr: Csr::new(), }
     }
     // 現在の動作モードを返す
     pub fn current_privilege_mode(self) -> u8 {
@@ -83,31 +79,27 @@ impl Processor {
     pub fn set_vector(&self, addr: usize) {
         match self.mode {
             PRV_MODE_M => {
-                self.mtvec.set(addr as u64);
+                self.csr.mtvec.set(addr as u64);
             },
             PRV_MODE_S => {
-                self.stvec.set(addr as u64);
+                self.csr.stvec.set(addr as u64);
             },
             _ => {},
         }
     }
-
 }
 
-impl TraitCpu for Processor {
+//////////////////////////////////////
+/* (一般的な)CPUとして必要な機能の実装 */
+//////////////////////////////////////
+impl TraitCpu for Rv64 {
     fn enable_interrupt(&self) {
         match self.mode {
             PRV_MODE_M => {
-                self.mie.modify(mie::MSIE::SET);
-                self.mie.modify(mie::MTIE::SET);
-                self.mie.modify(mie::MEIE::SET);
-                self.mstatus.modify(mstatus::MIE::SET);
+                self.csr.mstatus.modify(mstatus::MIE::SET);
             },
             PRV_MODE_S => {
-                self.sie.modify(sie::SSIE::SET);
-                self.sie.modify(sie::STIE::SET);
-                self.sie.modify(sie::SEIE::SET);
-                self.sstatus.modify(sstatus::SIE::SET);
+                self.csr.sstatus.modify(sstatus::SIE::SET);
             },
             _ => {},
         }
@@ -116,106 +108,228 @@ impl TraitCpu for Processor {
     fn disable_interrupt(&self) {
         match self.mode {
             PRV_MODE_M => {
-                self.mie.modify(mie::MSIE::CLEAR);
-                self.mie.modify(mie::MTIE::CLEAR);
-                self.mie.modify(mie::MEIE::CLEAR);
-                self.mstatus.modify(mstatus::MIE::CLEAR);
+                self.csr.mstatus.modify(mstatus::MIE::CLEAR);
             },
             PRV_MODE_S => {
-                self.sie.modify(sie::SSIE::CLEAR);
-                self.sie.modify(sie::STIE::CLEAR);
-                self.sie.modify(sie::SEIE::CLEAR);
-                self.sstatus.modify(sstatus::SIE::CLEAR);
+                self.csr.sstatus.modify(sstatus::SIE::CLEAR);
             },
             _ => {},
         }
     }
 }
 
+const NUM_OF_INTERRUPTS: usize = 32;
+const NUM_OF_EXCEPTIONS: usize = 32;
+
+pub static mut INTERRUPT_HANDLER: [Option<fn(int_num: usize, regs: &mut Registers)>; NUM_OF_INTERRUPTS] = [None; NUM_OF_INTERRUPTS];
+pub static mut EXCEPTION_HANDLER: [Option<fn(exc_num: usize, regs: &mut Registers)>; NUM_OF_EXCEPTIONS] = [None; NUM_OF_EXCEPTIONS];
+
 ////////////////////////////////
-/* 公開関数(自プロセッサの処理) */
-////////////////////////////////
-
-#[no_mangle]
-pub extern "C" fn switch_hs_mode(next_addr: usize, arg1: usize, arg2: usize) -> usize {
-
-    let hstatus = Hstatus{};
-    let sstatus = Sstatus{};
-
-    /* 次の動作モードをHS-modeに */
-    sstatus.modify(sstatus::SPP::SET);
-    hstatus.modify(hstatus::SPV::CLEAR);
-
-    unsafe {
-        asm! ("
-        .align 8
-                la  a0, next
-                csrw sepc, a0
-                addi a0, $1, 0
-                addi a1, $2, 0
-                sret
-        next:
-                nop
-        "
-        :
-        : "r"(next_addr), "r"(arg1), "r"(arg2) 
-        :
-        : "volatile");
+/* アーキテクチャ依存機能の実装 */
+///////////////////////////////
+impl TraitRisvCpu for Rv64 {
+    fn register_interrupt(&self, int_num: usize, func: fn(int_num: usize, regs: &mut Registers)) {
+        if ( int_num >= NUM_OF_INTERRUPTS ) {
+            return ();
+        }
+        unsafe {
+            INTERRUPT_HANDLER[int_num] = Some(func);
+        }
     }
 
-    return 0;
+    fn register_exception(&self, exc_num: usize, func: fn(exc_num: usize, regs: &mut Registers)) {
+        if ( exc_num >= NUM_OF_EXCEPTIONS ) {
+            return ();
+        }
+        unsafe {
+            EXCEPTION_HANDLER[exc_num] = Some(func);
+        }
+    }
+    
+    fn switch_hs_mode(&self) {
+        /* 次の動作モードをHS-modeに */
+        self.set_next_mode(PrivilegeMode::ModeHS);
+        /* 次の動作モードへ切替え */
+        jump_by_sret(0, 0, 0);
+    }
+    
+    fn set_next_mode(&self, mode: PrivilegeMode) {
+        match mode {
+            PrivilegeMode::ModeS => {
+                self.csr.sstatus.modify(sstatus::SPP::SET);
+                self.csr.hstatus.modify(hstatus::SPV::CLEAR);  
+            }
+            PrivilegeMode::ModeVS => {
+                self.csr.sstatus.modify(sstatus::SPP::SET);
+                self.csr.hstatus.modify(hstatus::SPV::SET);  
+            }
+            PrivilegeMode::ModeHS => {
+                self.csr.sstatus.modify(sstatus::SPP::SET);
+                self.csr.hstatus.modify(hstatus::SPV::CLEAR);
+            }
+            _ => ()
+        };
+    }
+
+    fn enable_interrupt_mask(&self, int_mask: usize) {
+        let sint_mask = 0x222 & int_mask;  // sieの有効ビットでマスク
+        let scurrent = self.csr.sie.get();
+        self.csr.sie.set(scurrent | sint_mask as u64);
+
+        let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
+        let hcurrent = self.csr.hie.get();
+        self.csr.hie.set(hcurrent | hint_mask as u64);
+    }
+
+    fn disable_interrupt_mask(&self, int_mask: usize) {
+        let sint_mask = 0x222 & int_mask;  // sieの有効ビットでマスク
+        let scurrent = self.csr.sie.get();
+        self.csr.sie.set(scurrent & !(sint_mask as u64));
+
+        let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
+        let hcurrent = self.csr.hie.get();
+        self.csr.hie.set(hcurrent & !(hint_mask as u64));
+    }
+
+    fn enable_external_interrupt_mask(&self, int_mask: usize) {
+        let current = self.csr.hgeie.get();
+        self.csr.hgeie.set(current | int_mask as u64);
+    }
+
+    fn disable_external_interrupt_mask(&self, int_mask: usize) {
+        let current = self.csr.hgeie.get();
+        self.csr.hgeie.set(current & !(int_mask as u64));
+    }
+
+    fn enable_interrupt_delegation_mask(&self, int_mask: usize) {
+        let current = self.csr.hideleg.get();
+        self.csr.hideleg.set(current | int_mask as u64);
+    }
+
+    fn disable_interrupt_delegation_mask(&self, int_mask: usize) {
+        let current = self.csr.hideleg.get();
+        self.csr.hideleg.set(current & !(int_mask as u64));
+    }
+
+    fn enable_exception_delegation_mask(&self, exc_mask: usize) {
+        let current = self.csr.hedeleg.get();
+        self.csr.hedeleg.set(current | exc_mask as u64);
+    }
+
+    fn disable_exception_delegation_mask(&self, exc_mask: usize) {
+        let current = self.csr.hedeleg.get();
+        self.csr.hedeleg.set(current & !(exc_mask as u64));
+    }
+
+    fn flush_vsmode_interrupt(&self) {
+        self.csr.hvip.set(0);
+    }
+
+    fn assert_vsmode_interrupt(&self, int_mask:usize) {
+        self.csr.hvip.set(int_mask as u64);   
+    }
+
+    fn enable_vsmode_counter_access(&self, counter_mask:usize) {
+        let current = self.csr.hcounteren.get();
+        self.csr.hcounteren.set(current | counter_mask as u32);
+    }
+    
+    fn disable_vsmode_counter_access(&self, counter_mask:usize) {
+        let current = self.csr.hcounteren.get();
+        self.csr.hcounteren.set(current & !(counter_mask as u32));
+    } 
+
+    fn set_paging_mode(&self, mode: PagingMode) {
+        match mode {
+            PagingMode::Bare => {self.csr.hgatp.modify(hgatp::MODE::BARE);}
+            PagingMode::Sv39x4 => {self.csr.hgatp.modify(hgatp::MODE::SV39X4);}
+            PagingMode::Sv48x4 => {self.csr.hgatp.modify(hgatp::MODE::SV48X4);}
+            PagingMode::Sv57x4 => {self.csr.hgatp.modify(hgatp::MODE::SV57X4);}
+        };
+    }
+
 }
 
+pub fn jump_by_sret(next_addr: usize, arg1: usize, arg2: usize) {
+    if next_addr == 0 {
+        unsafe {
+            asm! ("
+            .align 8
+                    la  a0, next
+                    csrw sepc, a0
+                    sret
+            next:
+                    nop
+            "
+            :
+            :
+            :
+            : "volatile");
+        }
+    }
+    else {
+        unsafe {
+            asm! ("
+            .align 8
+                    csrw sepc, $0
+                    addi a0, $1, 0
+                    addi a1, $2, 0
+                    sret
+            "
+            :
+            : "r"(next_addr), "r"(arg1), "r"(arg2) 
+            :
+            : "volatile");
+        }
+    }
+
+}
+
+/*
 #[no_mangle]
-pub extern "C" fn jump_guest_kernel(next_addr: usize, arg1: usize, arg2: usize) {
+pub extern "C" fn _jump_guest_kernel(next_addr: usize, arg1: usize, arg2: usize) 
+{
+    
     let sstatus = Sstatus{};
-    sstatus.modify(sstatus::SPP::SET);
-    
-    // sret後に、仮想化モードに移行させる(必須)
     let hstatus = Hstatus{};
-    hstatus.modify(hstatus::SPV::SET);
     
+    // sret後に、VS-modeに移行させる
+    sstatus.modify(sstatus::SPP::SET);
+    hstatus.modify(hstatus::SPV::SET);    
+
     //VGEIN
-    hstatus.set(0x80 << 12);
+    hstatus.set(hstatus.get() | 0x20 << 12);
+    //hstatus.set(0x01 << 12);
     
-    // 割込みを無効かすることで、delegできるか？
+    // 割込みを無効化
     let hie = Hie{};
     let sie = Sie{};
-    //hie.set(0);
-    //hie.modify(hie::VSTIE::SET);
+    let hgeie = Hgeie{};
+    
     hie.set(0xffff_ffff);
     sie.set(0);
-    //sie.set(0x222);
-    let _h = hie.get();
-    let _s = sie.get();
-
-    let hgeie = Hgeie{};
     hgeie.set(0xffff_ffff_ffff_ffff);
 
     let hedeleg = Hedeleg{};
     hedeleg.set((1 << 0) | (1 << 3) | (1 << 8) | (1 << 12) | (1 << 13) | (1 << 15));
-    //hedeleg.set((1 << 0) | (1 << 3) | (1 << 8) | (1 << 13) | (1 << 15));
-    //hedeleg.set(0);
-    //hedeleg.set(0xffff_ffff);
 
     let hideleg = Hideleg{};
     hideleg.set((1 << 10) | (1 << 6) | (1 << 2));
-    //hideleg.set((1 << 10) | (1 << 2));
-    //hideleg.set(0);
     
-    //
+    // VS-mode 割込みのフラッシュ
     let hvip = Hvip{};
     hvip.set(0);
 
+    // 仮想記憶管理
     let hgatp = Hgatp{};
-    //hgatp.modify(hgatp::SV39X4::SET);
-    //hgatp.modify(hgatp::MODE::BARE);
     hgatp.set(0);
 
-    //
+    // 
     let hcounteren = Hcounteren{};
     hcounteren.set(0xffff_ffff);
 
+    //Self::jump_by_sret(next_addr, arg1, arg2);
+    // VS-modeへジャンプ
     unsafe {
         asm! ("
         .align 8
@@ -236,6 +350,7 @@ pub fn get_cpuid() -> u64 {
     let mhartid = Mhartid{};
     mhartid.get()
 }
+*/
 
 ////////////////////////////////
 /* 関数(アセンブリから飛んでくる関数) */
@@ -245,7 +360,7 @@ pub fn get_cpuid() -> u64 {
 use crate::boot_init;
 
 /* カーネル本体の割込みハンドラ */
-use crate::Context;
+//use crate::Context;
 
 // CPU初期化処理 ブート直後に実行される
 #[cfg(target_arch = "riscv64")]
@@ -417,44 +532,6 @@ pub fn redirect_to_guest(regs: &mut Registers) {
     (*(regs)).epc = vstvec.get() as usize;
 
     //4. sret  
-//b *0x80101b64
-// b run_init_process
-// b exec_binprm
-// b search_binary_handler
-// mt->load_binary(bprm);の2回目
-// b *0xffffffe0000355a0 
-// b *0x0000000080200000
-// b handle_exception 
-// b start_thread
-// 0xffffffe00762fac8に*hart_maskが
-// 0xffffffe000035858 
-//0xffffffe000035854 ... wfi 
 }
 
-const NUM_OF_INTERRUPTS: usize = 32;
-const NUM_OF_EXCEPTIONS: usize = 32;
-
-pub static mut INTERRUPT_HANDLER: [Option<fn(int_num: usize, regs: &mut Registers)>; NUM_OF_INTERRUPTS] = [None; NUM_OF_INTERRUPTS];
-pub static mut EXCEPTION_HANDLER: [Option<fn(exc_num: usize, regs: &mut Registers)>; NUM_OF_EXCEPTIONS] = [None; NUM_OF_EXCEPTIONS];
-
-impl TraitRisvCpu for Processor {
-    fn register_interrupt(&self, int_num: usize, func: fn(int_num: usize, regs: &mut Registers)) {
-        if ( int_num >= NUM_OF_INTERRUPTS ) {
-            return ();
-        }
-        unsafe {
-            INTERRUPT_HANDLER[int_num] = Some(func);
-        }
-    }
-
-    fn register_exception(&self, exc_num: usize, func: fn(exc_num: usize, regs: &mut Registers)) {
-        if ( exc_num >= NUM_OF_EXCEPTIONS ) {
-            return ();
-        }
-        unsafe {
-            EXCEPTION_HANDLER[exc_num] = Some(func);
-        }
-    }
-    
-}
 

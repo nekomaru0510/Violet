@@ -20,7 +20,7 @@ use crate::environment::traits::cpu::HasCpu;
 
 pub fn init_peripherals() {
     unsafe {
-        PERIPHERALS.cpu = Some(Processor::new(0));
+        PERIPHERALS.cpu = Some(Rv64::new(0));
         PERIPHERALS.serial = Some(Uart::new(0x1000_0000));
         PERIPHERALS.timer = Some(ClintTimer::new(0x0200_4000));
     }
@@ -28,7 +28,7 @@ pub fn init_peripherals() {
 
 #[derive(Clone)]
 pub struct Qemu {    
-    pub cpu: Option<Processor>,
+    pub cpu: Option<Rv64>,
     pub serial: Option<Uart>,
     pub timer: Option<ClintTimer>, 
     pub intc: Option<Plic>, 
@@ -37,7 +37,7 @@ pub struct Qemu {
 impl Qemu
 {
     pub fn new() -> Self {
-        let cpu = Processor::new(0);
+        let cpu = Rv64::new(0);
         let uart = Uart::new(0x1000_0000);
         let ctimer = ClintTimer::new(0x0200_4000);
         let intc = Plic::new(0x0c00_0000);
@@ -81,7 +81,7 @@ impl HasTimer for Qemu {
 }
 
 impl HasCpu for Qemu {
-    type Device = Processor;
+    type Device = Rv64;
     
     /* CPUの取得 */
     fn take_cpu(&mut self) -> <Self as HasCpu>::Device {

@@ -68,6 +68,7 @@ function build_violet () {
 function build_linux () {
     cd ${LINUX_PATH}
 	#make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- defconfig
+    #CONFIG_DEBUG_INFO
 	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- -j 2
 }
 

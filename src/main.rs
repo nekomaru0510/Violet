@@ -9,14 +9,14 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::container::hypervisor_container::test_runner)]
 #![reexport_test_harness_main = "test_main"]
+/* warning抑制 */
+#![allow(dead_code)]
+#![allow(unused_variables)]
 
 #![no_std]
 
 /* Violetの中核機能(なるべく小さくしたい) */
 mod kernel;
-
-/* Violetコンテナ(一般的なコンテナとは違う)。ここにカーネルを構築する */
-//mod container;
 
 /* コンテナの構成要素 */
 mod driver;
@@ -87,29 +87,6 @@ pub extern "C" fn boot_init() -> ! {
     }*/
 
     loop {}
-}
-/*
-#[no_mangle]
-pub extern "C" fn interrupt_handler(cont: &mut Context) {
-    unsafe {
-        /* 各種コンテナへ割込みの振分け */
-        //CONTAINERS.interrupt(cont);
-    }
-}
- */
-/* 割込み元のコンテキストを示す */
-#[derive(Clone, Copy)]
-pub struct Context {
-    cpuid: u8,
-    regs : [usize; 32],
-    sp : *mut usize,
-    regsize: u32,
-}
-
-impl Context {
-    pub fn new() -> Self {
-        Context{cpuid:0, regs: [0; 32], sp:0 as *mut usize, regsize:0, }
-    }
 }
 
 /* 無いとコンパイルエラー(言語仕様) */
