@@ -135,10 +135,6 @@ impl TraitCpu for Processor {
 ////////////////////////////////
 /* 公開関数(自プロセッサの処理) */
 ////////////////////////////////
-// そもそもオブジェクトで管理しているのは、リソース競合を気にしているため。
-// しかし、自プロセッサであれば他コンテナで動作しているわけがないため、公開関数として実装
-
-static mut IS_HSMODE:usize = 0;
 
 #[no_mangle]
 pub extern "C" fn switch_hs_mode(next_addr: usize, arg1: usize, arg2: usize) -> usize {
@@ -146,37 +142,25 @@ pub extern "C" fn switch_hs_mode(next_addr: usize, arg1: usize, arg2: usize) -> 
     let hstatus = Hstatus{};
     let sstatus = Sstatus{};
 
-    /* [todo delete] */
-    let mut isHsmode = 0;
+    /* 次の動作モードをHS-modeに */
+    sstatus.modify(sstatus::SPP::SET);
+    hstatus.modify(hstatus::SPV::CLEAR);
+
     unsafe {
-        isHsmode = IS_HSMODE;
-    }
-
-    if (isHsmode == 1) {
-        return 0;
-    }
-    else {
-        unsafe {
-            IS_HSMODE = 1;
-        }
-
-        /* 次の動作モードをHS-modeに */
-        sstatus.modify(sstatus::SPP::SET);
-        hstatus.modify(hstatus::SPV::CLEAR);
-
-        unsafe {
-            asm! ("
-            .align 8
-                    csrw sepc, $0
-                    addi a0, $1, 0
-                    addi a1, $2, 0
-                    sret
-            "
-            :
-            : "r"(next_addr), "r"(arg1), "r"(arg2) 
-            :
-            : "volatile");
-        }
+        asm! ("
+        .align 8
+                la  a0, next
+                csrw sepc, a0
+                addi a0, $1, 0
+                addi a1, $2, 0
+                sret
+        next:
+                nop
+        "
+        :
+        : "r"(next_addr), "r"(arg1), "r"(arg2) 
+        :
+        : "volatile");
     }
 
     return 0;
