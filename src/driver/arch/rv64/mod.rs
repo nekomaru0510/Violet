@@ -59,7 +59,8 @@ pub struct Rv64 {
     pub csr: Csr,           /* CSR */
 }
 
-
+use crate::println;
+use crate::print;
 ////////////////////////////////
 /* ハードウェア依存の機能の実装 */
 ///////////////////////////////
@@ -86,6 +87,28 @@ impl Rv64 {
             },
             _ => {},
         }
+    }
+
+    pub fn print_csr(&self) 
+    {
+        println!("hstatus: {:x}", self.csr.hstatus.get());
+        println!("hideleg: {:x}", self.csr.hideleg.get());
+        println!("hedeleg: {:x}", self.csr.hedeleg.get());
+        println!("hie: {:x}", self.csr.hie.get());
+        println!("hip: {:x}", self.csr.hip.get());
+        println!("hvip: {:x}", self.csr.hvip.get());
+
+        println!("sstatus: {:x}", self.csr.sstatus.get());
+        println!("sepc: {:x}", self.csr.sepc.get());
+        println!("scause: {:x}", self.csr.scause.get());
+
+        println!("vsstatus: {:x}", self.csr.vsstatus.get());
+        println!("vsie: {:x}", self.csr.vsie.get());
+        println!("vsip: {:x}", self.csr.vsip.get());
+        println!("vsepc: {:x}", self.csr.vsepc.get());
+        println!("vscause: {:x}", self.csr.vscause.get());
+        println!("vstvec: {:x}", self.csr.vstvec.get());
+
     }
 }
 
@@ -158,15 +181,15 @@ impl TraitRisvCpu for Rv64 {
             PrivilegeMode::ModeS => {
                 self.csr.sstatus.modify(sstatus::SPP::SET);
                 self.csr.hstatus.modify(hstatus::SPV::CLEAR);  
-            }
+            },
             PrivilegeMode::ModeVS => {
                 self.csr.sstatus.modify(sstatus::SPP::SET);
                 self.csr.hstatus.modify(hstatus::SPV::SET);  
-            }
+            },
             PrivilegeMode::ModeHS => {
                 self.csr.sstatus.modify(sstatus::SPP::SET);
                 self.csr.hstatus.modify(hstatus::SPV::CLEAR);
-            }
+            },
             _ => ()
         };
     }
@@ -227,6 +250,7 @@ impl TraitRisvCpu for Rv64 {
 
     fn assert_vsmode_interrupt(&self, int_mask:usize) {
         self.csr.hvip.set(int_mask as u64);   
+        self.csr.hip.set((int_mask >> 1) as u32);
     }
 
     fn enable_vsmode_counter_access(&self, counter_mask:usize) {
@@ -241,10 +265,10 @@ impl TraitRisvCpu for Rv64 {
 
     fn set_paging_mode(&self, mode: PagingMode) {
         match mode {
-            PagingMode::Bare => {self.csr.hgatp.modify(hgatp::MODE::BARE);}
-            PagingMode::Sv39x4 => {self.csr.hgatp.modify(hgatp::MODE::SV39X4);}
-            PagingMode::Sv48x4 => {self.csr.hgatp.modify(hgatp::MODE::SV48X4);}
-            PagingMode::Sv57x4 => {self.csr.hgatp.modify(hgatp::MODE::SV57X4);}
+            PagingMode::Bare => {self.csr.hgatp.modify(hgatp::MODE::BARE);},
+            PagingMode::Sv39x4 => {self.csr.hgatp.modify(hgatp::MODE::SV39X4);},
+            PagingMode::Sv48x4 => {self.csr.hgatp.modify(hgatp::MODE::SV48X4);},
+            PagingMode::Sv57x4 => {self.csr.hgatp.modify(hgatp::MODE::SV57X4);},
         };
     }
 
@@ -414,15 +438,6 @@ pub extern "C" fn do_ecall(ext: i32, fid: i32, mut arg0: usize, mut arg1: usize,
     }
 }
 
-pub fn do_supervisor_timer_interrupt(int_num: usize, regs: &mut Registers)
-{
-    let hvip = Hvip{};
-    //hvip.set(0x040);
-    //hvip.set(0x400);
-    //hvip.set(0x004);
-    //hvip.set(0x020);
-    //redirect_to_guest(regs);
-}
 
 pub fn do_ecall_from_vsmode(exc_num: usize, regs: &mut Registers)
 {
@@ -476,13 +491,13 @@ pub extern "C" fn get_context(regs :&mut Registers)
                     Some(func) => func(e, regs),
                     None => (),
                 }
-            }
+            },
             1 => {
                 match INTERRUPT_HANDLER[e] {
                     Some(func) => func(e, regs),
                     None => (),
                 }
-            }
+            },
             _ => ()
         };
     }
@@ -531,7 +546,11 @@ pub fn redirect_to_guest(regs: &mut Registers) {
     //sepc.set(vstvec.get());
     (*(regs)).epc = vstvec.get() as usize;
 
-    //4. sret  
+    //4. sstatus.SPP = 1
+    sstatus.modify(sstatus::SPP::SET);
+    
+    //5. sret  
 }
+
 
 

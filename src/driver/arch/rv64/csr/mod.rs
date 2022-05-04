@@ -22,7 +22,7 @@ pub mod hie;
 pub mod hcounteren;
 pub mod hgeie;
 //pub mod htval;
-//pub mod hip;
+pub mod hip;
 pub mod hvip;
 //pub mod htinst;
 //pub mod hgeip;
@@ -41,7 +41,7 @@ pub mod vstvec;
 pub mod vsepc;
 pub mod vscause;
 pub mod vstval;
-//pub mod vsip;
+pub mod vsip;
 //pub mod vsatp;
 
 /* 0xF11- */
@@ -65,17 +65,19 @@ use hstatus::*;
 use hedeleg::*;
 use hideleg::*;
 use hcounteren::*;
+use hip::*;
 use hvip::*;
 use hie::*;
 use hgatp::*;
 use hgeie::*;
 
 use vsstatus::*;
-use vsepc::*;
+use vsie::*;
 use vstvec::*;
+use vsepc::*;
 use vscause::*;
 use vstval::*;
-use vsie::*;
+use vsip::*;
 
 use mtvec::*;
 use mie::*;
@@ -101,6 +103,7 @@ pub struct Csr {
     pub hie: Hie,
     pub hcounteren: Hcounteren,
     pub hgeie: Hgeie,
+    pub hip: Hip,
     pub hvip: Hvip,
     pub hgatp: Hgatp,
     
@@ -110,6 +113,7 @@ pub struct Csr {
     pub vsepc: Vsepc,
     pub vscause: Vscause,
     pub vstval: Vstval,
+    pub vsip: Vsip,
     
     pub mtvec: Mtvec,
     pub mie: Mie,
@@ -137,6 +141,7 @@ impl Csr {
             hie: Hie{},
             hcounteren: Hcounteren{},
             hgeie: Hgeie{},
+            hip: Hip{},
             hvip: Hvip{},
             hgatp: Hgatp{},
         
@@ -146,6 +151,7 @@ impl Csr {
             vsepc: Vsepc{},
             vscause: Vscause{},
             vstval: Vstval{},
+            vsip: Vsip{},
         
             mtvec: Mtvec{},
             mie: Mie{},

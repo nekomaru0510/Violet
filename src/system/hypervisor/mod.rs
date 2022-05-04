@@ -6,7 +6,9 @@ use alloc::string::String;
 use crate::PERIPHERALS;
 
 use crate::environment::traits::cpu::HasCpu;
+use crate::environment::traits::timer::HasTimer;
 use crate::driver::traits::cpu::TraitCpu;
+//use crate::driver::traits::timer::TraitTimer;
 
 use crate::driver::arch::rv64::*; /* todo delete*/
 
@@ -24,7 +26,29 @@ use crate::println;
 
 fn echo_test(exc_num: usize, regs: &mut Registers) {
     println!("exceptioin occur!: {}", exc_num);
+    let cpu = unsafe { PERIPHERALS.take_cpu() };
+    //cpu.print_csr();
+    //redirect_to_guest(regs);
+    cpu.print_csr();
+    unsafe { PERIPHERALS.release_cpu(cpu) };
 }
+
+pub fn do_supervisor_timer_interrupt(int_num: usize, regs: &mut Registers)
+{
+    let cpu = unsafe { PERIPHERALS.take_cpu() };
+    /* ゲストにタイマ割込みをあげる */
+    //cpu.assert_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
+    /* 自分への割込みは無効に */
+    cpu.disable_interrupt_mask(Interrupt::SupervisorTimerInterrupt.mask());
+    cpu.print_csr();
+    cpu.assert_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
+    cpu.print_csr();
+    unsafe { PERIPHERALS.release_cpu(cpu) };
+        
+    //do_ecall(0, 0, 0x17b162, 0, 0, 0, 0, 0);
+}
+
+
 pub fn init() {
     let cpu = unsafe { PERIPHERALS.take_cpu() };
     
@@ -34,11 +58,13 @@ pub fn init() {
     cpu.set_default_vector();
 
     
-    //cpu.register_interrupt(Interrupt::VirtualSupervisorTimerInterrupt as usize, echo_test);
+    cpu.register_interrupt(Interrupt::VirtualSupervisorTimerInterrupt as usize, echo_test);
+    cpu.register_exception(Exception::LoadPageFault as usize, echo_test);
+    
     cpu.register_interrupt(5, do_supervisor_timer_interrupt);
     cpu.register_interrupt(6, echo_test);
     cpu.register_exception(10, do_ecall_from_vsmode);
-
+    
     unsafe { PERIPHERALS.release_cpu(cpu) };
 }
 
@@ -54,10 +80,11 @@ pub fn boot_guest() {
     // 
     cpu.disable_interrupt_mask(
         Interrupt::SupervisorSoftwareInterrupt.mask() |
-        Interrupt::SupervisorTimerInterrupt.mask() |
+        //Interrupt::SupervisorTimerInterrupt.mask() |
         Interrupt::SupervisorExternalInterrupt.mask() 
     );
     cpu.enable_interrupt_mask(
+        Interrupt::SupervisorTimerInterrupt.mask() |
         Interrupt::VirtualSupervisorSoftwareInterrupt.mask() |
         Interrupt::VirtualSupervisorTimerInterrupt.mask() |
         Interrupt::VirtualSupervisorExternalInterrupt.mask() |
