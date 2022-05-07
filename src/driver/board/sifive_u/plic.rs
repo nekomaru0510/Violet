@@ -14,7 +14,8 @@ pub struct Plic {
 //const START_OF_PENDING_ARRAY: usize = 0x1000;
 const START_HART0_INT_ENABLE: usize = 0x2000;
 //const HART0_PRIO_THRESHOLD: usize = 0x2_0000;
-const HART0_CLAIM_COMPLETE: usize = 0x20_0008;   
+const HART0_CLAIM_COMPLETE: usize = 0x20_1004;   
+//const HART0_CLAIM_COMPLETE: usize = 0x20_0000;   
 
 impl TraitIntc for Plic {
 

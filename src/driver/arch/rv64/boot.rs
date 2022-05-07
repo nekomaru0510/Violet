@@ -25,71 +25,7 @@ pub extern "C" fn _start() {
         : "volatile");
     }
 }
-/*
-#[cfg(target_arch = "riscv64")]
-#[export_name = "_start_trap"]
-#[naked]
-pub extern "C" fn _start_trap() {
-    unsafe {
-        asm! ("
-        // from kernel
-        .align 8
-            csrrw sp, 0x340, sp // CSR=0x340=mscratch
 
-            addi sp, sp, -16*4
-
-            csrw mepc, ra
-
-            // Store registers
-            sd   ra, 0*4(sp)
-            sd   t0, 1*4(sp)
-            sd   t1, 2*4(sp)
-            sd   t2, 3*4(sp)
-            sd   t3, 4*4(sp)
-            sd   t4, 5*4(sp)
-            sd   t5, 6*4(sp)
-            sd   t6, 7*4(sp)
-            sd   a0, 8*4(sp)
-            sd   a1, 9*4(sp)
-            sd   a2, 10*4(sp)
-            sd   a3, 11*4(sp)
-            sd   a4, 12*4(sp)
-            sd   a5, 13*4(sp)
-            sd   a6, 14*4(sp)
-            sd   a7, 15*4(sp)
-
-            addi a0, sp, 0
-            jal ra, get_context
-
-            // Restore the registers from the stack.
-            ld   ra, 0*4(sp)
-            ld   t0, 1*4(sp)
-            ld   t1, 2*4(sp)
-            ld   t2, 3*4(sp)
-            ld   t3, 4*4(sp)
-            ld   t4, 5*4(sp)
-            ld   t5, 6*4(sp)
-            ld   t6, 7*4(sp)
-            ld   a0, 8*4(sp)
-            ld   a1, 9*4(sp)
-            ld   a2, 10*4(sp)
-            ld   a3, 11*4(sp)
-            ld   a4, 12*4(sp)
-            ld   a5, 13*4(sp)
-            ld   a6, 14*4(sp)
-            ld   a7, 15*4(sp)
-
-            addi sp, sp, 16*4
-
-            mret
-        "
-        :
-        :
-        :
-        : "volatile");
-    }
-}
-*/
 #[cfg(target_arch = "riscv64")]
 #[export_name = "_start_trap"]
 #[naked]
@@ -168,3 +104,4 @@ pub extern "C" fn _start_trap() {
         : "volatile");
     }
 }
+

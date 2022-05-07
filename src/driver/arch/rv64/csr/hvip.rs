@@ -5,7 +5,9 @@ use register::{cpu::RegisterReadWrite, register_bitfields};
 
 register_bitfields! {u64,
     pub hvip [
-        HVIP       OFFSET(0)  NUMBITS(64) []
+        VSSIP     OFFSET(2)  NUMBITS(1) [],
+        VSTIP     OFFSET(6)  NUMBITS(1) [],
+        VSEIP     OFFSET(10) NUMBITS(1) []
     ]
 }
 

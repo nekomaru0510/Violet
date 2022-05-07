@@ -125,7 +125,40 @@ pub trait TraitRisvCpu {
     fn enable_vsmode_counter_access(&self, counter_mask:usize);
     /* VS-modeの各種レジスタアクセスの不許可 */
     fn disable_vsmode_counter_access(&self, counter_mask:usize);
+    /* VS-modeのページテーブルのアドレスを取得 */
+    fn get_vs_pagetable(&self) -> u64;
+    /* VS-modeで発生したページフォルトのアドレスを取得 */
+    fn get_vs_fault_address(&self) -> u64;
+
+    /* ページングモードの設定(Hypervisor用) */
+    fn set_paging_mode_hv(&self, mode: PagingMode);
 
     /* ページングモードの設定 */
     fn set_paging_mode(&self, mode: PagingMode);
+    /* ページテーブルのアドレスを設定 */
+    fn set_table_addr(&self, table_addr: usize);
+
+}
+
+
+
+// ページエントリ用トレイト
+pub trait PageEntry {
+    fn new() -> Self;
+    fn set_parmition(&mut self, flags :usize);
+    fn set_ppn(&mut self, ppn :u64);
+    fn get_ppn(&self) -> u64;
+    fn is_valid(&mut self) -> bool;
+    fn valid(&mut self);
+    fn invalid(&mut self);
+    fn writable(&mut self);
+}
+
+// ページテーブル用トレイト
+pub trait PageTable {
+    type Entry;
+
+    fn new() -> Self;
+    fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry;
+    fn get_entry_ppn(&self, vpn: u64) -> u64;
 }

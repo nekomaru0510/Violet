@@ -11,7 +11,7 @@ pub mod sepc;
 pub mod scause;
 pub mod stval;
 pub mod sip;
-//pub mod satp;
+pub mod satp;
 //pub mod scontext;
 
 /* 0x600-0x615 */
@@ -42,7 +42,7 @@ pub mod vsepc;
 pub mod vscause;
 pub mod vstval;
 pub mod vsip;
-//pub mod vsatp;
+pub mod vsatp;
 
 /* 0xF11- */
 pub mod mtvec;
@@ -56,6 +56,7 @@ pub mod mhartid;
 use sstatus::*;
 use sie::*;
 use sip::*;
+use satp::*;
 use scause::*;
 use sepc::*;
 use stval::*;
@@ -78,6 +79,7 @@ use vsepc::*;
 use vscause::*;
 use vstval::*;
 use vsip::*;
+use vsatp::*;
 
 use mtvec::*;
 use mie::*;
@@ -96,6 +98,7 @@ pub struct Csr {
     pub scause: Scause,
     pub stval: Stval,
     pub sip: Sip,
+    pub satp: Satp,
 
     pub hstatus: Hstatus,
     pub hedeleg: Hedeleg,
@@ -114,6 +117,7 @@ pub struct Csr {
     pub vscause: Vscause,
     pub vstval: Vstval,
     pub vsip: Vsip,
+    pub vsatp: Vsatp,
     
     pub mtvec: Mtvec,
     pub mie: Mie,
@@ -134,6 +138,7 @@ impl Csr {
             scause: Scause{},
             stval: Stval{},
             sip: Sip{},
+            satp: Satp{},
         
             hstatus: Hstatus{},
             hedeleg: Hedeleg{},
@@ -152,6 +157,7 @@ impl Csr {
             vscause: Vscause{},
             vstval: Vstval{},
             vsip: Vsip{},
+            vsatp: Vsatp{},
         
             mtvec: Mtvec{},
             mie: Mie{},

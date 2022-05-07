@@ -12,6 +12,8 @@ use crate::driver::traits::arch::riscv::Interrupt;
 pub mod boot;
 use boot::_start_trap;
 
+pub mod mm;
+
 extern crate register;
 use register::{cpu::RegisterReadWrite/*, register_bitfields*/};
 
@@ -38,6 +40,7 @@ use csr::hgatp::*;
 use csr::hgeie::*;
 use csr::sie::*;
 use csr::sip::*;
+use csr::satp::*;
 use csr::scause::*;
 use csr::sepc::*;
 use csr::stval::*;
@@ -109,6 +112,9 @@ impl Rv64 {
         println!("vscause: {:x}", self.csr.vscause.get());
         println!("vstvec: {:x}", self.csr.vstvec.get());
 
+    }
+    pub fn flush_interrupt_pending(&self) {
+        self.csr.sip.set(0);
     }
 }
 
@@ -250,7 +256,8 @@ impl TraitRisvCpu for Rv64 {
 
     fn assert_vsmode_interrupt(&self, int_mask:usize) {
         self.csr.hvip.set(int_mask as u64);   
-        self.csr.hip.set((int_mask >> 1) as u32);
+        //self.csr.hip.set((int_mask >> 1) as u32);
+        //self.csr.vsip.set(0xffff_ffff);
     }
 
     fn enable_vsmode_counter_access(&self, counter_mask:usize) {
@@ -263,7 +270,7 @@ impl TraitRisvCpu for Rv64 {
         self.csr.hcounteren.set(current & !(counter_mask as u32));
     } 
 
-    fn set_paging_mode(&self, mode: PagingMode) {
+    fn set_paging_mode_hv(&self, mode: PagingMode) {
         match mode {
             PagingMode::Bare => {self.csr.hgatp.modify(hgatp::MODE::BARE);},
             PagingMode::Sv39x4 => {self.csr.hgatp.modify(hgatp::MODE::SV39X4);},
@@ -272,6 +279,31 @@ impl TraitRisvCpu for Rv64 {
         };
     }
 
+    fn get_vs_pagetable(&self) -> u64 {
+        (self.csr.vsatp.get() & 0x0fff_ffff_ffff) << 12
+    }
+
+    fn get_vs_fault_address(&self) -> u64 {
+        self.csr.vstval.get()
+    }
+
+    //MMU 関連
+    // ページングモードの設定
+    fn set_paging_mode(&self, mode: PagingMode) {
+        match mode {
+            PagingMode::Bare => {self.csr.satp.modify(satp::MODE::BARE);},
+            PagingMode::Sv39x4 => {self.csr.satp.modify(satp::MODE::SV39X4);},
+            PagingMode::Sv48x4 => {self.csr.satp.modify(satp::MODE::SV48X4);},
+            PagingMode::Sv57x4 => {self.csr.satp.modify(satp::MODE::SV57X4);},
+        };
+    }
+
+    // ページテーブルのアドレスを設定
+    fn set_table_addr(&self, table_addr: usize) {
+        self.csr.satp.modify(satp::PPN::CLEAR);
+        let current = self.csr.satp.get();
+        self.csr.satp.set( current | ((table_addr as u64 >> 12) & 0x3f_ffff) );
+    }
 }
 
 pub fn jump_by_sret(next_addr: usize, arg1: usize, arg2: usize) {
@@ -279,10 +311,10 @@ pub fn jump_by_sret(next_addr: usize, arg1: usize, arg2: usize) {
         unsafe {
             asm! ("
             .align 8
-                    la  a0, next
+                    la  a0, 1f
                     csrw sepc, a0
                     sret
-            next:
+            1:
                     nop
             "
             :
@@ -306,7 +338,7 @@ pub fn jump_by_sret(next_addr: usize, arg1: usize, arg2: usize) {
             : "volatile");
         }
     }
-
+    
 }
 
 /*
@@ -369,12 +401,9 @@ pub extern "C" fn _jump_guest_kernel(next_addr: usize, arg1: usize, arg2: usize)
     }
 
 }
-
-pub fn get_cpuid() -> u64 {
-    let mhartid = Mhartid{};
-    mhartid.get()
-}
 */
+
+
 
 ////////////////////////////////
 /* 関数(アセンブリから飛んでくる関数) */
@@ -438,34 +467,6 @@ pub extern "C" fn do_ecall(ext: i32, fid: i32, mut arg0: usize, mut arg1: usize,
     }
 }
 
-
-pub fn do_ecall_from_vsmode(exc_num: usize, regs: &mut Registers)
-{
-    let mut ext: i32 = (*(regs)).gp[15] as i32;
-    let mut fid: i32 = (*(regs)).gp[14] as i32;
-    let mut a0: usize = (*(regs)).gp[8];
-    let mut a1: usize = (*(regs)).gp[9];
-    let mut a2: usize = (*(regs)).gp[10];
-    let mut a3: usize = (*(regs)).gp[11];
-    let mut a4: usize = (*(regs)).gp[12];
-    let mut a5: usize = (*(regs)).gp[13];
-
-    if (ext == 6) {
-        ext = 0x52464E43;
-        fid = 6;
-        a2 = a1;
-        a3 = a2;
-        a0 = 1;
-        a1 = 0;
-    }
-
-    let ret = do_ecall(ext, fid, a0, a1, a2, a3 , a4, a5);
-
-    (*(regs)).gp[8] = ret.0;
-    (*(regs)).gp[9] = ret.1;
-
-    (*(regs)).epc = (*(regs)).epc + 4;
-}
 
 // CPU内 割込みハンドラ
 #[cfg(target_arch = "riscv64")]
@@ -554,3 +555,7 @@ pub fn redirect_to_guest(regs: &mut Registers) {
 
 
 
+pub fn get_cpuid() -> u64 {
+    let mhartid = Mhartid{};
+    mhartid.get()
+}

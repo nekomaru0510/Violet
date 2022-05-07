@@ -3,6 +3,7 @@
 # 各種ツールのパス設定
 RISCV_PATH="/opt/riscv"
 LINUX_PATH="/opt/riscv/linux"
+#LINUX_PATH="/opt/riscv/aia/linux"
 BUSYBOX_PATH="/opt/riscv/busybox"
 OPENSBI_PATH="/opt/riscv/opensbi"
 OPENSBI_BIN_PATH="${OPENSBI_PATH}/build/platform/generic/firmware"
@@ -14,8 +15,9 @@ VIOLET_BIN_PATH="${VIOLET_DBG_BIN_PATH}"
 
 # Linuxの起動
 function run_linux_only () {
-    qemu-system-riscv64 -nographic -machine virt \
-        -bios ${OPENSBI_BIN_PATH}/fw_jump.elf \
+    #qemu-system-riscv64 -cpu rv64 -M virt,aclint=on\
+    qemu-system-riscv64 -cpu rv64 -M virt \
+        -nographic \
         -kernel ${LINUX_PATH}/arch/riscv/boot/Image \
         -initrd ${BUSYBOX_PATH}/rootfs.img \
         -append "root=/dev/ram rdinit=/bin/sh console=ttyS0" \
@@ -24,7 +26,9 @@ function run_linux_only () {
 
 # Violet+Linuxの起動
 function run_linux_with_violet () {
-    qemu-system-riscv64 -cpu rv64 -M virt -nographic  \
+    #qemu-system-riscv64 -cpu rv64 -M virt,aclint=on,aia=aplic \
+    qemu-system-riscv64 -cpu rv64 -M virt \
+        -nographic \
         -bios ${OPENSBI_BIN_PATH}/fw_jump.elf \
         -kernel ${LINUX_PATH}/arch/riscv/boot/Image \
         -initrd ${BUSYBOX_PATH}/rootfs.img \

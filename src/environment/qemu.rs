@@ -17,12 +17,14 @@ use crate::driver::board::sifive_u::plic::Plic;
 use crate::environment::traits::serial::HasSerial;
 use crate::environment::traits::timer::HasTimer;
 use crate::environment::traits::cpu::HasCpu;
+use crate::environment::traits::intc::HasIntc;
 
 pub fn init_peripherals() {
     unsafe {
         PERIPHERALS.cpu = Some(Rv64::new(0));
         PERIPHERALS.serial = Some(Uart::new(0x1000_0000));
         PERIPHERALS.timer = Some(ClintTimer::new(0x0200_4000));
+        PERIPHERALS.intc = Some(Plic::new(0x0C00_0000));
     }
 }
 
@@ -92,5 +94,20 @@ impl HasCpu for Qemu {
     /* CPUの解放 */
     fn release_cpu(&mut self, cpu: <Self as HasCpu>::Device ) {
         let p = replace(&mut self.cpu, Some(cpu));
+    }
+}
+
+impl HasIntc for Qemu {
+    type Device = Plic;
+    
+    /* 割込みコントローラの取得 */
+    fn take_intc(&mut self) -> <Self as HasIntc>::Device {
+        let p = replace(&mut self.intc, None);
+        p.unwrap()
+    }
+    
+    /* 割込みコントローラの解放 */
+    fn release_intc(&mut self, intc: <Self as HasIntc>::Device ) {
+        let p = replace(&mut self.intc, Some(intc));
     }
 }
