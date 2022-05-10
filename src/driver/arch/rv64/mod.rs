@@ -21,18 +21,11 @@ extern crate alloc;
 
 pub mod csr;
 use csr::Csr;
-use csr::mtvec::*;
-use csr::stvec::*;
-use csr::mie::*;
-use csr::mip::*;
-use csr::mepc::*;
 use csr::mstatus::*;
-use csr::mcause::*;
 use csr::mhartid::*;
 use csr::sstatus::*;
 use csr::hstatus::*;
 use csr::hedeleg::*;
-use csr::hideleg::*;
 use csr::hcounteren::*;
 use csr::hvip::*;
 use csr::hie::*;
@@ -51,15 +44,13 @@ use csr::vscause::*;
 use csr::vstval::*;
 use csr::vsie::*;
 
-pub const PRV_MODE_U : u8 = 0x0;
-pub const PRV_MODE_S : u8 = 0x1;
-pub const PRV_MODE_M : u8 = 0x3;
+
 
 #[derive(Clone)]
 pub struct Rv64 {
-    pub index: u32,     /* CPUのid */
-    pub mode: u8,       /* 動作モード */
-    pub csr: Csr,           /* CSR */
+    pub index: u32,             /* CPUのid */
+    pub mode: PrivilegeMode,    /* 動作モード */
+    pub csr: Csr,               /* CSR */
 }
 
 use crate::println;
@@ -69,10 +60,10 @@ use crate::print;
 ///////////////////////////////
 impl Rv64 {
     pub fn new(index: u32) -> Self {
-        Rv64{index, mode:PRV_MODE_S, csr: Csr::new(), }
+        Rv64{index, mode: PrivilegeMode::ModeS, csr: Csr::new(), }
     }
     // 現在の動作モードを返す
-    pub fn current_privilege_mode(self) -> u8 {
+    pub fn current_privilege_mode(self) -> PrivilegeMode {
         self.mode
     }
 
@@ -82,10 +73,10 @@ impl Rv64 {
 
     pub fn set_vector(&self, addr: usize) {
         match self.mode {
-            PRV_MODE_M => {
+            PrivilegeMode::ModeM => {
                 self.csr.mtvec.set(addr as u64);
             },
-            PRV_MODE_S => {
+            PrivilegeMode::ModeS => {
                 self.csr.stvec.set(addr as u64);
             },
             _ => {},
@@ -124,10 +115,10 @@ impl Rv64 {
 impl TraitCpu for Rv64 {
     fn enable_interrupt(&self) {
         match self.mode {
-            PRV_MODE_M => {
+            PrivilegeMode::ModeM => {
                 self.csr.mstatus.modify(mstatus::MIE::SET);
             },
-            PRV_MODE_S => {
+            PrivilegeMode::ModeS => {
                 self.csr.sstatus.modify(sstatus::SIE::SET);
             },
             _ => {},
@@ -136,10 +127,10 @@ impl TraitCpu for Rv64 {
 
     fn disable_interrupt(&self) {
         match self.mode {
-            PRV_MODE_M => {
+            PrivilegeMode::ModeM => {
                 self.csr.mstatus.modify(mstatus::MIE::CLEAR);
             },
-            PRV_MODE_S => {
+            PrivilegeMode::ModeS => {
                 self.csr.sstatus.modify(sstatus::SIE::CLEAR);
             },
             _ => {},
@@ -256,7 +247,10 @@ impl TraitRisvCpu for Rv64 {
 
     fn assert_vsmode_interrupt(&self, int_mask:usize) {
         self.csr.hvip.set(int_mask as u64);   
+        //self.csr.hip.set((int_mask) as u32);
         //self.csr.hip.set((int_mask >> 1) as u32);
+        //self.csr.vsip.set((int_mask >> 1) as u32);
+        //self.csr.vsip.set((int_mask) as u32);
         //self.csr.vsip.set(0xffff_ffff);
     }
 
@@ -285,6 +279,10 @@ impl TraitRisvCpu for Rv64 {
 
     fn get_vs_fault_address(&self) -> u64 {
         self.csr.vstval.get()
+    }
+
+    fn get_fault_address(&self) -> u64 {
+        self.csr.stval.get()
     }
 
     //MMU 関連
@@ -341,79 +339,12 @@ pub fn jump_by_sret(next_addr: usize, arg1: usize, arg2: usize) {
     
 }
 
-/*
-#[no_mangle]
-pub extern "C" fn _jump_guest_kernel(next_addr: usize, arg1: usize, arg2: usize) 
-{
-    
-    let sstatus = Sstatus{};
-    let hstatus = Hstatus{};
-    
-    // sret後に、VS-modeに移行させる
-    sstatus.modify(sstatus::SPP::SET);
-    hstatus.modify(hstatus::SPV::SET);    
-
-    //VGEIN
-    hstatus.set(hstatus.get() | 0x20 << 12);
-    //hstatus.set(0x01 << 12);
-    
-    // 割込みを無効化
-    let hie = Hie{};
-    let sie = Sie{};
-    let hgeie = Hgeie{};
-    
-    hie.set(0xffff_ffff);
-    sie.set(0);
-    hgeie.set(0xffff_ffff_ffff_ffff);
-
-    let hedeleg = Hedeleg{};
-    hedeleg.set((1 << 0) | (1 << 3) | (1 << 8) | (1 << 12) | (1 << 13) | (1 << 15));
-
-    let hideleg = Hideleg{};
-    hideleg.set((1 << 10) | (1 << 6) | (1 << 2));
-    
-    // VS-mode 割込みのフラッシュ
-    let hvip = Hvip{};
-    hvip.set(0);
-
-    // 仮想記憶管理
-    let hgatp = Hgatp{};
-    hgatp.set(0);
-
-    // 
-    let hcounteren = Hcounteren{};
-    hcounteren.set(0xffff_ffff);
-
-    //Self::jump_by_sret(next_addr, arg1, arg2);
-    // VS-modeへジャンプ
-    unsafe {
-        asm! ("
-        .align 8
-                csrw sepc, $0
-                addi a0, $1, 0
-                addi a1, $2, 0
-                sret
-        "
-        :
-        : "r"(next_addr), "r"(arg1), "r"(arg2) 
-        :
-        : "volatile");
-    }
-
-}
-*/
-
-
-
 ////////////////////////////////
 /* 関数(アセンブリから飛んでくる関数) */
 ////////////////////////////////
 
 /* カーネルの起動処理 */
 use crate::boot_init;
-
-/* カーネル本体の割込みハンドラ */
-//use crate::Context;
 
 // CPU初期化処理 ブート直後に実行される
 #[cfg(target_arch = "riscv64")]
