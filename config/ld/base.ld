@@ -30,7 +30,13 @@ SECTIONS
     .data :
     {
         *(.data .data.*);
-        CONTAINERS = .;
+    } > RAM
+
+    /* init_calls: application initialize functions */
+    .init_calls :
+    {
+        INIT_CALLS_HEAD = .;
+        *(.init_calls .init_calls.*);
     } > RAM
 
     .bss :

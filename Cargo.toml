@@ -1,21 +1,15 @@
-[package]
-name = "violet"
-version = "0.1.0"
-authors = ["nekomaru0510 <yama05rymy@gmail.com>"]
-edition = "2018"
-build = "src/build.rs"
+#[package]
+#name = "violet"
+#version = "0.1.0"
+#authors = ["nekomaru0510 <yama05rymy@gmail.com>"]
+#edition = "2018"
+#build = "src/build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-register = "1.0.2"
-
-#[dependencies.lazy_static]
-#version = "1.0"
-#features = ["spin_no_std"]
-
-#[build-dependencies]
-#cc = "1.0.25"
-
-[features]
-qemu_virt = []
+[workspace]
+members = [
+    "kernel",
+    "app/sample",
+]
+#default-members = ["kernel"]

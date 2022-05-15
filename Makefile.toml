@@ -3,6 +3,12 @@ VIOLET_PATH = { script = ["pwd"] }
 VIOLET_RLS_BIN_PATH = "${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/release"
 VIOLET_DBG_BIN_PATH = "${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/debug"
 VIOLET_BIN_PATH = "${VIOLET_DBG_BIN_PATH}"
+OUTPUT_FILE_NAME = "violet.bin"
+APP_NAME = "sample"
+#CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true # workspaceの各クレートに対して、本makefileを提供する
+
+[config]
+default_to_workspace = false
 
 #######################
 # Violet自体のビルド
@@ -23,7 +29,7 @@ args = ["build"]
 
 [tasks.objcopy]
 dependencies = ["build_elf"]
-script = "riscv64-unknown-elf-objcopy -O binary ${VIOLET_BIN_PATH}/violet ${VIOLET_BIN_PATH}/violet.bin"
+script = "riscv64-unknown-elf-objcopy -O binary ${VIOLET_BIN_PATH}/${APP_NAME} ${VIOLET_BIN_PATH}/${OUTPUT_FILE_NAME}"
 
 [tasks.build]
 dependencies = ["objcopy"]
