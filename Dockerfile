@@ -10,8 +10,8 @@ RUN apt update && \
 	apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev pkg-config git libusb-1.0-0-dev device-tree-compiler default-jdk gnupg vim python3 fish
 
 # riscv-gnu-toolchainのビルド
-RUN git clone -b rvv-0.9.x --single-branch https://github.com/riscv/riscv-gnu-toolchain.git && \
-	cd riscv-gnu-toolchain && git checkout 5842fde8ee5bb3371643b60ed34906eff7a5fa31 && \
+RUN git clone https://github.com/riscv/riscv-gnu-toolchain.git && \
+	cd riscv-gnu-toolchain && git checkout 2022.05.15 && \
 	git submodule update --init --recursive
 RUN cd riscv-gnu-toolchain && mkdir build && cd build && ../configure --prefix=${RISCV} --enable-multilib && make
 RUN cd riscv-gnu-toolchain && mkdir build2 && cd build2 && ../configure --prefix=${RISCV} --enable-multilib && make linux

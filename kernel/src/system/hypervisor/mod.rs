@@ -63,13 +63,13 @@ pub fn do_ecall_from_vsmode(exc_num: usize, regs: &mut Registers)
     let mut a4: usize = (*(regs)).a4;
     let mut a5: usize = (*(regs)).a5;
 
-    if (ext == 0) {
-         
+    /* タイマセット */
+    if (ext == 0 || (fid == 0 && ext == 0x54494d45)) {
         unsafe {
             if (VIRTUAL_PLIC.reg[81] == 0) {
                 let cpu = unsafe { PERIPHERALS.take_cpu() };
-                unsafe{map_vaddr(transmute(cpu.get_vs_pagetable()), transmute(&VIRTUAL_PLIC), 0xffffffd000201000);}
                 //unsafe{map_vaddr(transmute(cpu.get_vs_pagetable()), transmute(&VIRTUAL_PLIC), 0xffffffd000201000);}
+                unsafe{map_vaddr48(transmute(cpu.get_vs_pagetable()), transmute(&VIRTUAL_PLIC), 0xffff8f8000201000);}
                 unsafe { PERIPHERALS.release_cpu(cpu) };
                 VIRTUAL_PLIC.reg[81] == 1;
             }
@@ -77,8 +77,6 @@ pub fn do_ecall_from_vsmode(exc_num: usize, regs: &mut Registers)
 
         let cpu = unsafe { PERIPHERALS.take_cpu() };
 
-        //let sie = Sie{};
-        //sie.modify(sie::STIE::SET);
         cpu.enable_interrupt_mask(Interrupt::SupervisorTimerInterrupt.mask());
 
         let hvip = Hvip{};
@@ -87,7 +85,7 @@ pub fn do_ecall_from_vsmode(exc_num: usize, regs: &mut Registers)
 
         unsafe { PERIPHERALS.release_cpu(cpu) };
     } 
-    
+    /* キャッシュのフラッシュ */
     if (ext == 6) {
         ext = 0x52464E43;
         fid = 6;
@@ -103,20 +101,15 @@ pub fn do_ecall_from_vsmode(exc_num: usize, regs: &mut Registers)
     (*(regs)).a1 = ret.1;
 
     (*(regs)).epc = (*(regs)).epc + 4;
-    /*
-    (*(regs)).gp[8] = ret.0;
-    (*(regs)).gp[9] = ret.1;
 
-    (*(regs)).epc = (*(regs)).epc + 4;
-     */
 }
 
 pub fn do_store_page_fault(int_num: usize, regs: &mut Registers) {
     let cpu = unsafe { PERIPHERALS.take_cpu() };
     let fault_addr = cpu.get_fault_address();
 
-    if (fault_addr >= 0xffffffd000201000 && fault_addr < 0xffffffd000202000) {
-        if (fault_addr == 0xffffffd000201004) {
+    if (fault_addr >= 0xffff8f8000201000 && fault_addr < 0xffff8f8000202000) {
+        if (fault_addr == 0xffff8f8000201004) {
             //println!("store addr:{:x}", fault_addr);
             (*(regs)).epc = (*(regs)).epc + 2; //0xffffffe000270006
             //(*(regs)).epc = (*(regs)).epc + 4;
@@ -125,6 +118,8 @@ pub fn do_store_page_fault(int_num: usize, regs: &mut Registers) {
             intc.set_comp_int(10);
             unsafe { PERIPHERALS.release_intc(intc) };
              */
+            let hvip = Hvip{};
+            hvip.modify(hvip::VSEIP::CLEAR);
         }
         else {
             println!("store addr:{:x}", fault_addr);
@@ -141,16 +136,16 @@ pub fn do_load_page_fault(int_num: usize, regs: &mut Registers) {
     //cpu.print_csr();   
     //println!("addr:{:x}", cpu.get_vs_fault_address());
     let fault_addr = cpu.get_fault_address();
-    if (fault_addr >= 0xffffffd000201000 && fault_addr < 0xffffffd000202000) {
+    if (fault_addr >= 0xffff8f8000201000 && fault_addr < 0xffff8f8000202000) {
         //println!("load addr:{:x}", fault_addr);
-        if (fault_addr == 0xffffffd000201004) {
+        if (fault_addr == 0xffff8f8000201004) {
             unsafe {
                 if (VIRTUAL_PLIC.reg[1] == 0) {
                     //cpu.print_csr();   
                 }
             }
             unsafe {
-                (*(regs)).s1 = VIRTUAL_PLIC.reg[1] as usize;
+                (*(regs)).a5 = VIRTUAL_PLIC.reg[1] as usize;
                 NUM_OF_INT = NUM_OF_INT - 1;
                 if (NUM_OF_INT >= 1) {
 
@@ -160,6 +155,7 @@ pub fn do_load_page_fault(int_num: usize, regs: &mut Registers) {
                 }
                 else if (NUM_OF_INT < 0) {
                     NUM_OF_INT = 0;
+                    //cpu.print_csr(); 
                     //println!("???");
                 }
 
@@ -172,7 +168,7 @@ pub fn do_load_page_fault(int_num: usize, regs: &mut Registers) {
     }
     else {
         redirect_to_guest(regs);
-        if (cpu.get_vs_fault_address() == 0xffffffd000201004) {
+        if (cpu.get_vs_fault_address() == 0xffff8f8000201004) {
             println!("???");
         }
     }
@@ -297,7 +293,7 @@ pub fn boot_guest() {
         Exception::InstructionAddressMisaligned.mask() | 
         Exception::Breakpoint.mask() |
         Exception::EnvironmentCallFromUmodeOrVUmode.mask() |
-        Exception::InstructionPageFault.mask()// |
+        Exception::InstructionPageFault.mask() //|
         //Exception::LoadPageFault.mask() |
         //Exception::StoreAmoPageFault.mask()
     );

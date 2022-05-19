@@ -9,9 +9,11 @@ use crate::environment::traits::cpu::HasCpu;
 //use crate::driver::traits::arch::riscv::{PageEntry, PageTable, PagingMode};
 use crate::driver::traits::arch::riscv::*;
 use crate::driver::arch::rv64::mm::sv39::{PageTableSv39, PageEntrySv39, SV39_VA, SV39_PA}; /* todo delete*/
+use crate::driver::arch::rv64::mm::sv48::{PageTableSv48, PageEntrySv48, SV48_VA, SV48_PA}; /* todo delete*/
 
 const MAX_PAGE_TABLE: usize = 16;
-static mut PAGE_TABLE_ARRAY: [PageTableSv39; MAX_PAGE_TABLE] = [PageTableSv39::empty(); MAX_PAGE_TABLE];
+//static mut PAGE_TABLE_ARRAY: [PageTableSv39; MAX_PAGE_TABLE] = [PageTableSv39::empty(); MAX_PAGE_TABLE];
+static mut PAGE_TABLE_ARRAY: [PageTableSv48; MAX_PAGE_TABLE] = [PageTableSv48::empty(); MAX_PAGE_TABLE];
 static mut PAGE_TABLE_IDX: usize = 0;
 
 
@@ -34,7 +36,9 @@ pub fn create_page_table() {
         //map_vaddr(0x8010_0000 + i*0x1000, 0x8010_0000 + i*0x1000);
     }
      */
-    _map_vaddr(0x8010_0000, 0x8010_0000);
+
+    //_map_vaddr(0x8010_0000, 0x8010_0000);
+    
     /*
     map_vaddr(0x8010_0000, 0x8010_0000);
     map_vaddr(0x8010_1000, 0x8010_1000);
@@ -44,11 +48,13 @@ pub fn create_page_table() {
      */
 }
 
+/*
 fn _map_vaddr(paddr: u64, vaddr: u64) {
     unsafe {
         map_vaddr(&mut PAGE_TABLE_ARRAY[0], paddr, vaddr);
     }
 }
+*/
 // sizeは4KiB固定
 pub fn map_vaddr(table_top: &mut PageTableSv39, paddr: u64, vaddr: u64) {
     unsafe {
@@ -62,6 +68,36 @@ pub fn map_vaddr(table_top: &mut PageTableSv39, paddr: u64, vaddr: u64) {
             vpn = SV39_VA.vpn[i].mask(vaddr);
             // ppnの更新
             ppn = SV39_PA.ppn[i].mask(paddr);
+            // 次のエントリを取得
+            //entry = *table.get_entry(vpn);
+            entry = &mut ((*table).entry[vpn as usize]);
+            
+            if (i == 0) {
+                //entry.set_ppn(paddr >> 12);
+                entry.set_parmition(1);
+            }
+            else {
+                // 次のテーブルを取得
+                table = transmute( (*table).get_entry_ppn(vpn) << 12 );
+            }
+            
+        }
+        
+    }
+}
+
+pub fn map_vaddr48(table_top: &mut PageTableSv48, paddr: u64, vaddr: u64) {
+    unsafe {
+        let mut vpn;
+        let mut ppn;
+        let mut table: &mut PageTableSv48 = table_top; // satpからとってくる？
+        let mut entry: &mut PageEntrySv48;
+        
+        for i in (0..4).rev() {
+            // vpnの更新
+            vpn = SV48_VA.vpn[i].mask(vaddr);
+            // ppnの更新
+            ppn = SV48_PA.ppn[i].mask(paddr);
             // 次のエントリを取得
             //entry = *table.get_entry(vpn);
             entry = &mut ((*table).entry[vpn as usize]);

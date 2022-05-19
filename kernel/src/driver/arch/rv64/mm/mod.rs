@@ -1,5 +1,6 @@
 //! メモリ管理
 pub mod sv39;
+pub mod sv48;
 
 // ビットフィールド操作用[todo fix 場所の変更]
 pub struct BitField {
