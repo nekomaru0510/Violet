@@ -37,7 +37,7 @@ target = "riscv64imac-unknown-none-elf"
 rustflags = [
     #"-C", "link-arg=-Tconfig/ld/sifive.ld", 
     "-C", "link-arg=-Tconfig/ld/qemu_virt.ld", 
-    "-C", "code-model=medium",
+    #"-C", "code-model=medium",
 ]
 
 [unstable]
