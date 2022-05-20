@@ -5,5 +5,4 @@ pub trait HasSerial {
 
     fn take_serial(&mut self) -> <Self as HasSerial>::Device;
     fn release_serial(&mut self, serial: <Self as HasSerial>::Device);
-
 }

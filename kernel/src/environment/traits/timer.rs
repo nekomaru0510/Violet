@@ -5,5 +5,4 @@ pub trait HasTimer {
 
     fn take_timer(&mut self) -> <Self as HasTimer>::Device;
     fn release_timer(&mut self, timer: <Self as HasTimer>::Device);
-
 }

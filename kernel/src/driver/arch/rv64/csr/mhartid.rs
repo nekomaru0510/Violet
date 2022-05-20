@@ -26,8 +26,5 @@ impl RegisterReadWrite<u64, mhartid::Register> for Mhartid {
 
     /// Writes raw bits to the CPU register.
     #[inline(always)]
-    fn set(&self, value: u64) {
-        
-    }
+    fn set(&self, value: u64) {}
 }
-

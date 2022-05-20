@@ -6,7 +6,7 @@ use register::{cpu::RegisterReadWrite, register_bitfields};
 register_bitfields! {u64,
     pub vsstatus [
         /// U-mode InterruptEnable
-        UIE       OFFSET(0)  NUMBITS(1) [], 
+        UIE       OFFSET(0)  NUMBITS(1) [],
         /// S-mode Interrupt Enable
         SIE       OFFSET(1)  NUMBITS(1) [],
         //WPRI      OFFSET(2)  NUMBITS(1) [],

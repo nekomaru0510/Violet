@@ -32,4 +32,3 @@ impl RegisterReadWrite<u64, vstvec::Register> for Vstvec {
         }
     }
 }
-

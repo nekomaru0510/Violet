@@ -9,7 +9,10 @@ pub struct BitField {
 }
 impl BitField {
     pub fn new() -> Self {
-        BitField {offset:0, width:0, }
+        BitField {
+            offset: 0,
+            width: 0,
+        }
     }
 
     /* offsetとwidthに沿ったビットパターンを生成 */
@@ -26,4 +29,3 @@ impl BitField {
         (val >> self.offset) & mask
     }
 }
-

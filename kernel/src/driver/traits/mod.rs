@@ -1,5 +1,5 @@
-pub mod serial;
-pub mod intc;
-pub mod timer;
-pub mod cpu;
 pub mod arch;
+pub mod cpu;
+pub mod intc;
+pub mod serial;
+pub mod timer;

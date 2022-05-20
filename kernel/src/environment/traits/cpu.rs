@@ -5,5 +5,4 @@ pub trait HasCpu {
 
     fn take_cpu(&mut self) -> <Self as HasCpu>::Device;
     fn release_cpu(&mut self, cpu: <Self as HasCpu>::Device);
-
 }

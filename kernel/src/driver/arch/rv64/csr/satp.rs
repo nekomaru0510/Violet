@@ -6,7 +6,7 @@ use register::{cpu::RegisterReadWrite, register_bitfields};
 register_bitfields! {u64,
     pub satp [
         PPN       OFFSET(0)  NUMBITS(44) [],
-        ASID      OFFSET(44)  NUMBITS(16) [], 
+        ASID      OFFSET(44)  NUMBITS(16) [],
         MODE      OFFSET(60)  NUMBITS(4) [
             BARE = 0,
             SV39X4 = 8,

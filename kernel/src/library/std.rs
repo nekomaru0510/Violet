@@ -1,8 +1,8 @@
 //! stdライブラリ
 
-use crate::PERIPHERALS;
-use crate::environment::traits::serial::HasSerial;
 use crate::driver::traits::serial::TraitSerial;
+use crate::environment::traits::serial::HasSerial;
+use crate::PERIPHERALS;
 use core::fmt::{self, Write};
 
 #[macro_export]
@@ -17,13 +17,13 @@ macro_rules! println {
 }
 
 pub fn print(args: fmt::Arguments) {
-    let mut serial= unsafe { PERIPHERALS.take_serial() };
+    let mut serial = unsafe { PERIPHERALS.take_serial() };
     serial.write_fmt(args).unwrap();
     unsafe { PERIPHERALS.release_serial(serial) };
 }
 
 pub fn getc() -> u8 {
-    let mut serial= unsafe { PERIPHERALS.take_serial() };
+    let mut serial = unsafe { PERIPHERALS.take_serial() };
     let res = serial.read();
     unsafe { PERIPHERALS.release_serial(serial) };
     res
@@ -42,7 +42,7 @@ use crate::library::traits::std::TraitStd;
 #[derive(Clone)]
 pub struct Std<T: TraitTty, U: TraitTimerRs> {
     tty: T,
-    timer: U, 
+    timer: U,
 }
 
 impl<T, U> Std<T, U>

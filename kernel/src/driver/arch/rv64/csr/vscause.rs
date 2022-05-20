@@ -32,4 +32,3 @@ impl RegisterReadWrite<u64, vscause::Register> for Vscause {
         }
     }
 }
-

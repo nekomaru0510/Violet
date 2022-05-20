@@ -4,9 +4,9 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::library::std::getc;
 use crate::print;
 use crate::println;
-use crate::library::std::getc;
 
 // Violet Shell
 pub struct VShell {
@@ -27,15 +27,20 @@ const BACK_SPACE: u8 = 0x08;
 const SPACE: u8 = 0x20;
 //const CTRL_A:u8 = 0x01;
 
-impl VShell
-{
+impl VShell {
     pub fn new() -> Self {
         /* コマンドの登録 */
         let mut vec = Vec::new();
         //vec.push(Command{name: String::from("test"), func:test});
-        vec.push(Command{name: String::from("help"), func: help});
-        
-        VShell {prompt: String::from("Violet%"), cmds: vec}
+        vec.push(Command {
+            name: String::from("help"),
+            func: help,
+        });
+
+        VShell {
+            prompt: String::from("Violet%"),
+            cmds: vec,
+        }
     }
 
     /* 実行 */
@@ -53,39 +58,39 @@ impl VShell
     }
 
     fn main_loop(&mut self) {
-        loop{
+        loop {
             /* プロンプトの出力 */
             print!("{} ", self.prompt);
-            
+
             /* コマンドの実行 */
             let line: String = self.get_line();
             match self.search_cmd(&line) {
                 Some(x) => self.execute_cmd(x),
-                None => {},
+                None => {}
             }
         }
     }
 
-    fn get_line(&mut self) -> String{
+    fn get_line(&mut self) -> String {
         let mut cmd = String::from("");
         let mut c: u8;
 
         loop {
             /* 入力の受付 */
             c = getc();
-            
+
             match c {
                 ENTER => {
                     print!("\n");
                     break cmd;
-                },
-                NULL => {},
+                }
+                NULL => {}
                 DEL | BACK_SPACE => {
                     print!("{}", BACK_SPACE as char);
                     print!("{}", SPACE as char);
                     print!("{}", BACK_SPACE as char);
                     cmd.pop();
-                },
+                }
                 _ => {
                     print!("{}", c as char);
                     cmd.push(c as char);
@@ -97,7 +102,7 @@ impl VShell
     fn search_cmd(&self, name: &String) -> Option<Command> {
         for (i, cmd) in self.cmds.iter().enumerate() {
             if cmd.name == *name {
-                return Some(self.cmds[i].clone())
+                return Some(self.cmds[i].clone());
             }
         }
         return None;
@@ -128,7 +133,7 @@ pub fn test() {
         println!("mip: {:x}", res.cpu.core.mip.get());
         println!("mtime: {:x}", res.io.timer.get());
         println!("mstatus: {:x}", res.cpu.core.mstatus.get());
-        
+
         res.io.timer.enable_interrupt();
         res.io.timer.set_interrupt_time(0x4000000);
         res.cpu.enable_interrupt();
@@ -163,7 +168,7 @@ pub fn hoge() {
     */
     let leaf = Rc::new(VTreeNode::new(Inst::new(3)));
     // leafの親 = {:?} Noneになる
-    //let inst = leaf.parent.borrow().upgrade().unwrap().value;    
+    //let inst = leaf.parent.borrow().upgrade().unwrap().value;
     //println!("leaf parent = {:?}", inst.get()/*.get()*/);
 
     let branch = Rc::new(VTreeNode::new(Inst::new(5)));
@@ -185,7 +190,7 @@ pub fn hoge() {
     // upgradeは、Weakのメソッドであり、WeakからRcへ変換する。
     //println!("leaf parent = {:?}", leaf.parent.borrow());
     //println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
-    let inst = leaf.parent.borrow().upgrade().unwrap().instance;  
+    let inst = leaf.parent.borrow().upgrade().unwrap().instance;
     println!("leaf parent = {:?}", inst.get()/*.get()*/);
 }
 
@@ -204,7 +209,7 @@ impl Inst {
 }
 
 impl VNode for Inst {
-    
+
 }
 
 pub trait VNode {
@@ -224,7 +229,7 @@ impl<T> VTreeNode<T> {
     }
 
     pub fn add_child(self, node: Rc<VTreeNode<T>>) {
-        // 
+        //
         //*node.parent.borrow_mut() = Rc::downgrade(&Rc::new(self));
         // 親ノード(self)のchildrenに追加
         //self.children.get_mut().push(node);

@@ -45,5 +45,3 @@ impl RegisterReadWrite<u32, sip::Register> for Sip {
         }
     }
 }
-
-

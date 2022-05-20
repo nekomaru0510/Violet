@@ -12,20 +12,19 @@
 /* warning抑制 */
 #![allow(dead_code)]
 #![allow(unused_variables)]
-
 #![no_std]
 
 /* Violetの中核機能(なるべく小さくしたい) */
 pub mod kernel;
 
 pub mod driver;
-pub mod library;
 pub mod environment;
+pub mod library;
 pub mod system;
 
 /* 環境依存 */
-use crate::environment::qemu::Qemu;
 use crate::environment::qemu::init_peripherals;
+use crate::environment::qemu::Qemu;
 
 pub static mut PERIPHERALS: Qemu = Qemu {
     cpu: None,
@@ -37,8 +36,8 @@ pub static mut PERIPHERALS: Qemu = Qemu {
 /* システム依存 */
 use crate::system::hypervisor::Hypervisor;
 
-use crate::kernel::slab_allocator::init_allocater;
 use crate::kernel::init_calls::do_init_calls;
+use crate::kernel::slab_allocator::init_allocater;
 
 #[no_mangle]
 pub extern "C" fn boot_init() -> ! {
@@ -49,10 +48,10 @@ pub extern "C" fn boot_init() -> ! {
     test_main();
 
     init_peripherals();
-    
+
     do_init_calls();
-    
-    /* システムの起動 */ 
+
+    /* システムの起動 */
     let hv = Hypervisor::new();
     hv.run();
 

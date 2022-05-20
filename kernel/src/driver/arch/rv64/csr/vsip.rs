@@ -45,5 +45,3 @@ impl RegisterReadWrite<u32, vsip::Register> for Vsip {
         }
     }
 }
-
-

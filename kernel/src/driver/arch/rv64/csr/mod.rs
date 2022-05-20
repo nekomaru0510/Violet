@@ -1,26 +1,26 @@
-//! CSR 
+//! CSR
 
 /* 0x100-0x5A8 */
-pub mod sstatus;
 pub mod sie;
+pub mod sstatus;
 pub mod stvec;
 //pub mod scouteren;
 //pub mod senvcfg;
 //pub mod sscratch;
-pub mod sepc;
-pub mod scause;
-pub mod stval;
-pub mod sip;
 pub mod satp;
+pub mod scause;
+pub mod sepc;
+pub mod sip;
+pub mod stval;
 //pub mod scontext;
 
 /* 0x600-0x615 */
-pub mod hstatus;
+pub mod hcounteren;
 pub mod hedeleg;
+pub mod hgeie;
 pub mod hideleg;
 pub mod hie;
-pub mod hcounteren;
-pub mod hgeie;
+pub mod hstatus;
 //pub mod htval;
 pub mod hip;
 pub mod hvip;
@@ -34,60 +34,60 @@ pub mod hgatp;
 //pub mod htimedeltah;
 
 /* 0x200-0x280 */
-pub mod vsstatus;
 pub mod vsie;
+pub mod vsstatus;
 pub mod vstvec;
 //pub mod vsscratch
-pub mod vsepc;
-pub mod vscause;
-pub mod vstval;
-pub mod vsip;
 pub mod vsatp;
+pub mod vscause;
+pub mod vsepc;
+pub mod vsip;
+pub mod vstval;
 
 /* 0xF11- */
-pub mod mtvec;
+pub mod mcause;
+pub mod mepc;
+pub mod mhartid;
 pub mod mie;
 pub mod mip;
-pub mod mepc;
 pub mod mstatus;
-pub mod mcause;
-pub mod mhartid;
+pub mod mtvec;
 
-use sstatus::*;
-use sie::*;
-use sip::*;
 use satp::*;
 use scause::*;
 use sepc::*;
+use sie::*;
+use sip::*;
+use sstatus::*;
 use stval::*;
 use stvec::*;
 
-use hstatus::*;
-use hedeleg::*;
-use hideleg::*;
 use hcounteren::*;
-use hip::*;
-use hvip::*;
-use hie::*;
+use hedeleg::*;
 use hgatp::*;
 use hgeie::*;
+use hideleg::*;
+use hie::*;
+use hip::*;
+use hstatus::*;
+use hvip::*;
 
-use vsstatus::*;
-use vsie::*;
-use vstvec::*;
-use vsepc::*;
-use vscause::*;
-use vstval::*;
-use vsip::*;
 use vsatp::*;
+use vscause::*;
+use vsepc::*;
+use vsie::*;
+use vsip::*;
+use vsstatus::*;
+use vstval::*;
+use vstvec::*;
 
-use mtvec::*;
+use mcause::*;
+use mepc::*;
+use mhartid::*;
 use mie::*;
 use mip::*;
-use mepc::*;
 use mstatus::*;
-use mcause::*;
-use mhartid::*;
+use mtvec::*;
 
 #[derive(Clone)]
 pub struct Csr {
@@ -109,7 +109,7 @@ pub struct Csr {
     pub hip: Hip,
     pub hvip: Hvip,
     pub hgatp: Hgatp,
-    
+
     pub vsstatus: Vsstatus,
     pub vsie: Vsie,
     pub vstvec: Vstvec,
@@ -118,7 +118,7 @@ pub struct Csr {
     pub vstval: Vstval,
     pub vsip: Vsip,
     pub vsatp: Vsatp,
-    
+
     pub mtvec: Mtvec,
     pub mie: Mie,
     pub mip: Mip,
@@ -131,41 +131,41 @@ pub struct Csr {
 impl Csr {
     pub fn new() -> Csr {
         Csr {
-            sstatus: Sstatus{},
-            sie: Sie{},
-            stvec: Stvec{},
-            sepc: Sepc{},
-            scause: Scause{},
-            stval: Stval{},
-            sip: Sip{},
-            satp: Satp{},
-        
-            hstatus: Hstatus{},
-            hedeleg: Hedeleg{},
-            hideleg: Hideleg{},
-            hie: Hie{},
-            hcounteren: Hcounteren{},
-            hgeie: Hgeie{},
-            hip: Hip{},
-            hvip: Hvip{},
-            hgatp: Hgatp{},
-        
-            vsstatus: Vsstatus{},
-            vsie: Vsie{},
-            vstvec: Vstvec{},
-            vsepc: Vsepc{},
-            vscause: Vscause{},
-            vstval: Vstval{},
-            vsip: Vsip{},
-            vsatp: Vsatp{},
-        
-            mtvec: Mtvec{},
-            mie: Mie{},
-            mip: Mip{},
-            mepc: Mepc{},
-            mstatus: Mstatus{},
-            mcause: Mcause{},
-            mhartid: Mhartid{},
+            sstatus: Sstatus {},
+            sie: Sie {},
+            stvec: Stvec {},
+            sepc: Sepc {},
+            scause: Scause {},
+            stval: Stval {},
+            sip: Sip {},
+            satp: Satp {},
+
+            hstatus: Hstatus {},
+            hedeleg: Hedeleg {},
+            hideleg: Hideleg {},
+            hie: Hie {},
+            hcounteren: Hcounteren {},
+            hgeie: Hgeie {},
+            hip: Hip {},
+            hvip: Hvip {},
+            hgatp: Hgatp {},
+
+            vsstatus: Vsstatus {},
+            vsie: Vsie {},
+            vstvec: Vstvec {},
+            vsepc: Vsepc {},
+            vscause: Vscause {},
+            vstval: Vstval {},
+            vsip: Vsip {},
+            vsatp: Vsatp {},
+
+            mtvec: Mtvec {},
+            mie: Mie {},
+            mip: Mip {},
+            mepc: Mepc {},
+            mstatus: Mstatus {},
+            mcause: Mcause {},
+            mhartid: Mhartid {},
         }
     }
 }

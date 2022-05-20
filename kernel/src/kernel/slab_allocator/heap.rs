@@ -1,4 +1,4 @@
-//! 
+//!
 
 extern crate alloc;
 use alloc::alloc::Layout;
@@ -44,7 +44,7 @@ impl Heap {
             slab_4096_bytes: Slab::empty(),
             //linked_list_allocator: linked_list_allocator::Heap::new(heap_start_addr + 7 * slab_size, slab_size),
         }
-    } 
+    }
 
     pub unsafe fn new(heap_start_addr: usize, heap_size: usize) -> Heap {
         assert!(
@@ -116,7 +116,7 @@ impl Heap {
     pub fn layout_to_allocator(layout: &Layout) -> HeapAllocator {
         if layout.size() > 4096 {
             panic!("Alloc more 4096Bytes!! ");
-            //HeapAllocator::LinkedListAllocator
+        //HeapAllocator::LinkedListAllocator
         } else if layout.size() <= 64 && layout.align() <= 64 {
             HeapAllocator::Slab64Bytes
         } else if layout.size() <= 128 && layout.align() <= 128 {
@@ -133,8 +133,6 @@ impl Heap {
             HeapAllocator::Slab4096Bytes
         }
     }
-
-
 }
 
 /*
@@ -163,9 +161,9 @@ unsafe impl GlobalAlloc for Heap {
     }
 
     unsafe fn realloc(
-        &self, 
-        ptr: *mut u8, 
-        layout: Layout, 
+        &self,
+        ptr: *mut u8,
+        layout: Layout,
         new_size: usize
     ) -> *mut u8 { ... } {
 
@@ -179,4 +177,3 @@ unsafe impl GlobalAlloc for Heap {
 fn on_oom(_layout: Layout) -> ! {
     panic!("Alloc Error !");
 }
-

@@ -1,7 +1,7 @@
 //! QEMU sifive_u向け UARTドライバ
 
-use core::ptr::{read_volatile, write_volatile};
 use core::fmt::{self, Write};
+use core::ptr::{read_volatile, write_volatile};
 /* ドライバ用トレイト */
 use crate::driver::traits::serial::TraitSerial;
 

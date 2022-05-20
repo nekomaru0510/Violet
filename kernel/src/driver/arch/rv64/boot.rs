@@ -25,7 +25,7 @@ pub extern "C" fn _start() {
         : "volatile");
     }
 }
- 
+
 #[cfg(target_arch = "riscv64")]
 #[export_name = "_start_trap"]
 #[naked]

@@ -6,5 +6,3 @@ pub trait TraitMmu {
     // MMU無効化
     fn disable_mmu(&self);
 }
-
-

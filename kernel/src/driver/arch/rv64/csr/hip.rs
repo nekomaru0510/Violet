@@ -34,5 +34,3 @@ impl RegisterReadWrite<u32, hip::Register> for Hip {
         }
     }
 }
-
-

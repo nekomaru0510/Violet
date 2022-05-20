@@ -13,21 +13,19 @@ static ALLOCATOR: HeapOperator = HeapOperator::new();
 
 static mut HEAP: Heap = Heap::empty();
 
-pub fn init_allocater(start: usize, end: usize)
-{
+pub fn init_allocater(start: usize, end: usize) {
     let heap_start = start;
     let heap_end = end;
     let heap_size = heap_end - heap_start;
     unsafe {
         HEAP = Heap::new(heap_start, heap_size);
     }
-
 }
 
 pub struct HeapOperator {}
 
 impl HeapOperator {
-    pub const fn new() -> HeapOperator {        
+    pub const fn new() -> HeapOperator {
         HeapOperator {}
     }
 }
@@ -47,13 +45,12 @@ unsafe impl GlobalAlloc for HeapOperator {
     }
 
     unsafe fn realloc(
-        &self, 
-        ptr: *mut u8, 
-        layout: Layout, 
+        &self,
+        ptr: *mut u8,
+        layout: Layout,
         new_size: usize
     ) -> *mut u8 { ... } {
 
     }
     */
-
 }

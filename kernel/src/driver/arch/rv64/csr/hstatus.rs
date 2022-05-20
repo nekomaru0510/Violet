@@ -6,7 +6,7 @@ use register::{cpu::RegisterReadWrite, register_bitfields};
 register_bitfields! {u64,
     pub hstatus [
         VSBE       OFFSET(5)  NUMBITS(1) [],    // エンディアンの設定
-        GVA        OFFSET(6)  NUMBITS(1) [],    // 
+        GVA        OFFSET(6)  NUMBITS(1) [],    //
         SPV        OFFSET(7)  NUMBITS(1) [],    // トラップ前の仮想化状態(V)を示す
         SPVP       OFFSET(8)  NUMBITS(1) [],    // トラップ前の特権状態を示す
         HU         OFFSET(9)  NUMBITS(1) [],    // 1の場合、HU-modeがHS限定の命令を利用可能になる

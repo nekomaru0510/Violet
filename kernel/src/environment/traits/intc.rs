@@ -5,5 +5,4 @@ pub trait HasIntc {
 
     fn take_intc(&mut self) -> <Self as HasIntc>::Device;
     fn release_intc(&mut self, intc: <Self as HasIntc>::Device);
-
 }

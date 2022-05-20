@@ -1,6 +1,6 @@
 //! slab
 extern crate alloc;
-use alloc::alloc::{Layout};
+use alloc::alloc::Layout;
 
 pub struct Slab {
     block_size: usize,
@@ -8,7 +8,6 @@ pub struct Slab {
 }
 
 impl Slab {
-
     pub const fn empty() -> Slab {
         Slab {
             block_size: 0,
@@ -45,9 +44,10 @@ impl Slab {
 
     pub fn deallocate(&mut self, ptr: *mut u8) {
         let ptr = ptr as *mut FreeBlock;
-        unsafe {self.free_block_list.push(&mut *ptr);}
+        unsafe {
+            self.free_block_list.push(&mut *ptr);
+        }
     }
-
 }
 
 struct FreeBlockList {
@@ -66,10 +66,7 @@ impl FreeBlockList {
     }
 
     const fn new_empty() -> FreeBlockList {
-        FreeBlockList {
-            len: 0,
-            head: None,
-        }
+        FreeBlockList { len: 0, head: None }
     }
 
     fn len(&self) -> usize {
@@ -83,7 +80,7 @@ impl FreeBlockList {
             node
         })
     }
- 
+
     fn push(&mut self, free_block: &'static mut FreeBlock) {
         free_block.next = self.head.take();
         self.len += 1;
@@ -93,9 +90,6 @@ impl FreeBlockList {
     fn is_empty(&self) -> bool {
         self.head.is_none()
     }
-
-
-
 }
 
 impl Drop for FreeBlockList {
