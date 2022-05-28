@@ -13,9 +13,11 @@ use crate::PERIPHERALS;
 
 use crate::driver::traits::cpu::TraitCpu;
 use crate::driver::traits::intc::TraitIntc;
+use crate::driver::traits::serial::TraitSerial;
 use crate::environment::traits::cpu::HasCpu;
 use crate::environment::traits::intc::HasIntc;
 use crate::environment::traits::timer::HasTimer;
+use crate::environment::traits::serial::HasSerial;
 //use crate::driver::traits::timer::TraitTimer;
 
 use crate::driver::arch::rv64::*; /* todo delete*/
@@ -28,6 +30,8 @@ use crate::driver::traits::arch::riscv::Registers;
 use crate::driver::traits::arch::riscv::TraitRisvCpu;
 
 use crate::library::vshell::{Command, VShell};
+
+use crate::driver::arch::rv64::mm::sv48::PageTableSv48;
 
 use crate::print;
 use crate::println;
@@ -47,10 +51,6 @@ fn echo_test(exc_num: usize, regs: &mut Registers) {
 struct Vplic {
     reg: [u32; 1024],
 }
-extern crate register;
-use register::cpu::RegisterReadWrite;
-
-use csr::hvip::*;
 
 pub fn do_ecall_from_vsmode(exc_num: usize, regs: &mut Registers) {
     let mut ext: i32 = (*(regs)).a7 as i32;
@@ -67,16 +67,12 @@ pub fn do_ecall_from_vsmode(exc_num: usize, regs: &mut Registers) {
         unsafe {
             if (VIRTUAL_PLIC.reg[81] == 0) {
                 let cpu = unsafe { PERIPHERALS.take_cpu() };
-                //unsafe{map_vaddr(transmute(cpu.get_vs_pagetable()), transmute(&VIRTUAL_PLIC), 0xffffffd000201000);}
-                unsafe {
-                    map_vaddr48(
-                        transmute(cpu.get_vs_pagetable()),
-                        transmute(&VIRTUAL_PLIC),
-                        0xffff8f8000201000,
-                    );
-                }
+                _map_vaddr48::<PageTableSv48>(
+                    transmute(cpu.get_vs_pagetable()),
+                    0xffff8f8000201000,
+                );
                 unsafe { PERIPHERALS.release_cpu(cpu) };
-                VIRTUAL_PLIC.reg[81] == 1;
+                VIRTUAL_PLIC.reg[81] = 1;
             }
         }
 
@@ -84,23 +80,33 @@ pub fn do_ecall_from_vsmode(exc_num: usize, regs: &mut Registers) {
 
         cpu.enable_interrupt_mask(Interrupt::SupervisorTimerInterrupt.mask());
 
-        let hvip = Hvip {};
-        hvip.modify(hvip::VSTIP::CLEAR);
+        cpu.flush_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
 
         unsafe { PERIPHERALS.release_cpu(cpu) };
     }
     /* キャッシュのフラッシュ */
     if (ext == 6) {
+        
         ext = 0x52464E43;
         fid = 6;
         a2 = a1;
         a3 = a2;
         a0 = 1;
         a1 = 0;
+        
+        (*(regs)).a7 = 0x52464E43;
+        (*(regs)).a6 = 6;
+        (*(regs)).a2 = (*(regs)).a1;
+        (*(regs)).a3 = (*(regs)).a2;
+        (*(regs)).a0 = 1;
+        (*(regs)).a1 = 0;
+        
     }
 
-    let ret = do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
+    let ret = _do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
+    //let ret = do_ecall(regs);
 
+    
     (*(regs)).a0 = ret.0;
     (*(regs)).a1 = ret.1;
 
@@ -114,8 +120,7 @@ pub fn do_store_page_fault(int_num: usize, regs: &mut Registers) {
     if (fault_addr >= 0xffff8f8000201000 && fault_addr < 0xffff8f8000202000) {
         if (fault_addr == 0xffff8f8000201004) {
             (*(regs)).epc = (*(regs)).epc + 2;
-            let hvip = Hvip {};
-            hvip.modify(hvip::VSEIP::CLEAR);
+            cpu.flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
         } else {
             println!("store addr:{:x}", fault_addr);
         }
@@ -157,7 +162,6 @@ static mut NUM_OF_INT: isize = 0;
 
 pub fn do_supervisor_external_interrupt(int_num: usize, regs: &mut Registers) {
     let cpu = unsafe { PERIPHERALS.take_cpu() };
-
     let intc = unsafe { PERIPHERALS.take_intc() };
 
     // 物理PLICからペンディングビットを読み、クリアする
@@ -167,14 +171,31 @@ pub fn do_supervisor_external_interrupt(int_num: usize, regs: &mut Registers) {
         VIRTUAL_PLIC.reg[1] = int_id;
         NUM_OF_INT = NUM_OF_INT + 1;
     }
+    
+    // Demo
+    /*
+    unsafe {
+        VIRTUAL_PLIC.reg[50] = VIRTUAL_PLIC.reg[50] + 1;
+        if (VIRTUAL_PLIC.reg[50] % 1000 == 0) {
+            let serial = unsafe { PERIPHERALS.take_serial() };
+            serial.disable_interrupt();
+            unsafe { PERIPHERALS.release_serial(serial) };
+
+            println!("INITERRUPT!!");
+
+            let serial = unsafe { PERIPHERALS.take_serial() };
+            serial.enable_interrupt();
+            unsafe { PERIPHERALS.release_serial(serial) };
+        }
+    }*/
 
     // 仮想外部割込みを発生させる
     cpu.assert_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
 
-    unsafe { PERIPHERALS.release_cpu(cpu) };
-
     // PLICでペンディングビットをクリア
     intc.set_comp_int(int_id);
+
+    unsafe { PERIPHERALS.release_cpu(cpu) };
     unsafe { PERIPHERALS.release_intc(intc) };
 }
 
@@ -254,7 +275,7 @@ pub fn boot_guest() {
             | Interrupt::VirtualSupervisorExternalInterrupt.mask(),
     );
 
-    cpu.flush_vsmode_interrupt();
+    cpu.flush_vsmode_interrupt(0xffff_ffff_ffff_ffff);
 
     cpu.set_paging_mode(PagingMode::Bare);
 

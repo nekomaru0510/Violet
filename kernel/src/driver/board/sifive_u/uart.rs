@@ -13,6 +13,7 @@ pub struct Uart {
 
 const TXDATA: usize = 0x00;
 const RXDATA: usize = 0x00;
+const IE    : usize = 0x04;
 /*
 const TXCTRL: usize = 0x08;
 const RXCTRL: usize = 0x0c;
@@ -37,6 +38,20 @@ impl TraitSerial for Uart {
     fn read(&self) -> u8 {
         unsafe { read_volatile((self.base + RXDATA) as *const u8) }
     }
+
+    fn enable_interrupt(&self) {
+        unsafe {
+            write_volatile((self.base + IE) as *mut u8, 0x0b);
+        }
+    }
+
+    fn disable_interrupt(&self) {
+        unsafe {
+            write_volatile((self.base + IE) as *mut u8, 0x00);
+        }
+    }
+
+
 }
 
 impl Write for Uart {

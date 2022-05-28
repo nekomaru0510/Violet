@@ -6,13 +6,12 @@
 
 extern crate kernel;
 
-use kernel::driver::traits::arch::riscv::Registers;
 use kernel::{print, println};
 
 #[link_section = ".init_calls"]
 #[no_mangle]
-pub static mut INIT_CALLS: Option<fn(&mut Registers)> = Some(init_sample);
+pub static mut INIT_CALLS: Option<fn()> = Some(init_sample);
 
-pub fn init_sample(regs: &mut Registers) {
-    println!("sample init !!");
+pub fn init_sample() {
+    println!("sample application init !!");
 }

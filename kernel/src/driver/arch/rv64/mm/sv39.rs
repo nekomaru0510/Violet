@@ -1,7 +1,14 @@
 //! Sv39用ページエントリ・ページテーブル
 
+extern crate core;
+use core::intrinsics::transmute;
+
 use super::BitField;
-use crate::driver::traits::arch::riscv::{PageEntry, PageTable};
+//use crate::driver::traits::arch::riscv::{PageEntry, PageTable};
+use crate::driver::traits::cpu::mmu::{PageEntry, PageTable, TraitMmu};
+
+const PAGE_TABLE_LEVEL: usize = 3; /* ページテーブルの段数 */
+const NUM_OF_PAGE_ENTRY: usize = 512; /* 1テーブルあたりのページエントリ数 */
 
 // 仮想アドレスのビットフィールド
 pub struct VirtualAddressFieldSv39 {
@@ -180,19 +187,20 @@ impl PageEntry for PageEntrySv39 {
 #[derive(Clone, Copy)] //危険か？
 #[repr(align(4096))]
 pub struct PageTableSv39 {
-    pub entry: [PageEntrySv39; 512],
+    pub entry: [PageEntrySv39; NUM_OF_PAGE_ENTRY],
 }
 
 impl PageTableSv39 {
     pub const fn empty() -> Self {
         PageTableSv39 {
-            entry: [PageEntrySv39::empty(); 512], //entry: [0; 512]
+            entry: [PageEntrySv39::empty(); NUM_OF_PAGE_ENTRY], //entry: [0; 512]
         }
     }
 }
 
 impl PageTable for PageTableSv39 {
     type Entry = PageEntrySv39;
+    type Table = PageTableSv39;
 
     // 初期化
     fn new() -> Self {
@@ -210,5 +218,32 @@ impl PageTable for PageTableSv39 {
     fn get_entry_ppn(&self, vpn: u64) -> u64 {
         let e = self.entry[vpn as usize];
         e.get_ppn()
+    }
+
+    // 仮想アドレスからページエントリを取得
+    fn get_page_entry(&mut self, vaddr: usize) -> &mut <Self as PageTable>::Entry {
+        let mut vpn = SV39_VA.vpn[0].mask(vaddr as u64);
+        let mut table: &mut PageTableSv39 = self;
+        let mut entry: &mut PageEntrySv39;
+
+        for i in (0..PAGE_TABLE_LEVEL).rev() {
+            // vpnの更新
+            vpn = SV39_VA.vpn[i].mask(vaddr as u64);
+            // 次のエントリを取得
+            entry = &mut ((*table).entry[vpn as usize]);
+
+            if (i != 0) {
+                // 次のテーブルを取得
+                unsafe {table = transmute((*table).get_entry_ppn(vpn) << 12);}
+            }
+        }
+        &mut ((*table).entry[vpn as usize]) //entry
+        
+    }    
+
+    // 次のページテーブルを取得
+    fn get_next_table(&mut self, vaddr: usize, idx: usize) -> &mut <Self as PageTable>::Table {
+        let vpn = SV39_VA.vpn[idx].mask(vaddr as u64);
+        unsafe{transmute((*self).get_entry_ppn(vpn) << 12)}
     }
 }

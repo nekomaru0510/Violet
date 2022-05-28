@@ -146,7 +146,7 @@ pub trait TraitRisvCpu {
     fn disable_exception_delegation_mask(&self, exc_mask: usize);
 
     /* VS-modeの割込みフラッシュ */
-    fn flush_vsmode_interrupt(&self);
+    fn flush_vsmode_interrupt(&self, int_mask: usize);
     /* VS-modeへの割込み生成 */
     fn assert_vsmode_interrupt(&self, int_mask: usize);
     /* VS-modeの各種レジスタアクセスの許可 */
@@ -170,23 +170,4 @@ pub trait TraitRisvCpu {
     fn set_table_addr(&self, table_addr: usize);
 }
 
-// ページエントリ用トレイト
-pub trait PageEntry {
-    fn new() -> Self;
-    fn set_parmition(&mut self, flags: usize);
-    fn set_ppn(&mut self, ppn: u64);
-    fn get_ppn(&self) -> u64;
-    fn is_valid(&mut self) -> bool;
-    fn valid(&mut self);
-    fn invalid(&mut self);
-    fn writable(&mut self);
-}
 
-// ページテーブル用トレイト
-pub trait PageTable {
-    type Entry;
-
-    fn new() -> Self;
-    fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry;
-    fn get_entry_ppn(&self, vpn: u64) -> u64;
-}

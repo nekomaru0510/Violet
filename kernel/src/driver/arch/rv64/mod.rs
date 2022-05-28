@@ -8,6 +8,7 @@ use crate::driver::traits::arch::riscv::PrivilegeMode;
 use crate::driver::traits::arch::riscv::Registers;
 use crate::driver::traits::arch::riscv::TraitRisvCpu;
 use crate::driver::traits::cpu::TraitCpu;
+use crate::driver::traits::cpu::mmu::TraitMmu;
 
 pub mod boot;
 use boot::_start_trap;
@@ -138,6 +139,18 @@ impl TraitCpu for Rv64 {
     }
 }
 
+impl TraitMmu for Rv64 {
+    // MMU有効化
+    fn enable_mmu(&self) {
+
+    }
+    // MMU無効化
+    fn disable_mmu(&self) {
+
+    }
+
+}
+
 const NUM_OF_INTERRUPTS: usize = 32;
 const NUM_OF_EXCEPTIONS: usize = 32;
 
@@ -243,17 +256,13 @@ impl TraitRisvCpu for Rv64 {
         self.csr.hedeleg.set(current & !(exc_mask as u64));
     }
 
-    fn flush_vsmode_interrupt(&self) {
-        self.csr.hvip.set(0);
+    fn flush_vsmode_interrupt(&self, int_mask: usize) {
+        let mask = !(int_mask) & self.csr.hvip.get() as usize;
+        self.csr.hvip.set(mask as u64);
     }
 
     fn assert_vsmode_interrupt(&self, int_mask: usize) {
         self.csr.hvip.set(int_mask as u64);
-        //self.csr.hip.set((int_mask) as u32);
-        //self.csr.hip.set((int_mask >> 1) as u32);
-        //self.csr.vsip.set((int_mask >> 1) as u32);
-        //self.csr.vsip.set((int_mask) as u32);
-        //self.csr.vsip.set(0xffff_ffff);
     }
 
     fn enable_vsmode_counter_access(&self, counter_mask: usize) {
@@ -385,11 +394,41 @@ pub struct RegisterStack {
     pub reg: [usize; 32],
 }
 
-pub extern "C" fn do_ecall(
+pub fn do_ecall(regs: &mut Registers) -> (usize, usize) {
+    unsafe {
+        let mut val: usize = 0;
+        let mut err: usize = 0;
+
+        asm! ("
+        .align 8
+                addi a0, $2, 0
+                addi a1, $3, 0
+                addi a2, $4, 0
+                addi a3, $5, 0
+                addi a4, $6, 0
+                addi a5, $7, 0
+                addi a6, $8, 0
+                addi a7, $9, 0
+                ecall
+                addi $0, a0, 0
+                addi $1, a1, 0
+        "
+        : "+r"(err), "+r"(val)
+        : "r"((*(regs)).a0), "r"((*(regs)).a1), "r"((*(regs)).a2), "r"((*(regs)).a3), "r"((*(regs)).a4), "r"((*(regs)).a5), "r"((*(regs)).a6), "r"((*(regs)).a7)
+        : "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"
+        : );
+        
+        return (err, val);
+        //(*(regs)).a0 = err;
+        //(*(regs)).a1 = val;
+    }
+}
+
+pub extern "C" fn _do_ecall(
     ext: i32,
     fid: i32,
-    mut arg0: usize,
-    mut arg1: usize,
+    arg0: usize,
+    arg1: usize,
     arg2: usize,
     arg3: usize,
     arg4: usize,

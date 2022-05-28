@@ -1,4 +1,3 @@
-#![no_main]
 #![feature(asm)]
 #![feature(naked_functions)]
 #![feature(stmt_expr_attributes)]

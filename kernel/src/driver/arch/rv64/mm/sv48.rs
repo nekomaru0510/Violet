@@ -1,7 +1,14 @@
 //! Sv48用ページエントリ・ページテーブル
 
+extern crate core;
+use core::intrinsics::transmute;
+
 use super::BitField;
-use crate::driver::traits::arch::riscv::{PageEntry, PageTable};
+//use crate::driver::traits::arch::riscv::{PageEntry, PageTable};
+use crate::driver::traits::cpu::mmu::{PageEntry, PageTable, TraitMmu};
+
+const PAGE_TABLE_LEVEL: usize = 4; /* ページテーブルの段数 */
+const NUM_OF_PAGE_ENTRY: usize = 512; /* 1テーブルあたりのページエントリ数 */
 
 // 仮想アドレスのビットフィールド
 pub struct VirtualAddressFieldSv48 {
@@ -198,7 +205,7 @@ impl PageEntry for PageEntrySv48 {
 #[derive(Clone, Copy)] //危険か？
 #[repr(align(4096))]
 pub struct PageTableSv48 {
-    pub entry: [PageEntrySv48; 512],
+    pub entry: [PageEntrySv48; NUM_OF_PAGE_ENTRY],
 }
 
 impl PageTableSv48 {
@@ -211,11 +218,12 @@ impl PageTableSv48 {
 
 impl PageTable for PageTableSv48 {
     type Entry = PageEntrySv48;
+    type Table = PageTableSv48;
 
     // 初期化
     fn new() -> Self {
         PageTableSv48 {
-            entry: [PageEntrySv48::new(); 512],
+            entry: [PageEntrySv48::new(); NUM_OF_PAGE_ENTRY],
         }
     }
 
@@ -229,4 +237,41 @@ impl PageTable for PageTableSv48 {
         let e = self.entry[vpn as usize];
         e.get_ppn()
     }
+
+    // 仮想アドレスからページエントリを取得
+    fn get_page_entry(&mut self, vaddr: usize) -> &mut <Self as PageTable>::Entry {
+        let mut vpn = SV48_VA.vpn[0].mask(vaddr as u64);
+        let mut table: &mut PageTableSv48 = self;
+        //let mut entry: &mut PageEntrySv48;
+
+        for i in (0..PAGE_TABLE_LEVEL).rev() {
+            // vpnの更新
+            vpn = SV48_VA.vpn[i].mask(vaddr as u64);
+            // 次のエントリを取得
+            //entry = &mut ((*table).entry[vpn as usize]);
+
+            if (i != 0) {
+                // 次のテーブルを取得
+                unsafe{table = transmute((*table).get_entry_ppn(vpn) << 12);}
+            }
+            
+        }
+        &mut ((*table).entry[vpn as usize]) //entry
+    }
+
+    // 次のページテーブルを取得
+    fn get_next_table(&mut self, vaddr: usize, idx: usize) -> &mut <Self as PageTable>::Table {
+        let vpn = SV48_VA.vpn[idx].mask(vaddr as u64);
+        unsafe{transmute((*self).get_entry_ppn(vpn) << 12)}
+    }
+
+    // 仮想アドレスから物理アドレスへの変換
+    /*
+    fn to_paddr(&mut self, vaddr: usize) -> usize {
+        for i in (0..PAGE_TABLE_LEVEL).rev() {
+            self.get_next_table(vaddr, i)
+        }
+        
+    }*/
+
 }
