@@ -23,7 +23,7 @@ pub fn print(args: fmt::Arguments) {
 }
 
 pub fn getc() -> u8 {
-    let mut serial = unsafe { PERIPHERALS.take_serial() };
+    let serial = unsafe { PERIPHERALS.take_serial() };
     let res = serial.read();
     unsafe { PERIPHERALS.release_serial(serial) };
     res

@@ -13,7 +13,20 @@ use crate::driver::traits::cpu::mmu::TraitMmu;
 pub mod boot;
 use boot::_start_trap;
 
-pub mod mm;
+pub mod mmu;
+use mmu::Rv64Mmu;
+
+pub mod inst;
+use inst::Rv64Inst;
+
+pub mod int;
+use int::Rv64Int;
+
+pub mod exc;
+use exc::Rv64Exc;
+
+pub mod hyp;
+use hyp::Rv64Hyp;
 
 extern crate register;
 use register::cpu::RegisterReadWrite;
@@ -49,7 +62,12 @@ use csr::Csr;
 pub struct Rv64 {
     pub index: u32,          /* CPUのid */
     pub mode: PrivilegeMode, /* 動作モード */
-    pub csr: Csr,            /* CSR */
+    pub csr: Csr,            /* CSR [todo delete]*/
+    pub inst: Rv64Inst,
+    pub int: Rv64Int,
+    pub exc: Rv64Exc,
+    pub mmu: Rv64Mmu,
+    pub hyp: Rv64Hyp,
 }
 
 use crate::print;
@@ -58,16 +76,17 @@ use crate::println;
 /* ハードウェア依存の機能の実装 */
 ///////////////////////////////
 impl Rv64 {
-    pub fn new(index: u32) -> Self {
+    pub const fn new(index: u32) -> Self {
         Rv64 {
             index,
             mode: PrivilegeMode::ModeS,
             csr: Csr::new(),
+            inst: Rv64Inst::new(),
+            int: Rv64Int::new(),
+            exc: Rv64Exc::new(),
+            mmu: Rv64Mmu::new(),
+            hyp: Rv64Hyp::new(),
         }
-    }
-    // 現在の動作モードを返す
-    pub fn current_privilege_mode(self) -> PrivilegeMode {
-        self.mode
     }
 
     pub fn set_default_vector(&self) {
@@ -105,9 +124,7 @@ impl Rv64 {
         println!("vscause: {:x}", self.csr.vscause.get());
         println!("vstvec: {:x}", self.csr.vstvec.get());
     }
-    pub fn flush_interrupt_pending(&self) {
-        self.csr.sip.set(0);
-    }
+
 }
 
 //////////////////////////////////////
@@ -115,40 +132,12 @@ impl Rv64 {
 //////////////////////////////////////
 impl TraitCpu for Rv64 {
     fn enable_interrupt(&self) {
-        match self.mode {
-            PrivilegeMode::ModeM => {
-                self.csr.mstatus.modify(mstatus::MIE::SET);
-            }
-            PrivilegeMode::ModeS => {
-                self.csr.sstatus.modify(sstatus::SIE::SET);
-            }
-            _ => {}
-        }
+        self.int.enable_s();
     }
 
     fn disable_interrupt(&self) {
-        match self.mode {
-            PrivilegeMode::ModeM => {
-                self.csr.mstatus.modify(mstatus::MIE::CLEAR);
-            }
-            PrivilegeMode::ModeS => {
-                self.csr.sstatus.modify(sstatus::SIE::CLEAR);
-            }
-            _ => {}
-        }
+        self.int.disable_s();
     }
-}
-
-impl TraitMmu for Rv64 {
-    // MMU有効化
-    fn enable_mmu(&self) {
-
-    }
-    // MMU無効化
-    fn disable_mmu(&self) {
-
-    }
-
 }
 
 const NUM_OF_INTERRUPTS: usize = 32;
@@ -185,7 +174,7 @@ impl TraitRisvCpu for Rv64 {
         /* 次の動作モードをHS-modeに */
         self.set_next_mode(PrivilegeMode::ModeHS);
         /* 次の動作モードへ切替え */
-        jump_by_sret(0, 0, 0);
+        self.inst.jump_by_sret(0, 0, 0);
     }
 
     fn set_next_mode(&self, mode: PrivilegeMode) {
@@ -206,165 +195,10 @@ impl TraitRisvCpu for Rv64 {
         };
     }
 
-    fn enable_interrupt_mask(&self, int_mask: usize) {
-        let sint_mask = 0x222 & int_mask; // sieの有効ビットでマスク
-        let scurrent = self.csr.sie.get();
-        self.csr.sie.set(scurrent | sint_mask as u64);
 
-        let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
-        let hcurrent = self.csr.hie.get();
-        self.csr.hie.set(hcurrent | hint_mask as u64);
-    }
-
-    fn disable_interrupt_mask(&self, int_mask: usize) {
-        let sint_mask = 0x222 & int_mask; // sieの有効ビットでマスク
-        let scurrent = self.csr.sie.get();
-        self.csr.sie.set(scurrent & !(sint_mask as u64));
-
-        let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
-        let hcurrent = self.csr.hie.get();
-        self.csr.hie.set(hcurrent & !(hint_mask as u64));
-    }
-
-    fn enable_external_interrupt_mask(&self, int_mask: usize) {
-        let current = self.csr.hgeie.get();
-        self.csr.hgeie.set(current | int_mask as u64);
-    }
-
-    fn disable_external_interrupt_mask(&self, int_mask: usize) {
-        let current = self.csr.hgeie.get();
-        self.csr.hgeie.set(current & !(int_mask as u64));
-    }
-
-    fn enable_interrupt_delegation_mask(&self, int_mask: usize) {
-        let current = self.csr.hideleg.get();
-        self.csr.hideleg.set(current | int_mask as u64);
-    }
-
-    fn disable_interrupt_delegation_mask(&self, int_mask: usize) {
-        let current = self.csr.hideleg.get();
-        self.csr.hideleg.set(current & !(int_mask as u64));
-    }
-
-    fn enable_exception_delegation_mask(&self, exc_mask: usize) {
-        let current = self.csr.hedeleg.get();
-        self.csr.hedeleg.set(current | exc_mask as u64);
-    }
-
-    fn disable_exception_delegation_mask(&self, exc_mask: usize) {
-        let current = self.csr.hedeleg.get();
-        self.csr.hedeleg.set(current & !(exc_mask as u64));
-    }
-
-    fn flush_vsmode_interrupt(&self, int_mask: usize) {
-        let mask = !(int_mask) & self.csr.hvip.get() as usize;
-        self.csr.hvip.set(mask as u64);
-    }
-
-    fn assert_vsmode_interrupt(&self, int_mask: usize) {
-        self.csr.hvip.set(int_mask as u64);
-    }
-
-    fn enable_vsmode_counter_access(&self, counter_mask: usize) {
-        let current = self.csr.hcounteren.get();
-        self.csr.hcounteren.set(current | counter_mask as u32);
-    }
-
-    fn disable_vsmode_counter_access(&self, counter_mask: usize) {
-        let current = self.csr.hcounteren.get();
-        self.csr.hcounteren.set(current & !(counter_mask as u32));
-    }
-
-    fn set_paging_mode_hv(&self, mode: PagingMode) {
-        match mode {
-            PagingMode::Bare => {
-                self.csr.hgatp.modify(hgatp::MODE::BARE);
-            }
-            PagingMode::Sv39x4 => {
-                self.csr.hgatp.modify(hgatp::MODE::SV39X4);
-            }
-            PagingMode::Sv48x4 => {
-                self.csr.hgatp.modify(hgatp::MODE::SV48X4);
-            }
-            PagingMode::Sv57x4 => {
-                self.csr.hgatp.modify(hgatp::MODE::SV57X4);
-            }
-        };
-    }
-
-    fn get_vs_pagetable(&self) -> u64 {
-        (self.csr.vsatp.get() & 0x0fff_ffff_ffff) << 12
-    }
-
-    fn get_vs_fault_address(&self) -> u64 {
-        self.csr.vstval.get()
-    }
-
-    fn get_fault_address(&self) -> u64 {
-        self.csr.stval.get()
-    }
-
-    //MMU 関連
-    // ページングモードの設定
-    fn set_paging_mode(&self, mode: PagingMode) {
-        match mode {
-            PagingMode::Bare => {
-                self.csr.satp.modify(satp::MODE::BARE);
-            }
-            PagingMode::Sv39x4 => {
-                self.csr.satp.modify(satp::MODE::SV39X4);
-            }
-            PagingMode::Sv48x4 => {
-                self.csr.satp.modify(satp::MODE::SV48X4);
-            }
-            PagingMode::Sv57x4 => {
-                self.csr.satp.modify(satp::MODE::SV57X4);
-            }
-        };
-    }
-
-    // ページテーブルのアドレスを設定
-    fn set_table_addr(&self, table_addr: usize) {
-        self.csr.satp.modify(satp::PPN::CLEAR);
-        let current = self.csr.satp.get();
-        self.csr
-            .satp
-            .set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
-    }
 }
 
-pub fn jump_by_sret(next_addr: usize, arg1: usize, arg2: usize) {
-    if next_addr == 0 {
-        unsafe {
-            asm! ("
-            .align 8
-                    la  a0, 1f
-                    csrw sepc, a0
-                    sret
-            1:
-                    nop
-            "
-            :
-            :
-            :
-            : "volatile");
-        }
-    } else {
-        unsafe {
-            asm! ("
-            .align 8
-                    csrw sepc, $0
-                    addi a0, $1, 0
-                    addi a1, $2, 0
-                    sret
-            "
-            :
-            : "r"(next_addr), "r"(arg1), "r"(arg2) 
-            :
-            : "volatile");
-        }
-    }
-}
+
 
 ////////////////////////////////
 /* 関数(アセンブリから飛んでくる関数) */
@@ -392,73 +226,6 @@ pub extern "C" fn setup_cpu() {
 #[derive(Clone, Copy)]
 pub struct RegisterStack {
     pub reg: [usize; 32],
-}
-
-pub fn do_ecall(regs: &mut Registers) -> (usize, usize) {
-    unsafe {
-        let mut val: usize = 0;
-        let mut err: usize = 0;
-
-        asm! ("
-        .align 8
-                addi a0, $2, 0
-                addi a1, $3, 0
-                addi a2, $4, 0
-                addi a3, $5, 0
-                addi a4, $6, 0
-                addi a5, $7, 0
-                addi a6, $8, 0
-                addi a7, $9, 0
-                ecall
-                addi $0, a0, 0
-                addi $1, a1, 0
-        "
-        : "+r"(err), "+r"(val)
-        : "r"((*(regs)).a0), "r"((*(regs)).a1), "r"((*(regs)).a2), "r"((*(regs)).a3), "r"((*(regs)).a4), "r"((*(regs)).a5), "r"((*(regs)).a6), "r"((*(regs)).a7)
-        : "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"
-        : );
-        
-        return (err, val);
-        //(*(regs)).a0 = err;
-        //(*(regs)).a1 = val;
-    }
-}
-
-pub extern "C" fn _do_ecall(
-    ext: i32,
-    fid: i32,
-    arg0: usize,
-    arg1: usize,
-    arg2: usize,
-    arg3: usize,
-    arg4: usize,
-    arg5: usize,
-) -> (usize, usize) {
-    unsafe {
-        let mut val: usize = 0;
-        let mut err: usize = 0;
-
-        asm! ("
-        .align 8
-                addi a0, $2, 0
-                addi a1, $3, 0
-                addi a2, $4, 0
-                addi a3, $5, 0
-                addi a4, $6, 0
-                addi a5, $7, 0
-                addi a6, $8, 0
-                addi a7, $9, 0
-                ecall
-                addi $0, a0, 0
-                addi $1, a1, 0
-        "
-        : "+r"(err), "+r"(val)
-        : "r"(arg0), "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5), "r"(fid), "r"(ext)
-        : "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"
-        : );
-
-        return (err, val);
-    }
 }
 
 // CPU内 割込みハンドラ

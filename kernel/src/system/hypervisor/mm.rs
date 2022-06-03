@@ -5,11 +5,12 @@ use core::intrinsics::transmute;
 
 use crate::environment::traits::cpu::HasCpu;
 use crate::PERIPHERALS;
+use crate::CPU;
 
 //use crate::driver::traits::arch::riscv::{PageEntry, PageTable, PagingMode};
 use crate::driver::traits::cpu::mmu::{PageEntry, PageTable, TraitMmu};
-use crate::driver::arch::rv64::mm::sv39::{PageEntrySv39, PageTableSv39, SV39_PA, SV39_VA}; /* todo delete*/
-use crate::driver::arch::rv64::mm::sv48::{PageEntrySv48, PageTableSv48, SV48_PA, SV48_VA};
+use crate::driver::arch::rv64::mmu::sv39::{PageEntrySv39, PageTableSv39, SV39_PA, SV39_VA}; /* todo delete*/
+use crate::driver::arch::rv64::mmu::sv48::{PageEntrySv48, PageTableSv48, SV48_PA, SV48_VA};
 use crate::driver::traits::arch::riscv::*; /* todo delete*/
 
 const MAX_PAGE_TABLE: usize = 16;
@@ -19,14 +20,10 @@ static mut PAGE_TABLE_ARRAY: [PageTableSv48; MAX_PAGE_TABLE] =
 static mut PAGE_TABLE_IDX: usize = 0;
 
 pub fn enable_paging() {
-    let cpu = unsafe { PERIPHERALS.take_cpu() };
-
     unsafe {
-        cpu.set_table_addr(transmute(&PAGE_TABLE_ARRAY[0]));
+        CPU.mmu.set_table_addr(transmute(&PAGE_TABLE_ARRAY[0]));
     }
-    cpu.set_paging_mode(PagingMode::Sv39x4);
-
-    unsafe { PERIPHERALS.release_cpu(cpu) };
+    CPU.mmu.set_paging_mode(PagingMode::Sv39x4);
 }
 
 pub fn create_page_table() {

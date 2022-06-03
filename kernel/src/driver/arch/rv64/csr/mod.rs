@@ -129,7 +129,7 @@ pub struct Csr {
 }
 
 impl Csr {
-    pub fn new() -> Csr {
+    pub const fn new() -> Csr {
         Csr {
             sstatus: Sstatus {},
             sie: Sie {},

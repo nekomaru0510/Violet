@@ -22,9 +22,11 @@ pub mod library;
 pub mod system;
 
 /* 環境依存 */
+use crate::driver::arch::rv64::Rv64;
 use crate::environment::qemu::init_peripherals;
 use crate::environment::qemu::Qemu;
 
+pub static CPU: Rv64 = Rv64::new(0);
 pub static mut PERIPHERALS: Qemu = Qemu {
     cpu: None,
     serial: None,

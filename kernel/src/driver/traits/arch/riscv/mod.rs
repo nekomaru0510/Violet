@@ -120,54 +120,6 @@ pub trait TraitRisvCpu {
     fn switch_hs_mode(&self);
     /* 次の特権モードの設定 */
     fn set_next_mode(&self, mode: PrivilegeMode);
-
-    /* 外部割込みの */
-    //fn enable_interrupt_mask(&self, int_mask: usize);
-    //fn jump_by_sret(next_addr: usize, arg1: usize, arg2: usize);
-
-    /* 割込みごとの有効化 */
-    fn enable_interrupt_mask(&self, int_mask: usize);
-    /* 割込みごとの無効化 */
-    fn disable_interrupt_mask(&self, int_mask: usize);
-
-    /* 外部割込みごとの有効化 */
-    fn enable_external_interrupt_mask(&self, int_mask: usize);
-    /* 外部割込みごとの無効化 */
-    fn disable_external_interrupt_mask(&self, int_mask: usize);
-
-    /* 割込み譲渡の有効化 */
-    fn enable_interrupt_delegation_mask(&self, int_mask: usize);
-    /* 割込み譲渡の無効化*/
-    fn disable_interrupt_delegation_mask(&self, int_mask: usize);
-
-    /* 例外譲渡の有効化(HS-mode用) */
-    fn enable_exception_delegation_mask(&self, exc_mask: usize);
-    /* 例外譲渡の無効化(HS-mode用) */
-    fn disable_exception_delegation_mask(&self, exc_mask: usize);
-
-    /* VS-modeの割込みフラッシュ */
-    fn flush_vsmode_interrupt(&self, int_mask: usize);
-    /* VS-modeへの割込み生成 */
-    fn assert_vsmode_interrupt(&self, int_mask: usize);
-    /* VS-modeの各種レジスタアクセスの許可 */
-    fn enable_vsmode_counter_access(&self, counter_mask: usize);
-    /* VS-modeの各種レジスタアクセスの不許可 */
-    fn disable_vsmode_counter_access(&self, counter_mask: usize);
-    /* VS-modeのページテーブルのアドレスを取得 */
-    fn get_vs_pagetable(&self) -> u64;
-    /* VS-modeで発生したページフォルトのアドレスを取得 */
-    fn get_vs_fault_address(&self) -> u64;
-
-    /* 発生したページフォルトのアドレスを取得 */
-    fn get_fault_address(&self) -> u64;
-
-    /* ページングモードの設定(Hypervisor用) */
-    fn set_paging_mode_hv(&self, mode: PagingMode);
-
-    /* ページングモードの設定 */
-    fn set_paging_mode(&self, mode: PagingMode);
-    /* ページテーブルのアドレスを設定 */
-    fn set_table_addr(&self, table_addr: usize);
 }
 
 
