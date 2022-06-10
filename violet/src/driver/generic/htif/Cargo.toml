@@ -1,5 +1,5 @@
 [package]
-name = "sample"
+name = "htif"
 version = "0.1.0"
 authors = ["nekomaru0510 <yama05rymy@gmail.com>"]
 edition = "2018"
@@ -7,5 +7,3 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-violet = { path = "../../violet" }
-

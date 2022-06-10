@@ -9,7 +9,7 @@
 
 [workspace]
 members = [
-    "kernel",
+    "violet",
     "app/sample",
 ]
 #default-members = ["kernel"]

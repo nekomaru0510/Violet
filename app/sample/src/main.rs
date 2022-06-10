@@ -4,9 +4,9 @@
 #![no_main]
 #![no_std]
 
-extern crate kernel;
+extern crate violet;
 
-use kernel::{print, println};
+use violet::{print, println};
 
 #[link_section = ".init_calls"]
 #[no_mangle]
