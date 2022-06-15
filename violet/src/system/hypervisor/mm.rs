@@ -3,12 +3,9 @@
 extern crate core;
 use core::intrinsics::transmute;
 
-use crate::environment::traits::cpu::HasCpu;
-use crate::PERIPHERALS;
 use crate::CPU;
 
-//use crate::driver::traits::arch::riscv::{PageEntry, PageTable, PagingMode};
-use crate::driver::traits::cpu::mmu::{PageEntry, PageTable, TraitMmu};
+use crate::driver::traits::cpu::mmu::{PageEntry, PageTable};
 use crate::driver::arch::rv64::mmu::sv39::{PageEntrySv39, PageTableSv39, SV39_PA, SV39_VA}; /* todo delete*/
 use crate::driver::arch::rv64::mmu::sv48::{PageEntrySv48, PageTableSv48, SV48_PA, SV48_VA};
 use crate::driver::traits::arch::riscv::*; /* todo delete*/
@@ -46,6 +43,18 @@ pub fn create_page_table() {
     */
 }
 
-pub fn _map_vaddr48<T: PageTable>(table: &mut T, vaddr: usize) {
-    table.get_page_entry(vaddr).invalid();
+/* 仮想アドレス->物理アドレスへの変更 */
+pub fn to_paddr<T: PageTable>(table: &mut T, vaddr: usize) -> usize {
+    match (*table).get_page_entry(vaddr) {
+        None => 0,
+        Some(e) => ((e.get_ppn() << 12) as usize ) | (vaddr & 0x0fff)
+    }
 }
+
+/* 指定仮想アドレス領域の無効化 */
+pub fn invalid_page<T: PageTable>(table: &mut T, vaddr: usize) {    
+    table.get_page_entry(vaddr).unwrap().invalid();
+}
+
+
+

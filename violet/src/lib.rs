@@ -5,9 +5,9 @@
 #![feature(alloc_error_handler)]
 #![feature(const_fn)]
 /* テスト用 */
-#![feature(custom_test_frameworks)]
-#![test_runner(crate::container::hypervisor_container::test_runner)]
-#![reexport_test_harness_main = "test_main"]
+//#![feature(custom_test_frameworks)]
+//#![test_runner(crate::container::hypervisor_container::test_runner)]
+//#![reexport_test_harness_main = "test_main"]
 /* warning抑制 */
 #![allow(dead_code)]
 #![allow(unused_variables)]
@@ -50,10 +50,13 @@ pub extern "C" fn boot_init() -> ! {
 
     init_peripherals();
 
-    do_init_calls();
-
     /* システムの起動 */
     let hv = Hypervisor::new();
+    
+    hv.setup();
+    
+    do_init_calls();
+    
     hv.run();
 
     loop {}

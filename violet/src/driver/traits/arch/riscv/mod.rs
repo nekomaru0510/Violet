@@ -112,9 +112,9 @@ pub enum PagingMode {
 
 pub trait TraitRisvCpu {
     /* 割込みの登録 */
-    fn register_interrupt(&self, int_num: Interrupt, func: fn(int_num: usize, regs: &mut Registers));
+    fn register_interrupt(&self, int_num: Interrupt, func: fn(regs: &mut Registers));
     /* 例外の登録 */
-    fn register_exception(&self, exc_num: Exception, func: fn(exc_num: usize, regs: &mut Registers));
+    fn register_exception(&self, exc_num: Exception, func: fn(regs: &mut Registers));
 
     /* HS-modeへの切替え */
     fn switch_hs_mode(&self);

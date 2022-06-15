@@ -19,12 +19,16 @@ use crate::environment::traits::intc::HasIntc;
 use crate::environment::traits::serial::HasSerial;
 use crate::environment::traits::timer::HasTimer;
 
+static UART_BASE: usize = 0x1000_0000;
+static CLINT_TIMER_BASE: usize = 0x0200_4000;
+static PLIC_BASE: usize = 0x0C00_0000;
+
 pub fn init_peripherals() {
     unsafe {
         PERIPHERALS.cpu = Some(Rv64::new(0));
-        PERIPHERALS.serial = Some(Uart::new(0x1000_0000));
-        PERIPHERALS.timer = Some(ClintTimer::new(0x0200_4000));
-        PERIPHERALS.intc = Some(Plic::new(0x0C00_0000));
+        PERIPHERALS.serial = Some(Uart::new(UART_BASE));
+        PERIPHERALS.timer = Some(ClintTimer::new(CLINT_TIMER_BASE));
+        PERIPHERALS.intc = Some(Plic::new(PLIC_BASE));
     }
 }
 

@@ -32,6 +32,6 @@ pub trait PageTable {
     fn new() -> Self;
     fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry;
     fn get_entry_ppn(&self, vpn: u64) -> u64;
-    fn get_page_entry(&mut self, vaddr: usize) -> &mut <Self as PageTable>::Entry;
-    fn get_next_table(&mut self, vaddr: usize, idx: usize) -> &mut <Self as PageTable>::Table;
+    fn get_page_entry(&mut self, vaddr: usize) -> Option<&mut <Self as PageTable>::Entry>;
+    fn get_next_table(&self, vaddr: usize, idx: usize) -> Option<&mut <Self as PageTable>::Table>;
 }

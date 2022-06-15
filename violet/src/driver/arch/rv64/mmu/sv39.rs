@@ -5,7 +5,7 @@ use core::intrinsics::transmute;
 
 use super::BitField;
 //use crate::driver::traits::arch::riscv::{PageEntry, PageTable};
-use crate::driver::traits::cpu::mmu::{PageEntry, PageTable, TraitMmu};
+use crate::driver::traits::cpu::mmu::{PageEntry, PageTable};
 
 const PAGE_TABLE_LEVEL: usize = 3; /* ページテーブルの段数 */
 const NUM_OF_PAGE_ENTRY: usize = 512; /* 1テーブルあたりのページエントリ数 */
@@ -221,29 +221,27 @@ impl PageTable for PageTableSv39 {
     }
 
     // 仮想アドレスからページエントリを取得
-    fn get_page_entry(&mut self, vaddr: usize) -> &mut <Self as PageTable>::Entry {
-        let mut vpn = SV39_VA.vpn[0].mask(vaddr as u64);
+    fn get_page_entry(&mut self, vaddr: usize) -> Option<&mut <Self as PageTable>::Entry> {
+        let vpn = SV39_VA.vpn[0].mask(vaddr as u64);
         let mut table: &mut PageTableSv39 = self;
-        let mut entry: &mut PageEntrySv39;
 
-        for i in (0..PAGE_TABLE_LEVEL).rev() {
-            // vpnの更新
-            vpn = SV39_VA.vpn[i].mask(vaddr as u64);
-            // 次のエントリを取得
-            entry = &mut ((*table).entry[vpn as usize]);
-
-            if (i != 0) {
-                // 次のテーブルを取得
-                unsafe {table = transmute((*table).get_entry_ppn(vpn) << 12);}
+        for i in (1..PAGE_TABLE_LEVEL).rev() {
+            // 次のテーブルを取得
+            match (*table).get_next_table(vaddr, i) {
+                None => return None,
+                Some(t) => table = t
             }
         }
-        &mut ((*table).entry[vpn as usize]) //entry
-        
+        Some(&mut ((*table).entry[vpn as usize]))
     }    
 
     // 次のページテーブルを取得
-    fn get_next_table(&mut self, vaddr: usize, idx: usize) -> &mut <Self as PageTable>::Table {
+    fn get_next_table(&self, vaddr: usize, idx: usize) -> Option<&mut <Self as PageTable>::Table> {
         let vpn = SV39_VA.vpn[idx].mask(vaddr as u64);
-        unsafe{transmute((*self).get_entry_ppn(vpn) << 12)}
+        let ret = (*self).get_entry_ppn(vpn) << 12;
+        if (ret == 0) {
+            return None;
+        }
+        unsafe{transmute(ret)}
     }
 }

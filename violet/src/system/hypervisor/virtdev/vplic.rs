@@ -18,12 +18,11 @@ impl VPlic {
     }
 
     pub fn write32(&mut self, addr: usize, val: u32) {
-        /* [todo fix] 関数にまとめたい */
-        let mut vreg = match addr {
+        /* [todo fix] レジスタ取得を関数にまとめたい */
+        match addr {
             0x1004 => self.claim_comp.write(val),
             _ => self.zero.write(val)
         };
-        //(*vreg).write(val);
     }
 
     pub fn read32(&mut self, addr: usize) -> u32{
@@ -31,7 +30,6 @@ impl VPlic {
             0x1004 => self.claim_comp.read(),
             _ => self.zero.read()
         }
-        //(*vreg).read()
     }
 }
 

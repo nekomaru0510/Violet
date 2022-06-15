@@ -3,12 +3,10 @@
 /* ドライバ用トレイト */
 use crate::driver::traits::arch::riscv::Exception;
 use crate::driver::traits::arch::riscv::Interrupt;
-use crate::driver::traits::arch::riscv::PagingMode;
 use crate::driver::traits::arch::riscv::PrivilegeMode;
 use crate::driver::traits::arch::riscv::Registers;
 use crate::driver::traits::arch::riscv::TraitRisvCpu;
 use crate::driver::traits::cpu::TraitCpu;
-use crate::driver::traits::cpu::mmu::TraitMmu;
 
 pub mod boot;
 use boot::_start_trap;
@@ -34,20 +32,9 @@ use register::cpu::RegisterReadWrite;
 extern crate alloc;
 
 pub mod csr;
-use csr::hcounteren::*;
-use csr::hedeleg::*;
-use csr::hgatp::*;
-use csr::hgeie::*;
-use csr::hie::*;
 use csr::hstatus::*;
-use csr::hvip::*;
-use csr::mhartid::*;
-use csr::mstatus::*;
-use csr::satp::*;
 use csr::scause::*;
 use csr::sepc::*;
-use csr::sie::*;
-use csr::sip::*;
 use csr::sstatus::*;
 use csr::stval::*;
 use csr::vscause::*;
@@ -143,28 +130,22 @@ impl TraitCpu for Rv64 {
 const NUM_OF_INTERRUPTS: usize = 32;
 const NUM_OF_EXCEPTIONS: usize = 32;
 
-pub static mut INTERRUPT_HANDLER: [Option<fn(int_num: usize, regs: &mut Registers)>;
+pub static mut INTERRUPT_HANDLER: [Option<fn(regs: &mut Registers)>;
     NUM_OF_INTERRUPTS] = [None; NUM_OF_INTERRUPTS];
-pub static mut EXCEPTION_HANDLER: [Option<fn(exc_num: usize, regs: &mut Registers)>;
+pub static mut EXCEPTION_HANDLER: [Option<fn(regs: &mut Registers)>;
     NUM_OF_EXCEPTIONS] = [None; NUM_OF_EXCEPTIONS];
 
 ////////////////////////////////
 /* アーキテクチャ依存機能の実装 */
 ///////////////////////////////
 impl TraitRisvCpu for Rv64 {
-    fn register_interrupt(&self, int_num: Interrupt, func: fn(int_num: usize, regs: &mut Registers)) {
-        if (int_num as usize >= NUM_OF_INTERRUPTS) {
-            return ();
-        }
+    fn register_interrupt(&self, int_num: Interrupt, func: fn(regs: &mut Registers)) {
         unsafe {
             INTERRUPT_HANDLER[int_num as usize] = Some(func);
         }
     }
 
-    fn register_exception(&self, exc_num: Exception, func: fn(exc_num: usize, regs: &mut Registers)) {
-        if (exc_num as usize >= NUM_OF_EXCEPTIONS) {
-            return ();
-        }
+    fn register_exception(&self, exc_num: Exception, func: fn(regs: &mut Registers)) {
         unsafe {
             EXCEPTION_HANDLER[exc_num as usize] = Some(func);
         }
@@ -236,11 +217,11 @@ pub extern "C" fn trap_handler(regs: &mut Registers) {
     unsafe {
         match i {
             0 => match EXCEPTION_HANDLER[e] {
-                Some(func) => func(e, regs),
+                Some(func) => func(regs),
                 None => (),
             },
             1 => match INTERRUPT_HANDLER[e] {
-                Some(func) => func(e, regs),
+                Some(func) => func(regs),
                 None => (),
             },
             _ => (),
