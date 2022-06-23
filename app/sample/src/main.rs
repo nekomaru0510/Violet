@@ -1,14 +1,9 @@
-//! Violetアプリケーションのサンプル
-//! Linuxカーネルを動作させる
-
+//! Violetアプリケーションのサンプル(Linuxカーネルを動作させる)
 #![no_main]
 #![no_std]
 
-#![warn(unused_parens)]
-
 extern crate violet;
 
-//use violet::{print, println};
 use violet::CPU;
 use violet::PERIPHERALS;
 
@@ -16,28 +11,22 @@ use violet::system::hypervisor::virtdev::vplic::VPlic;
 use violet::system::hypervisor::arch::riscv::sbi;
 use violet::system::hypervisor::mm::*;
 
+use violet::driver::traits::arch::riscv::{Exception, Interrupt, Registers, TraitRisvCpu};
 use violet::driver::arch::rv64::mmu::sv48::PageTableSv48;
 use violet::driver::arch::rv64::redirect_to_guest;
 
-use violet::driver::traits::intc::TraitIntc;
 use violet::environment::traits::intc::HasIntc;
-use violet::driver::traits::cpu::TraitCpu;
-
-use violet::driver::traits::arch::riscv::Exception;
-use violet::driver::traits::arch::riscv::Interrupt;
-use violet::driver::traits::arch::riscv::PagingMode;
-use violet::driver::traits::arch::riscv::Registers;
-use violet::driver::traits::arch::riscv::TraitRisvCpu;
+use violet::driver::traits::intc::TraitIntc;
 
 extern crate core;
 use core::intrinsics::transmute;
-
 
 #[link_section = ".init_calls"]
 #[no_mangle]
 pub static mut INIT_CALLS: Option<fn()> = Some(init_sample);
 
 static mut VPLIC: VPlic = VPlic::new();
+static mut IS_FIRST: u32 = 0;
 
 pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     let mut ext: i32 = (*(regs)).a7 as i32;
@@ -52,19 +41,18 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     /* タイマセット */
     if (ext == sbi::Extension::SetTimer as i32 || ext == sbi::Extension::Timer as i32) {
         unsafe {
-            
-            if (VPLIC.read32(81) == 0) {
+            if (IS_FIRST == 0) {
                 invalid_page::<PageTableSv48>(
                     transmute(CPU.hyp.get_vs_pagetable()),
                     0xffff8f8000201000,
                 );
-                VPLIC.write32(81, 1);
+                IS_FIRST = 1;
             }
         }
-
-        CPU.int.enable_mask_s(Interrupt::SupervisorTimerInterrupt.mask());
+        /* 仮想タイマ割込みのフラッシュ */
+        /* QEMU virtの性質上、ゲストOSは必ずタイマ割込みハンドラ内でタイマセットを行う */
+        /* そのため、ここで仮想タイマ割込みのフラッシュを行う */
         CPU.hyp.flush_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
-
     }
     /* キャッシュのフラッシュ */
     if (ext == sbi::Extension::RemoteSfenceVma as i32) {
@@ -87,13 +75,15 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
 }
 
 pub fn do_store_page_fault(regs: &mut Registers) {
-    let fault_addr = CPU.exc.get_fault_address();
+    /* 例外が発生したアドレスを物理アドレスに変換 */
+    let fault_paddr = to_paddr::<PageTableSv48>(
+        unsafe {transmute(CPU.hyp.get_vs_pagetable()) } ,
+        CPU.exc.get_fault_address() as usize,
+    );
 
-    if (fault_addr >= 0xffff8f8000201000 && fault_addr < 0xffff8f8000202000) {
-        if (fault_addr == 0xffff8f8000201004) {
-            (*(regs)).epc = (*(regs)).epc + 2;
-            CPU.hyp.flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
-        }
+    if (0x0c20_1000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {        
+        (*(regs)).epc = (*(regs)).epc + 2;
+        CPU.hyp.flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
     } else {
         redirect_to_guest(regs);
     }
@@ -136,55 +126,14 @@ pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
 
 pub fn do_supervisor_timer_interrupt(_regs: &mut Registers) {
 
-    /* 自分への割込みは無効に */
-    CPU.int.disable_mask_s(Interrupt::SupervisorTimerInterrupt.mask());
+    /* タイマの無効化 */
+    sbi::sbi_set_timer(0xffff_ffff_ffff_ffff);
+
     /* ゲストにタイマ割込みをあげる */
     CPU.hyp.assert_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
-
 }
 
-pub fn setup_boot() {
-    CPU.switch_hs_mode();
-
-    CPU.enable_interrupt();
-    CPU.set_default_vector();
-    
-    CPU.int.disable_mask_s(
-        Interrupt::SupervisorSoftwareInterrupt.mask() |
-        Interrupt::SupervisorTimerInterrupt.mask() |
-        Interrupt::SupervisorExternalInterrupt.mask()
-    );
-    
-    CPU.int.enable_mask_s(
-        Interrupt::VirtualSupervisorSoftwareInterrupt.mask()
-            | Interrupt::VirtualSupervisorTimerInterrupt.mask()
-            | Interrupt::VirtualSupervisorExternalInterrupt.mask()
-            | Interrupt::SupervisorGuestExternalInterrupt.mask(),
-    );
-
-    CPU.hyp.set_delegation_exc(
-        Exception::InstructionAddressMisaligned.mask()
-            | Exception::Breakpoint.mask()
-            | Exception::EnvironmentCallFromUmodeOrVUmode.mask()
-            | Exception::InstructionPageFault.mask() 
-            | Exception::LoadPageFault.mask() 
-            | Exception::StoreAmoPageFault.mask()
-    );
-    
-    CPU.hyp.set_delegation_int(        
-        Interrupt::VirtualSupervisorSoftwareInterrupt.mask()
-            | Interrupt::VirtualSupervisorTimerInterrupt.mask()
-            | Interrupt::VirtualSupervisorExternalInterrupt.mask(),
-    );
-
-    CPU.hyp.flush_vsmode_interrupt(0xffff_ffff_ffff_ffff);
-
-    CPU.mmu.set_paging_mode(PagingMode::Bare);
-
-    CPU.hyp.enable_vsmode_counter_access(0xffff_ffff);
-}
-
-pub fn setup_boot_linux() {
+pub fn init_sample() {
     /* 割込みを有効化 */
     CPU.int.enable_mask_s(
         Interrupt::SupervisorTimerInterrupt.mask() |
@@ -204,11 +153,8 @@ pub fn setup_boot_linux() {
     /* 例外ハンドラの登録 */
     CPU.register_exception(Exception::EnvironmentCallFromVSmode, do_ecall_from_vsmode);
     CPU.register_exception(Exception::LoadPageFault, do_load_page_fault);
-    CPU.register_exception(Exception::StoreAmoPageFault, do_store_page_fault);
-}
-
-
-pub fn init_sample() {
-    //println!("sample application init !!");
-    setup_boot_linux();
+    //CPU.register_exception(Exception::LoadGuestPageFault, do_load_page_fault);
+    CPU.register_exception(Exception::StoreAmoPageFault, do_store_page_fault);    
+    
+    
 }

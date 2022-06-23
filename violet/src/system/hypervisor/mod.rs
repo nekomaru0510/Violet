@@ -1,9 +1,7 @@
 //! Hypervisor機能本体
 
 pub mod mm;
-
 pub mod arch;
-
 pub mod virtdev;
 
 extern crate alloc;
@@ -21,6 +19,8 @@ use crate::driver::traits::arch::riscv::TraitRisvCpu;
 
 use crate::library::vshell::{Command, VShell};
 
+use mm::*;
+
 use crate::print;
 use crate::println;
 
@@ -30,6 +30,9 @@ pub fn setup_boot() {
     CPU.enable_interrupt();
     CPU.set_default_vector();
     
+    //create_page_table();
+    //enable_paging();
+
     CPU.int.disable_mask_s(
         Interrupt::SupervisorSoftwareInterrupt.mask() |
         Interrupt::SupervisorTimerInterrupt.mask() |
@@ -63,6 +66,8 @@ pub fn setup_boot() {
     CPU.mmu.set_paging_mode(PagingMode::Bare);
 
     CPU.hyp.enable_vsmode_counter_access(0xffff_ffff);
+
+
 }
 
 pub fn boot_guest() {

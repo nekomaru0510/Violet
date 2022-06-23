@@ -20,6 +20,7 @@ pub struct VirtualAddressFieldSv48 {
 pub struct PhysicalAddressFieldSv48 {
     pub page_offset: BitField,
     pub ppn: [BitField; 4],
+    pub ppn_all: BitField,
 }
 
 //ページエントリのビットフィールド
@@ -86,6 +87,10 @@ pub const SV48_PA: PhysicalAddressFieldSv48 = PhysicalAddressFieldSv48 {
             width: 17,
         },
     ],
+    ppn_all: BitField {
+        offset: 12,
+        width:44
+    },
 };
 pub const SV48_ENTRY: PageEntryFieldSv48 = PageEntryFieldSv48 {
     v: BitField {
@@ -145,6 +150,15 @@ pub const SV48_ENTRY: PageEntryFieldSv48 = PageEntryFieldSv48 {
     }, //
 };
 
+fn vaddr_to_vpn(vaddr: u64, idx: usize) -> u64 {
+    SV48_VA.vpn[idx].mask(vaddr) as u64
+}
+
+fn paddr_to_ppn(paddr: u64) -> u64 {
+    SV48_PA.ppn_all.mask(paddr) as u64
+}
+
+
 // ページエントリ(Sv48)
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -166,6 +180,10 @@ impl PageEntry for PageEntrySv48 {
     // todo fix
     fn set_parmition(&mut self, flags: usize) {
         self.entry &= !SV48_ENTRY.r.pattern(1);
+    }
+
+    fn set_paddr(&mut self, paddr: usize) {
+        self.set_ppn(paddr_to_ppn(paddr as u64));
     }
 
     /* 当該ページ物理アドレスor次のテーブルのアドレスを設定する */
@@ -228,8 +246,10 @@ impl PageTable for PageTableSv48 {
     }
 
     // ページエントリを取得
-    fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry {
-        &mut self.entry[vpn as usize]
+    //fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry {
+    fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as PageTable>::Entry {        
+        let idx = PAGE_TABLE_LEVEL - table_level;
+        &mut self.entry[vaddr_to_vpn(vaddr as u64, idx) as usize]
     }
 
     // ページエントリのアドレスを取得
@@ -260,7 +280,48 @@ impl PageTable for PageTableSv48 {
         if (ret == 0) {
             return None;
         }
-        unsafe{transmute(ret)}
+        let t : &mut <Self as PageTable>::Table = unsafe{transmute(ret)};
+        Some(t)
     }
+
+    /* ページエントリの作成　途中のページテーブルが存在しなかった場合は、その段数をエラーとして返す */
+    fn create_page_entry(&mut self, paddr: usize, vaddr: usize) -> Result<(), usize> {
+        let mut table: &mut PageTableSv48 = self;
+        for i in (1..PAGE_TABLE_LEVEL).rev() {
+            match (*table).get_next_table(vaddr, i) {
+                None => {
+                    return Err(PAGE_TABLE_LEVEL - i);
+                },
+                Some(t) => table = t
+            }
+        }
+        (*table).get_entry(vaddr, 4).set_ppn(paddr_to_ppn(paddr as u64));
+        (*table).get_entry(vaddr, 4).valid();
+        (*table).get_entry(vaddr, 4).writable();
+        Ok(())
+    }
+
+    /* 指定段目のページテーブルを取得 */
+    fn get_table(&mut self, vaddr: usize, idx: usize) -> Option<&mut <Self as PageTable>::Table> {
+        let vpn = SV48_VA.vpn[0].mask(vaddr as u64);
+        let mut table: &mut PageTableSv48 = self;
+        let idx = idx - 1;
+
+        for i in ((PAGE_TABLE_LEVEL-idx)..PAGE_TABLE_LEVEL).rev() {
+            // 次のテーブルを取得
+            match (*table).get_next_table(vaddr, i) {
+                None => return None,
+                Some(t) => table = t
+            }
+        }
+        Some(table)
+    }
+
+}
+
+
+
+
+impl PageTableSv48 {
 
 }
