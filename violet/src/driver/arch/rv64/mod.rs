@@ -167,6 +167,7 @@ impl TraitRisvCpu for Rv64 {
             PrivilegeMode::ModeVS => {
                 self.csr.sstatus.modify(sstatus::SPP::SET);
                 self.csr.hstatus.modify(hstatus::SPV::SET);
+                self.csr.hstatus.modify(hstatus::SPVP::SET);
             }
             PrivilegeMode::ModeHS => {
                 self.csr.sstatus.modify(sstatus::SPP::SET);

@@ -30,8 +30,8 @@ pub fn setup_boot() {
     CPU.enable_interrupt();
     CPU.set_default_vector();
     
-    //create_page_table();
-    //enable_paging();
+    create_page_table();
+    enable_paging();
 
     CPU.int.disable_mask_s(
         Interrupt::SupervisorSoftwareInterrupt.mask() |
@@ -66,13 +66,12 @@ pub fn setup_boot() {
     CPU.mmu.set_paging_mode(PagingMode::Bare);
 
     CPU.hyp.enable_vsmode_counter_access(0xffff_ffff);
-
-
 }
 
 pub fn boot_guest() {
     /* sret後に、VS-modeに移行させるよう設定 */
     CPU.set_next_mode(PrivilegeMode::ModeVS);
+    
     CPU.inst.jump_by_sret(0x8020_0000, 0, 0x8220_0000);
 }
 

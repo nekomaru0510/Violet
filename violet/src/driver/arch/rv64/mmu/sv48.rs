@@ -215,13 +215,15 @@ impl PageEntry for PageEntrySv48 {
         self.entry |= SV48_ENTRY.w.pattern(1);
         self.entry |= SV48_ENTRY.r.pattern(1);
         self.entry |= SV48_ENTRY.x.pattern(1);
+        self.entry |= SV48_ENTRY.u.pattern(1); //test
         //self.entry |= SV48_ENTRY.g.pattern(1);
     }
 }
 
 #[repr(C)]
 #[derive(Clone, Copy)] //危険か？
-#[repr(align(4096))]
+//#[repr(align(4096))]
+#[repr(align(16384))]
 pub struct PageTableSv48 {
     pub entry: [PageEntrySv48; NUM_OF_PAGE_ENTRY],
 }

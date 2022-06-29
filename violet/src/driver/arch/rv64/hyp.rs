@@ -9,6 +9,7 @@ use super::csr::hie::*;
 use super::csr::hvip::*;
 use super::csr::hgatp::*;
 use super::csr::hgeie::*;
+use super::csr::htval::*;
 use super::csr::vsatp::*;
 use super::csr::vstval::*;
 use super::csr::hideleg::*;
@@ -23,6 +24,7 @@ pub struct Rv64Hyp {
     pub hvip: Hvip,
     pub hgatp: Hgatp,
     pub hgeie: Hgeie,
+    pub htval: Htval,
     pub hideleg: Hideleg,
     pub hedeleg: Hedeleg,
     pub hcounteren: Hcounteren,
@@ -38,6 +40,7 @@ impl Rv64Hyp {
             hvip: Hvip {},
             hgatp: Hgatp {},
             hgeie: Hgeie {},
+            htval: Htval {},
             hideleg: Hideleg {},
             hedeleg: Hedeleg {},
             hcounteren: Hcounteren {},
@@ -127,6 +130,25 @@ impl Rv64Hyp {
         };
     }
 
+    /* HS-modeが用意するページテーブルのアドレスを設定 */
+    pub fn set_table_addr_hv(&self, table_addr: usize) {
+        self.hgatp.modify(hgatp::PPN::CLEAR);
+        let current = self.hgatp.get();
+        self.hgatp.set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
+    }
+    
+    /* ページテーブルのアドレスを取得する */
+    pub fn get_hs_pagetable(&self) -> u64 {
+        (self.hgatp.get() & 0x0fff_ffff_ffff) << 12
+    }
+
+    /* ページテーブルのアドレスを取得する */
+    pub fn set_vs_pagetable(&self, table_addr: usize) {
+        self.vsatp.modify(vsatp::PPN::CLEAR);
+        let current = self.vsatp.get();
+        self.vsatp.set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
+    }
+
     /* ページテーブルのアドレスを取得する */
     pub fn get_vs_pagetable(&self) -> u64 {
         (self.vsatp.get() & 0x0fff_ffff_ffff) << 12
@@ -135,6 +157,11 @@ impl Rv64Hyp {
     /* ページフォルト時のアドレスを取得する */
     pub fn get_vs_fault_address(&self) -> u64 {
         self.vstval.get()
+    }
+
+    /* ページテーブルのアドレスを取得する */
+    pub fn get_vs_fault_paddr(&self) -> u64 {
+        self.htval.get() << 2
     }
 
 }

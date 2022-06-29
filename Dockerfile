@@ -22,7 +22,7 @@ RUN apt update && \
 RUN wget https://download.qemu.org/qemu-7.0.0.tar.xz && \
 	tar xvJf qemu-7.0.0.tar.xz && \
 	cd qemu-7.0.0 && \
-	./configure --target-list=riscv32-softmmu,riscv64-softmmu --prefix=${RISCV} && \
+	./configure --target-list=riscv32-softmmu,riscv64-softmmu --prefix=${RISCV} --enable-trace-backend=log && \
 	make -j 2 && \
 	make install
 

@@ -11,20 +11,28 @@ use crate::driver::traits::arch::riscv::*; /* todo delete*/
 
 use crate::{print,println};
 
-const MAX_PAGE_TABLE: usize = 16;
 static mut PAGE_TABLE_ARRAY: [PageTableSv48; MAX_PAGE_TABLE] =
     [PageTableSv48::empty(); MAX_PAGE_TABLE];
+const MAX_PAGE_TABLE: usize = 32;//16;
 static mut PAGE_TABLE_IDX: usize = 0;
 
 pub fn enable_paging() {
-    CPU.mmu.set_table_addr( unsafe {transmute(&PAGE_TABLE_ARRAY[0])} );
-    CPU.mmu.set_paging_mode(PagingMode::Sv48x4);
+    //CPU.mmu.set_table_addr( unsafe {transmute(&PAGE_TABLE_ARRAY[0])} );
+    //CPU.mmu.set_paging_mode(PagingMode::Sv48x4);
+
+    //CPU.hyp.set_vs_pagetable( unsafe {transmute(&PAGE_TABLE_ARRAY[0])} );
+    CPU.hyp.set_vs_pagetable(0);
+    CPU.hyp.set_table_addr_hv( unsafe {transmute(&PAGE_TABLE_ARRAY[0])} );
+    CPU.hyp.set_paging_mode_hv(PagingMode::Sv48x4);
 }
 
 pub fn create_page_table() {
-    for i in (0..0x10) {
+    for i in (0..0x100) {
         unsafe {
-            map_vaddr::<PageTableSv48>(&mut PAGE_TABLE_ARRAY[0], 0x8010_0000 + i*0x1000, 0x8010_0000 + i*0x1000);
+            //map_vaddr::<PageTableSv48>(&mut PAGE_TABLE_ARRAY[0], 0x8010_0000 + i*0x1000, 0x8010_0000 + i*0x1000);
+            map_vaddr::<PageTableSv48>(&mut PAGE_TABLE_ARRAY[0], 0x8020_0000 + i*0x1000, 0x8020_0000 + i*0x1000);
+            //map_vaddr::<PageTableSv48>(&mut PAGE_TABLE_ARRAY[0], (0x8020_0000 + i*0x1000) >> 2, 0x8020_0000 + i*0x1000);
+            //map_vaddr::<PageTableSv48>(&mut PAGE_TABLE_ARRAY[0], 0x8020_0000 + i*0x1000, (0x8020_0000 + i*0x1000) >> 2);
         }
     }
 }
@@ -56,6 +64,9 @@ pub fn map_vaddr<T: PageTable>(table: &mut T, paddr: usize, vaddr: usize) {
                             t.get_entry(vaddr, i).set_paddr(transmute(&mut PAGE_TABLE_ARRAY[PAGE_TABLE_IDX+1]) );
                             t.get_entry(vaddr, i).valid();
                             PAGE_TABLE_IDX = PAGE_TABLE_IDX + 1;
+                            if (MAX_PAGE_TABLE < PAGE_TABLE_IDX) {
+                                loop {}
+                            }
                         }
                     }
                 }

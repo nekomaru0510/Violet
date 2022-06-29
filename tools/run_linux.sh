@@ -35,6 +35,7 @@ function run_linux_with_violet () {
         -append "root=/dev/ram rdinit=/bin/sh console=ttyS0" \
         -device loader,file=${VIOLET_BIN_PATH}/violet.bin,addr=0x80100000,force-raw=true \
         ${QEMU_DEBUG_OPTION}
+        #-d mmu -D log.txt
         #-append "root=/dev/ram rdinit=/bin/sh console=ttyS0" \
         #-device guest-loader,addr=0x80100000,kernel=${VIOLET_BIN_PATH}/Violet \
                 #-cpu rv64,x-h=true \

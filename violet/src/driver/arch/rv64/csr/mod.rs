@@ -21,7 +21,7 @@ pub mod hgeie;
 pub mod hideleg;
 pub mod hie;
 pub mod hstatus;
-//pub mod htval;
+pub mod htval;
 pub mod hip;
 pub mod hvip;
 //pub mod htinst;

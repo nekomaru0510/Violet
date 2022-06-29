@@ -93,7 +93,7 @@ pub enum Exception {
     InstructionGuestPageFault = 20,
     LoadGuestPageFault,
     VirtualInstruction,
-    SotreAmoGuestPageFault,
+    StoreAmoGuestPageFault,
     //CustomException(usize),
 }
 

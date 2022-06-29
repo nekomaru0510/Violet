@@ -18,6 +18,9 @@ use violet::driver::arch::rv64::redirect_to_guest;
 use violet::environment::traits::intc::HasIntc;
 use violet::driver::traits::intc::TraitIntc;
 
+use crate::violet::driver::traits::cpu::mmu::PageTable; // test
+use crate::violet::driver::traits::cpu::mmu::PageEntry; //test
+
 extern crate core;
 use core::intrinsics::transmute;
 
@@ -72,6 +75,21 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     (*(regs)).a1 = ret.1;
 
     (*(regs)).epc = (*(regs)).epc + 4;
+}
+
+pub fn do_guest_store_page_fault(regs: &mut Registers) {
+    let paddr = CPU.hyp.get_vs_fault_paddr() as usize;
+    map_vaddr::<PageTableSv48>(unsafe {transmute(CPU.hyp.get_hs_pagetable()) }, paddr, paddr);
+}
+
+pub fn do_guest_load_page_fault(regs: &mut Registers) {
+    let paddr = CPU.hyp.get_vs_fault_paddr() as usize;
+    map_vaddr::<PageTableSv48>(unsafe {transmute(CPU.hyp.get_hs_pagetable()) }, paddr, paddr);
+}
+
+pub fn do_guest_instruction_page_fault(regs: &mut Registers) {
+    let paddr = CPU.hyp.get_vs_fault_paddr() as usize;
+    map_vaddr::<PageTableSv48>(unsafe {transmute(CPU.hyp.get_hs_pagetable()) }, paddr, paddr);
 }
 
 pub fn do_store_page_fault(regs: &mut Registers) {
@@ -153,8 +171,11 @@ pub fn init_sample() {
     /* 例外ハンドラの登録 */
     CPU.register_exception(Exception::EnvironmentCallFromVSmode, do_ecall_from_vsmode);
     CPU.register_exception(Exception::LoadPageFault, do_load_page_fault);
-    //CPU.register_exception(Exception::LoadGuestPageFault, do_load_page_fault);
-    CPU.register_exception(Exception::StoreAmoPageFault, do_store_page_fault);    
+    CPU.register_exception(Exception::StoreAmoPageFault, do_store_page_fault);
+
+    CPU.register_exception(Exception::LoadGuestPageFault, do_guest_load_page_fault);
+    CPU.register_exception(Exception::StoreAmoGuestPageFault, do_guest_store_page_fault);
+    CPU.register_exception(Exception::InstructionGuestPageFault, do_guest_instruction_page_fault);
     
     
 }
