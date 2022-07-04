@@ -18,6 +18,7 @@ use crate::driver::traits::arch::riscv::PrivilegeMode;
 use crate::driver::traits::arch::riscv::TraitRisvCpu;
 
 use crate::library::vshell::{Command, VShell};
+use crate::library::std::memcpy;
 
 use mm::*;
 
@@ -72,7 +73,11 @@ pub fn boot_guest() {
     /* sret後に、VS-modeに移行させるよう設定 */
     CPU.set_next_mode(PrivilegeMode::ModeVS);
     
-    CPU.inst.jump_by_sret(0x8020_0000, 0, 0x8220_0000);
+    memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当
+    memcpy(0x88200000 + 0x1000_0000, 0x88200000, 0x20_0000); //initrd サイズはrootfs.imgより概算
+    CPU.inst.jump_by_sret(0x8020_0000, 0, 0x8220_0000); //linux
+    //CPU.inst.jump_by_sret(0x9000_0000, 0, 0x8220_0000); //xv6
+    //CPU.inst.jump_by_sret(0x8000_0000, 0, 0x8220_0000); //xv6
 }
 
 /* 一応、何らかの設定値を格納できるように */

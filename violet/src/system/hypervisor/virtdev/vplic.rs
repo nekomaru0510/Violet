@@ -1,8 +1,14 @@
 //! 仮想PLIC
 
+use crate::PERIPHERALS;
+use crate::environment::traits::intc::HasIntc;
+use crate::driver::traits::intc::TraitIntc;
+
+
 #[repr(C)]
 #[repr(align(4096))]
 pub struct VPlic {
+    priority_threshold: PriorityThresholdReg,
     claim_comp: ClaimCompReg,
     zero: ZeroReg,
     reg: [u32; 1024],
@@ -11,6 +17,7 @@ pub struct VPlic {
 impl VPlic {
     pub const fn new() -> Self {
         VPlic { 
+            priority_threshold: PriorityThresholdReg::new(),
             claim_comp: ClaimCompReg::new(), 
             zero: ZeroReg::new(),
             reg: [0 as u32; 1024], 
@@ -20,6 +27,7 @@ impl VPlic {
     pub fn write32(&mut self, addr: usize, val: u32) {
         /* [todo fix] レジスタ取得を関数にまとめたい */
         match addr {
+            0x1000 => self.priority_threshold.write(val),
             0x1004 => self.claim_comp.write(val),
             _ => self.zero.write(val)
         };
@@ -27,9 +35,35 @@ impl VPlic {
 
     pub fn read32(&mut self, addr: usize) -> u32{
         match addr {
+            0x1000 => self.priority_threshold.read(),
             0x1004 => self.claim_comp.read(),
             _ => self.zero.read()
         }
+    }
+}
+
+pub struct PriorityThresholdReg {
+    reg: u32,
+}
+
+impl PriorityThresholdReg {
+    pub const fn new() -> Self {
+        PriorityThresholdReg { reg: 0 }
+    }
+}
+
+impl VirtualRegister for PriorityThresholdReg {
+    type Register = u32;
+
+    fn write(&mut self, val: u32) {
+        let intc = unsafe { PERIPHERALS.take_intc() };
+        self.reg = val & 0x7;
+        intc.set_priority_threshold(self.reg);
+        unsafe { PERIPHERALS.release_intc(intc) };
+    }
+
+    fn read(&mut self) -> u32{
+        self.reg
     }
 }
 
