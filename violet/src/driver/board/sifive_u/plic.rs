@@ -13,7 +13,7 @@ pub struct Plic {
 //const SOURCE_1_PRIO: usize = 0x4;
 //const START_OF_PENDING_ARRAY: usize = 0x1000;
 const START_HART0_INT_ENABLE: usize = 0x2000;
-//const HART0_PRIO_THRESHOLD: usize = 0x2_0000;
+const HART0_PRIO_THRESHOLD: usize = 0x20_1000;
 const HART0_CLAIM_COMPLETE: usize = 0x20_1004;
 //const HART0_CLAIM_COMPLETE: usize = 0x20_0000;
 
@@ -66,6 +66,12 @@ impl Plic {
                 (self.base + START_HART0_INT_ENABLE + offset) as *mut u64,
                 val,
             );
+        }
+    }
+
+    pub fn set_priority_threshold(&self, val: u32) {
+        unsafe {
+            write_volatile((self.base + HART0_PRIO_THRESHOLD) as *mut u32, val);
         }
     }
 
