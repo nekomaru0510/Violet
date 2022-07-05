@@ -50,10 +50,9 @@ function run_linux_with_violet2 () {
         -nographic \
         -m 2G \
         -bios ${OPENSBI_BIN_PATH}/fw_jump.elf \
-        -kernel ${LINUX_PATH}/arch/riscv/boot/Image \
+        -kernel ${VIOLET_BIN_PATH}/sample \
         -initrd ${BUSYBOX_PATH}/rootfs.img \
         -append "root=/dev/ram console=ttyS0 mem=0x10000000" \
-        -device loader,file=${VIOLET_BIN_PATH}/violet.bin,addr=0x80100000,force-raw=true \
         -device loader,file=${LINUX_PATH}/vmlinux.bin,addr=0x90200000,force-raw=true \
         ${QEMU_DEBUG_OPTION}
 }

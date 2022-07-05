@@ -31,7 +31,7 @@ pub fn setup_boot() {
     CPU.enable_interrupt();
     CPU.set_default_vector();
     
-    create_page_table();
+    //create_page_table();
     enable_paging();
 
     CPU.int.disable_mask_s(
@@ -74,7 +74,8 @@ pub fn boot_guest() {
     CPU.set_next_mode(PrivilegeMode::ModeVS);
     
     memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当
-    memcpy(0x88200000 + 0x1000_0000, 0x88200000, 0x20_0000); //initrd サイズはrootfs.imgより概算
+    //memcpy(0x88200000 + 0x1000_0000, 0x88200000, 0x20_0000); //initrd サイズはrootfs.imgより概算
+    memcpy(0x88100000 + 0x1000_0000, 0x88100000, 0x20_0000); //initrd サイズはrootfs.imgより概算
     CPU.inst.jump_by_sret(0x8020_0000, 0, 0x8220_0000); //linux
     //CPU.inst.jump_by_sret(0x9000_0000, 0, 0x8220_0000); //xv6
     //CPU.inst.jump_by_sret(0x8000_0000, 0, 0x8220_0000); //xv6
