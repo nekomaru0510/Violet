@@ -16,12 +16,10 @@ pub struct Rv64Mmu {
 
 impl Rv64Mmu {
     pub const fn new() -> Self {
-        Rv64Mmu {
-            satp: Satp{} ,
-        }
+        Rv64Mmu { satp: Satp {} }
     }
 
-        //MMU 関連
+    //MMU 関連
     // ページングモードの設定
     pub fn set_paging_mode(&self, mode: PagingMode) {
         match mode {
@@ -44,7 +42,8 @@ impl Rv64Mmu {
     pub fn set_table_addr(&self, table_addr: usize) {
         self.satp.modify(satp::PPN::CLEAR);
         let current = self.satp.get();
-        self.satp.set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
+        self.satp
+            .set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 }
 

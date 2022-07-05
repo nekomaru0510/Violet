@@ -121,5 +121,3 @@ pub trait TraitRisvCpu {
     /* 次の特権モードの設定 */
     fn set_next_mode(&self, mode: PrivilegeMode);
 }
-
-

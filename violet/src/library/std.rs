@@ -33,8 +33,8 @@ pub fn getc() -> u8 {
 pub fn memcpy(dst: usize, src: usize, size: usize) {
     for offset in 0..size {
         unsafe {
-            let data = read_volatile((src+offset) as *const u8);
-            write_volatile((dst+offset) as *mut u8, data);
+            let data = read_volatile((src + offset) as *const u8);
+            write_volatile((dst + offset) as *mut u8, data);
         }
     }
 }

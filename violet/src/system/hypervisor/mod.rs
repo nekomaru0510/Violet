@@ -1,7 +1,7 @@
 //! Hypervisor機能本体
 
-pub mod mm;
 pub mod arch;
+pub mod mm;
 pub mod virtdev;
 
 extern crate alloc;
@@ -17,8 +17,8 @@ use crate::driver::traits::arch::riscv::PagingMode;
 use crate::driver::traits::arch::riscv::PrivilegeMode;
 use crate::driver::traits::arch::riscv::TraitRisvCpu;
 
-use crate::library::vshell::{Command, VShell};
 use crate::library::std::memcpy;
+use crate::library::vshell::{Command, VShell};
 
 use mm::*;
 
@@ -30,16 +30,16 @@ pub fn setup_boot() {
 
     CPU.enable_interrupt();
     CPU.set_default_vector();
-    
+
     //create_page_table();
     enable_paging();
 
     CPU.int.disable_mask_s(
-        Interrupt::SupervisorSoftwareInterrupt.mask() |
-        Interrupt::SupervisorTimerInterrupt.mask() |
-        Interrupt::SupervisorExternalInterrupt.mask()
+        Interrupt::SupervisorSoftwareInterrupt.mask()
+            | Interrupt::SupervisorTimerInterrupt.mask()
+            | Interrupt::SupervisorExternalInterrupt.mask(),
     );
-    
+
     CPU.int.enable_mask_s(
         Interrupt::VirtualSupervisorSoftwareInterrupt.mask()
             | Interrupt::VirtualSupervisorTimerInterrupt.mask()
@@ -51,12 +51,12 @@ pub fn setup_boot() {
         Exception::InstructionAddressMisaligned.mask()
             | Exception::Breakpoint.mask()
             | Exception::EnvironmentCallFromUmodeOrVUmode.mask()
-            | Exception::InstructionPageFault.mask() 
-            | Exception::LoadPageFault.mask() 
-            | Exception::StoreAmoPageFault.mask()
+            | Exception::InstructionPageFault.mask()
+            | Exception::LoadPageFault.mask()
+            | Exception::StoreAmoPageFault.mask(),
     );
-    
-    CPU.hyp.set_delegation_int(        
+
+    CPU.hyp.set_delegation_int(
         Interrupt::VirtualSupervisorSoftwareInterrupt.mask()
             | Interrupt::VirtualSupervisorTimerInterrupt.mask()
             | Interrupt::VirtualSupervisorExternalInterrupt.mask(),
@@ -72,13 +72,13 @@ pub fn setup_boot() {
 pub fn boot_guest() {
     /* sret後に、VS-modeに移行させるよう設定 */
     CPU.set_next_mode(PrivilegeMode::ModeVS);
-    
+
     memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当
-    //memcpy(0x88200000 + 0x1000_0000, 0x88200000, 0x20_0000); //initrd サイズはrootfs.imgより概算
+                                                              //memcpy(0x88200000 + 0x1000_0000, 0x88200000, 0x20_0000); //initrd サイズはrootfs.imgより概算
     memcpy(0x88100000 + 0x1000_0000, 0x88100000, 0x20_0000); //initrd サイズはrootfs.imgより概算
     CPU.inst.jump_by_sret(0x8020_0000, 0, 0x8220_0000); //linux
-    //CPU.inst.jump_by_sret(0x9000_0000, 0, 0x8220_0000); //xv6
-    //CPU.inst.jump_by_sret(0x8000_0000, 0, 0x8220_0000); //xv6
+                                                        //CPU.inst.jump_by_sret(0x9000_0000, 0, 0x8220_0000); //xv6
+                                                        //CPU.inst.jump_by_sret(0x8000_0000, 0, 0x8220_0000); //xv6
 }
 
 /* 一応、何らかの設定値を格納できるように */
@@ -93,14 +93,12 @@ impl Hypervisor {
 
     pub fn setup(&self) {
         println!("Hello I'm {} ", "Violet Hypervisor");
-        
+
         /* ゲスト起動前のデフォルトセットアップ */
         setup_boot();
-
     }
 
     pub fn run(&self) {
-
         boot_guest();
 
         let mut vshell = VShell::new();

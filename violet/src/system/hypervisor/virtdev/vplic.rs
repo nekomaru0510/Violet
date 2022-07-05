@@ -1,9 +1,8 @@
 //! 仮想PLIC
 
-use crate::PERIPHERALS;
-use crate::environment::traits::intc::HasIntc;
 use crate::driver::traits::intc::TraitIntc;
-
+use crate::environment::traits::intc::HasIntc;
+use crate::PERIPHERALS;
 
 #[repr(C)]
 #[repr(align(4096))]
@@ -16,11 +15,11 @@ pub struct VPlic {
 
 impl VPlic {
     pub const fn new() -> Self {
-        VPlic { 
+        VPlic {
             priority_threshold: PriorityThresholdReg::new(),
-            claim_comp: ClaimCompReg::new(), 
+            claim_comp: ClaimCompReg::new(),
             zero: ZeroReg::new(),
-            reg: [0 as u32; 1024], 
+            reg: [0 as u32; 1024],
         }
     }
 
@@ -29,15 +28,15 @@ impl VPlic {
         match addr {
             0x1000 => self.priority_threshold.write(val),
             0x1004 => self.claim_comp.write(val),
-            _ => self.zero.write(val)
+            _ => self.zero.write(val),
         };
     }
 
-    pub fn read32(&mut self, addr: usize) -> u32{
+    pub fn read32(&mut self, addr: usize) -> u32 {
         match addr {
             0x1000 => self.priority_threshold.read(),
             0x1004 => self.claim_comp.read(),
-            _ => self.zero.read()
+            _ => self.zero.read(),
         }
     }
 }
@@ -62,7 +61,7 @@ impl VirtualRegister for PriorityThresholdReg {
         unsafe { PERIPHERALS.release_intc(intc) };
     }
 
-    fn read(&mut self) -> u32{
+    fn read(&mut self) -> u32 {
         self.reg
     }
 }
@@ -84,13 +83,12 @@ impl VirtualRegister for ClaimCompReg {
         self.reg = val;
     }
 
-    fn read(&mut self) -> u32{
+    fn read(&mut self) -> u32 {
         let result = self.reg;
         self.reg = 0;
         result
-    }  
+    }
 }
-
 
 trait VirtualRegister {
     type Register;
@@ -98,7 +96,6 @@ trait VirtualRegister {
     fn write(&mut self, val: Self::Register);
     fn read(&mut self) -> Self::Register; /* 読み出し時にレジスタ値を変更するものも存在するため、mutable */
 }
-
 
 pub struct ZeroReg {
     reg: u32,
@@ -117,7 +114,7 @@ impl VirtualRegister for ZeroReg {
         ()
     }
 
-    fn read(&mut self) -> u32{
+    fn read(&mut self) -> u32 {
         0
-    }  
+    }
 }

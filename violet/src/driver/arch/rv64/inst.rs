@@ -1,13 +1,11 @@
 //! RISC-V用命令
 
 #[derive(Clone)]
-pub struct Rv64Inst {
-}
+pub struct Rv64Inst {}
 
 impl Rv64Inst {
     pub const fn new() -> Self {
-        Rv64Inst {
-        }
+        Rv64Inst {}
     }
 
     pub fn do_ecall(
@@ -24,7 +22,7 @@ impl Rv64Inst {
         unsafe {
             let mut val: usize = 0;
             let mut err: usize = 0;
-    
+
             asm! ("
             .align 8
                     addi a0, $2, 0
@@ -43,7 +41,7 @@ impl Rv64Inst {
             : "r"(arg0), "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5), "r"(fid), "r"(ext)
             : "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"
             : );
-    
+
             return (err, val);
         }
     }

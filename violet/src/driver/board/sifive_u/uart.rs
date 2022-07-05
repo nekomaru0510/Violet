@@ -13,7 +13,7 @@ pub struct Uart {
 
 const TXDATA: usize = 0x00;
 const RXDATA: usize = 0x00;
-const IE    : usize = 0x04;
+const IE: usize = 0x04;
 /*
 const TXCTRL: usize = 0x08;
 const RXCTRL: usize = 0x0c;
@@ -50,8 +50,6 @@ impl TraitSerial for Uart {
             write_volatile((self.base + IE) as *mut u8, 0x00);
         }
     }
-
-
 }
 
 impl Write for Uart {

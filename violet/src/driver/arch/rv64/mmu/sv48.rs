@@ -89,7 +89,7 @@ pub const SV48_PA: PhysicalAddressFieldSv48 = PhysicalAddressFieldSv48 {
     ],
     ppn_all: BitField {
         offset: 12,
-        width:44
+        width: 44,
     },
 };
 pub const SV48_ENTRY: PageEntryFieldSv48 = PageEntryFieldSv48 {
@@ -158,7 +158,6 @@ fn paddr_to_ppn(paddr: u64) -> u64 {
     SV48_PA.ppn_all.mask(paddr) as u64
 }
 
-
 // ページエントリ(Sv48)
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -216,7 +215,7 @@ impl PageEntry for PageEntrySv48 {
         self.entry |= SV48_ENTRY.r.pattern(1);
         self.entry |= SV48_ENTRY.x.pattern(1);
         self.entry |= SV48_ENTRY.u.pattern(1); //test
-        //self.entry |= SV48_ENTRY.g.pattern(1);
+                                               //self.entry |= SV48_ENTRY.g.pattern(1);
     }
 }
 
@@ -249,7 +248,7 @@ impl PageTable for PageTableSv48 {
 
     // ページエントリを取得
     //fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry {
-    fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as PageTable>::Entry {        
+    fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as PageTable>::Entry {
         let idx = PAGE_TABLE_LEVEL - table_level;
         &mut self.entry[vaddr_to_vpn(vaddr as u64, idx) as usize]
     }
@@ -269,7 +268,7 @@ impl PageTable for PageTableSv48 {
             // 次のテーブルを取得
             match (*table).get_next_table(vaddr, i) {
                 None => return None,
-                Some(t) => table = t
+                Some(t) => table = t,
             }
         }
         Some(&mut ((*table).entry[vpn as usize]))
@@ -282,7 +281,7 @@ impl PageTable for PageTableSv48 {
         if (ret == 0) {
             return None;
         }
-        let t : &mut <Self as PageTable>::Table = unsafe{transmute(ret)};
+        let t: &mut <Self as PageTable>::Table = unsafe { transmute(ret) };
         Some(t)
     }
 
@@ -293,11 +292,13 @@ impl PageTable for PageTableSv48 {
             match (*table).get_next_table(vaddr, i) {
                 None => {
                     return Err(PAGE_TABLE_LEVEL - i);
-                },
-                Some(t) => table = t
+                }
+                Some(t) => table = t,
             }
         }
-        (*table).get_entry(vaddr, 4).set_ppn(paddr_to_ppn(paddr as u64));
+        (*table)
+            .get_entry(vaddr, 4)
+            .set_ppn(paddr_to_ppn(paddr as u64));
         (*table).get_entry(vaddr, 4).valid();
         (*table).get_entry(vaddr, 4).writable();
         Ok(())
@@ -309,21 +310,15 @@ impl PageTable for PageTableSv48 {
         let mut table: &mut PageTableSv48 = self;
         let idx = idx - 1;
 
-        for i in ((PAGE_TABLE_LEVEL-idx)..PAGE_TABLE_LEVEL).rev() {
+        for i in ((PAGE_TABLE_LEVEL - idx)..PAGE_TABLE_LEVEL).rev() {
             // 次のテーブルを取得
             match (*table).get_next_table(vaddr, i) {
                 None => return None,
-                Some(t) => table = t
+                Some(t) => table = t,
             }
         }
         Some(table)
     }
-
 }
 
-
-
-
-impl PageTableSv48 {
-
-}
+impl PageTableSv48 {}

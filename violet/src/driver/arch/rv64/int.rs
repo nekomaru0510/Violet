@@ -1,7 +1,7 @@
 //! RV64用 CPU内割込み機能モジュール
 
-use super::csr::sip::*;
 use super::csr::sie::*;
+use super::csr::sip::*;
 use super::csr::sstatus::*;
 
 extern crate register;
@@ -39,13 +39,9 @@ impl Rv64Int {
         self.sie.set(self.sie.get() | sint_mask as u64);
     }
 
-
     /* supervisorモードの指定割込みを無効化 */
     pub fn disable_mask_s(&self, int_mask: usize) {
         let sint_mask = 0x222 & int_mask; // sieの有効ビットでマスク
         self.sie.set(self.sie.get() & !(sint_mask as u64));
     }
-
-
-
 }

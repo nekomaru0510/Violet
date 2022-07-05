@@ -52,11 +52,11 @@ pub extern "C" fn boot_init() -> ! {
 
     /* システムの起動 */
     let hv = Hypervisor::new();
-    
+
     hv.setup();
-    
+
     do_init_calls();
-    
+
     hv.run();
 
     loop {}

@@ -12,14 +12,10 @@ pub struct Rv64Exc {
 
 impl Rv64Exc {
     pub const fn new() -> Self {
-        Rv64Exc {
-            stval: Stval {},
-        }
+        Rv64Exc { stval: Stval {} }
     }
 
     pub fn get_fault_address(&self) -> u64 {
         self.stval.get()
     }
 }
-
-

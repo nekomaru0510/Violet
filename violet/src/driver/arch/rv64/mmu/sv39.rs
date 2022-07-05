@@ -79,7 +79,7 @@ pub const SV39_PA: PhysicalAddressFieldSv39 = PhysicalAddressFieldSv39 {
     ],
     ppn_all: BitField {
         offset: 12,
-        width:44
+        width: 44,
     },
 };
 pub const SV39_ENTRY: PageEntryFieldSv39 = PageEntryFieldSv39 {
@@ -222,7 +222,7 @@ impl PageTable for PageTableSv39 {
     /*fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry {
         &mut self.entry[vpn as usize]
     }*/
-    fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as PageTable>::Entry {        
+    fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as PageTable>::Entry {
         let idx = PAGE_TABLE_LEVEL - table_level;
         &mut self.entry[vaddr_to_vpn(vaddr as u64, idx) as usize]
     }
@@ -242,11 +242,11 @@ impl PageTable for PageTableSv39 {
             // 次のテーブルを取得
             match (*table).get_next_table(vaddr, i) {
                 None => return None,
-                Some(t) => table = t
+                Some(t) => table = t,
             }
         }
         Some(&mut ((*table).entry[vpn as usize]))
-    }    
+    }
 
     // 次のページテーブルを取得
     fn get_next_table(&self, vaddr: usize, idx: usize) -> Option<&mut <Self as PageTable>::Table> {
@@ -255,9 +255,9 @@ impl PageTable for PageTableSv39 {
         if (ret == 0) {
             return None;
         }
-        unsafe{transmute(ret)}
+        unsafe { transmute(ret) }
     }
-    
+
     /* ページエントリの作成　途中のページテーブルが存在しなかった場合は、その段数をエラーとして返す */
     fn create_page_entry(&mut self, paddr: usize, vaddr: usize) -> Result<(), usize> {
         let mut table: &mut PageTableSv39 = self;
@@ -265,12 +265,14 @@ impl PageTable for PageTableSv39 {
             match (*table).get_next_table(vaddr, i) {
                 None => {
                     return Err(i);
-                },
-                Some(t) => table = t
+                }
+                Some(t) => table = t,
             }
         }
         //(*table).get_entry(vaddr_to_vpn(vaddr as u64, 0)).set_ppn(paddr_to_ppn(paddr as u64));
-        (*table).get_entry(vaddr, 0).set_ppn(paddr_to_ppn(paddr as u64));
+        (*table)
+            .get_entry(vaddr, 0)
+            .set_ppn(paddr_to_ppn(paddr as u64));
         Ok(())
     }
 
@@ -279,17 +281,16 @@ impl PageTable for PageTableSv39 {
         let vpn = SV39_VA.vpn[0].mask(vaddr as u64);
         let mut table: &mut PageTableSv39 = self;
 
-        for i in ((PAGE_TABLE_LEVEL-idx)..PAGE_TABLE_LEVEL).rev() {
+        for i in ((PAGE_TABLE_LEVEL - idx)..PAGE_TABLE_LEVEL).rev() {
             // 次のテーブルを取得
             match (*table).get_next_table(vaddr, i) {
                 None => return None,
-                Some(t) => table = t
+                Some(t) => table = t,
             }
         }
         Some(table)
     }
 }
-
 
 fn vaddr_to_vpn(vaddr: u64, idx: usize) -> u64 {
     SV39_VA.vpn[idx].mask(vaddr) as u64

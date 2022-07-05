@@ -111,7 +111,6 @@ impl Rv64 {
         println!("vscause: {:x}", self.csr.vscause.get());
         println!("vstvec: {:x}", self.csr.vstvec.get());
     }
-
 }
 
 //////////////////////////////////////
@@ -130,10 +129,10 @@ impl TraitCpu for Rv64 {
 const NUM_OF_INTERRUPTS: usize = 32;
 const NUM_OF_EXCEPTIONS: usize = 32;
 
-pub static mut INTERRUPT_HANDLER: [Option<fn(regs: &mut Registers)>;
-    NUM_OF_INTERRUPTS] = [None; NUM_OF_INTERRUPTS];
-pub static mut EXCEPTION_HANDLER: [Option<fn(regs: &mut Registers)>;
-    NUM_OF_EXCEPTIONS] = [None; NUM_OF_EXCEPTIONS];
+pub static mut INTERRUPT_HANDLER: [Option<fn(regs: &mut Registers)>; NUM_OF_INTERRUPTS] =
+    [None; NUM_OF_INTERRUPTS];
+pub static mut EXCEPTION_HANDLER: [Option<fn(regs: &mut Registers)>; NUM_OF_EXCEPTIONS] =
+    [None; NUM_OF_EXCEPTIONS];
 
 ////////////////////////////////
 /* アーキテクチャ依存機能の実装 */
@@ -176,11 +175,7 @@ impl TraitRisvCpu for Rv64 {
             _ => (),
         };
     }
-
-
 }
-
-
 
 ////////////////////////////////
 /* 関数(アセンブリから飛んでくる関数) */
@@ -208,7 +203,6 @@ pub extern "C" fn setup_cpu() {
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
 pub extern "C" fn trap_handler(regs: &mut Registers) {
-
     /* 割込み・例外要因 */
     let scause = Scause {};
     let e: usize = scause.read(scause::EXCEPTION) as usize;

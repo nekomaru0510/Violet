@@ -9,7 +9,6 @@ pub trait TraitMmu {
     // ページエントリの取得
     //fn get_page_entry(&self, vaddr: usize);
     //fn get_page_entry(&mut self, vaddr: usize) -> &mut <Self as PageTable>::Entry;
-
 }
 
 // ページエントリ用トレイト
