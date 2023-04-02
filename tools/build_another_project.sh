@@ -9,7 +9,6 @@ OPENSBI_BIN_PATH="${OPENSBI_PATH}/build/platform/generic/firmware"
 VIOLET_PATH="/workspaces/Violet"
 VIOLET_RLS_BIN_PATH="${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/release"
 VIOLET_DBG_BIN_PATH="${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/debug"
-#VIOLET_BIN_PATH="${VIOLET_RLS_BIN_PATH}"
 VIOLET_BIN_PATH="${VIOLET_DBG_BIN_PATH}"
 
 # Busyboxのビルド(ゲストLinux用のrootfs作成)
@@ -20,8 +19,7 @@ function build_busybox () {
     cp -f ${VIOLET_PATH}/config/busybox/busybox-1.33.1_defconfig busybox/.config
     cp ${VIOLET_PATH}/config/busybox/fstab ${BUSYBOX_PATH}/_install/etc/fstab
     cp ${VIOLET_PATH}/config/busybox/rcS ${BUSYBOX_PATH}/_install/etc/init.d/rcS
-	make -C busybox oldconfig
-	make -C busybox install
+    make -C busybox install
 	mkdir -p busybox/_install/etc/init.d
 	mkdir -p busybox/_install/dev
 	mkdir -p busybox/_install/proc
@@ -55,29 +53,22 @@ function build_opensbi_for_Violet () {
         FW_JUMP_ADDR=0x80100000
 }
 
-# Violetのビルド
-function build_violet () {
-    cd ${VIOLET_PATH}
-    # cargo build --release
-    cargo build
-    riscv64-unknown-elf-objcopy -O binary \
-        ${VIOLET_BIN_PATH}/violet \
-        ${VIOLET_BIN_PATH}/violet.bin
-}
-
-
 # Linuxのビルド
 function build_linux () {
     cd ${LINUX_PATH}
 	#make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- defconfig
     #CONFIG_DEBUG_INFO
+    make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- defconfig
 	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- -j 2
+    riscv64-unknown-elf-objcopy -O binary \
+        ${LINUX_PATH}/vmlinux \
+        ${LINUX_PATH}/vmlinux.bin
 }
 
 if [ $# -eq 0 ]; then
-    echo "please specify build project"
-elif [ $1 == "-v" ]; then
-    build_violet
+    build_opensbi_for_Violet
+    build_linux
+    build_busybox
 elif [ $1 == "-o" ]; then
     build_opensbi_for_Violet
 elif [ $1 == "-l" ]; then

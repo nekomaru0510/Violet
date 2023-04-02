@@ -3,11 +3,12 @@ FROM ubuntu:18.04
 ENV RISCV=/opt/riscv
 ENV PATH=$RISCV/bin:/root/.cargo/bin:$PATH
 ENV MAKEFLAGS=-j4
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 WORKDIR $RISCV
 
 # 基本ツールのインストール
 RUN apt update && \
-	apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev pkg-config git libusb-1.0-0-dev device-tree-compiler default-jdk gnupg vim python3 fish
+	apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev pkg-config git libusb-1.0-0-dev device-tree-compiler default-jdk gnupg vim python3 cpio
 
 # riscv-gnu-toolchainのビルド
 RUN git clone https://github.com/riscv/riscv-gnu-toolchain.git && \
@@ -36,43 +37,19 @@ RUN wget https://github.com/sagiegurari/cargo-make/releases/download/0.35.11/car
 	cp cargo-make /root/.cargo/bin/ && \
 	cp makers /root/.cargo/bin/
 
-# シェルの変更
-RUN chsh -s /usr/bin/fish
-
 # Linuxの取得
 RUN git clone https://github.com/torvalds/linux && \
 	cd linux && \
 	git checkout v5.17
-	
-# Linuxのビルド	(ハイパーバイザ動作用)
-RUN	cd linux && \
-	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- defconfig && \
-	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- -j 2
-	# デバッグする場合は、CONFIG_DEBUG_INFOを有効にする
-
-RUN apt update && \
-	apt install -y cpio
 
 # busybox(64bit)のビルド(ハイパーバイザ動作用)
 RUN export ARCH=riscv && \
 	export CROSS_COMPILE=riscv64-unknown-linux-gnu-  && \
 	wget https://busybox.net/downloads/busybox-1.33.1.tar.bz2  && \
 	tar -C . -xvf ./busybox-1.33.1.tar.bz2  && \
-	mv ./busybox-1.33.1 ./busybox  && \	
-	make -C busybox defconfig  && \
-	make -C busybox install && \
-	mkdir -p busybox/_install/etc/init.d && \
-	mkdir -p busybox/_install/dev && \
-	mkdir -p busybox/_install/proc && \
-	mkdir -p busybox/_install/sys && \
-	mkdir -p busybox/_install/apps && \
-	ln -sf /sbin/init busybox/_install/init && \
-	cd busybox/_install; find ./ | cpio -o -H newc > ../rootfs.img
-	#git clone https://github.com/kvm-riscv/howto.git  && \
-	#cp -f ./howto/configs/busybox-1.33.1_defconfig busybox/.config  && \
+	mv ./busybox-1.33.1 ./busybox
 	
 # opensbiのビルド
 RUN git clone https://github.com/riscv-software-src/opensbi.git && \
 	cd opensbi && \
-	git checkout 51113fe && \
-	make CROSS_COMPILE=riscv64-unknown-elf- PLATFORM=generic
+	git checkout 51113fe

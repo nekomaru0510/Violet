@@ -21,7 +21,14 @@ Dockerを利用しない場合は、Dockerfileを見て環境構築をしてく�
 
 ## ビルド方法
 
+OpenSBI、Linux、Busyboxのビルド
 ```
+% cargo make build_another_project
+```
+
+Violet本体のビルド
+```
+% rustup target add riscv64imac-unknown-none-elf
 % cargo make build
 ```
 

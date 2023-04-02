@@ -39,6 +39,8 @@ dependencies = ["objcopy"]
 #######################
 # 開発環境構築
 #######################
+[tasks.build_another_project]
+script = "tools/build_another_project.sh"
 
 [tasks.build_opensbi]
 script = "tools/build_another_project.sh -o"
@@ -55,7 +57,7 @@ script = "rustup target add riscv64imac-unknown-none-elf"
 [tasks.build_projects]
 dependencies = [
     "build_opensbi",
-    #"build_linux",
+    "build_linux",
     "build_busybox",
 ]
 
