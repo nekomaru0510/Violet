@@ -12,7 +12,7 @@ RUN apt update && \
 
 # riscv-gnu-toolchainのビルド
 RUN git clone https://github.com/riscv/riscv-gnu-toolchain.git && \
-	cd riscv-gnu-toolchain && git checkout 2022.05.15 && \
+	cd riscv-gnu-toolchain && git checkout 2023.03.14 && \
 	git submodule update --init --recursive
 RUN cd riscv-gnu-toolchain && mkdir build && cd build && ../configure --prefix=${RISCV} --enable-multilib && make
 RUN cd riscv-gnu-toolchain && mkdir build2 && cd build2 && ../configure --prefix=${RISCV} --enable-multilib && make linux
