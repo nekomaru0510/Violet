@@ -40,16 +40,16 @@ dependencies = ["objcopy"]
 # 開発環境構築
 #######################
 [tasks.build_another_project]
-script = "tools/build_another_project.sh"
+script = "cd tools/script && ./command.sh -b opensbi,linux,busybox"
 
 [tasks.build_opensbi]
-script = "tools/build_another_project.sh -o"
+script = "cd tools/script && ./command.sh -b opensbi"
 
 [tasks.build_linux]
-script = "tools/build_another_project.sh -l"
+script = "cd tools/script && ./command.sh -b linux"
 
 [tasks.build_busybox]
-script = "tools/build_another_project.sh -b"
+script = "cd tools/script && ./command.sh -b busybox"
 
 [tasks.target_add]
 script = "rustup target add riscv64imac-unknown-none-elf"
@@ -71,13 +71,13 @@ run_task = [
 #######################
 
 [tasks.run]
-script = "tools/run_linux.sh"
+script = "cd tools/script && ./command.sh -r"
 
 [tasks.debug]
-script = "tools/run_linux.sh -d"
+script = "cd tools/script && ./command.sh -d"
 
 [tasks.monitor]
-script = "tools/debug.sh -m"
+script = "cd tools/script && ./command.sh -m"
 
 #######################
 # テストなど、そのほか
