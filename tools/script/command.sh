@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 # 共通設定ファイルの読込み
 source ./header.sh
@@ -23,12 +23,13 @@ QEMU_OPTIONS="
         -bios ${OPENSBI_OUTPUT_FILE} \
         -kernel ${VIOLET_OUTPUT_FILE} \
         -initrd ${BUSYBOX_OUTPUT_FILE} \
-        -append "root=/dev/ram console=ttyS0 mem=0x10000000" \
+        -append \"root=/dev/ram console=ttyS0 mem=0x10000000\" \
         -device loader,file=${LINUX_OUTPUT_FILE},addr=0x90200000,force-raw=true"
+
 
 # Violet+Linuxの起動(Linuxの配置を変更)
 function run_linux_with_violet () {
-    qemu-system-riscv64 ${QEMU_OPTIONS}
+    eval qemu-system-riscv64 ${QEMU_OPTIONS}
 }
 
 function monitor_violet () {

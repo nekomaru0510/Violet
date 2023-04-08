@@ -39,6 +39,9 @@ dependencies = ["objcopy"]
 #######################
 # 開発環境構築
 #######################
+[tasks.install_another_project]
+script = "cd tools/script && ./command.sh -i opensbi,linux,busybox"
+
 [tasks.build_another_project]
 script = "cd tools/script && ./command.sh -b opensbi,linux,busybox"
 
