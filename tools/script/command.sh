@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 # 共通設定ファイルの読込み
 source ./header.sh
