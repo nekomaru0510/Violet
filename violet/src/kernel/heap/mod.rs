@@ -1,10 +1,43 @@
-//!
+//! Slabアロケータ
+
+pub mod slab;
 
 extern crate alloc;
-use alloc::alloc::Layout;
-//use alloc::alloc::GlobalAlloc;
+use alloc::alloc::{GlobalAlloc, Layout};
 
-use super::slab::Slab;
+#[global_allocator]
+static ALLOCATOR: HeapOperator = HeapOperator::new();
+
+static mut HEAP: Heap = Heap::empty();
+
+pub fn init_allocater(start: usize, end: usize) {
+    let heap_start = start;
+    let heap_end = end;
+    let heap_size = heap_end - heap_start;
+    unsafe {
+        HEAP = Heap::new(heap_start, heap_size);
+    }
+}
+
+pub struct HeapOperator {}
+
+impl HeapOperator {
+    pub const fn new() -> HeapOperator {
+        HeapOperator {}
+    }
+}
+
+unsafe impl GlobalAlloc for HeapOperator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        HEAP.allocate(layout)
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        HEAP.deallocate(ptr, layout)
+    }
+}
+
+use slab::Slab;
 
 pub const NUM_OF_SLABS: usize = 8;
 pub const MIN_SLAB_SIZE: usize = 4096;
@@ -135,45 +168,8 @@ impl Heap {
     }
 }
 
-/*
-unsafe impl GlobalAlloc for Heap {
-    /*
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.allocate(layout)
-    }
-
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        self.deallocate(ptr, layout)
-    }
-    */
-    /*
-    fn oom(&mut self, err: AllocErr) -> ! {
-        panic!("Out of memory: {:?}", err);
-    }
-
-    fn usable_size(&self, layout: &Layout) -> (usize, usize) {
-        self.usable_size(layout)
-    }
-    */
-    /*
-    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 { ... } {
-
-    }
-
-    unsafe fn realloc(
-        &self,
-        ptr: *mut u8,
-        layout: Layout,
-        new_size: usize
-    ) -> *mut u8 { ... } {
-
-    }
-    */
-
-}
- */
-
 #[alloc_error_handler]
 fn on_oom(_layout: Layout) -> ! {
     panic!("Alloc Error !");
 }
+
