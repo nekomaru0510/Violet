@@ -23,7 +23,7 @@ QEMU_OPTIONS="
         -bios ${OPENSBI_OUTPUT_FILE} \
         -kernel ${VIOLET_OUTPUT_FILE} \
         -initrd ${BUSYBOX_OUTPUT_FILE} \
-        -append \"root=/dev/ram console=ttyS0 mem=0x10000000\" \
+        -append \"root=/dev/ram rdinit=/sbin/init console=ttyS0 mem=0x10000000\" \
         -device loader,file=${LINUX_OUTPUT_FILE},addr=0x90200000,force-raw=true"
 
 
