@@ -36,20 +36,3 @@ RUN wget https://github.com/sagiegurari/cargo-make/releases/download/0.35.11/car
 	cd cargo-make-v0.35.11-x86_64-unknown-linux-musl && \
 	cp cargo-make /root/.cargo/bin/ && \
 	cp makers /root/.cargo/bin/
-
-# Linuxの取得
-RUN git clone https://github.com/torvalds/linux && \
-	cd linux && \
-	git checkout v5.17
-
-# busybox(64bit)のビルド(ハイパーバイザ動作用)
-RUN export ARCH=riscv && \
-	export CROSS_COMPILE=riscv64-unknown-linux-gnu-  && \
-	wget https://busybox.net/downloads/busybox-1.33.1.tar.bz2  && \
-	tar -C . -xvf ./busybox-1.33.1.tar.bz2  && \
-	mv ./busybox-1.33.1 ./busybox
-	
-# opensbiのビルド
-RUN git clone https://github.com/riscv-software-src/opensbi.git && \
-	cd opensbi && \
-	git checkout 51113fe
