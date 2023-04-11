@@ -1,1 +1,1 @@
-pub mod hypervisor;
+pub mod vm;

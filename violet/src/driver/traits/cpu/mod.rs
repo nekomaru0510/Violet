@@ -3,6 +3,10 @@
 pub mod mmu;
 
 pub trait TraitCpu {
+    /* CPUのstart */
+    fn wakeup(&self);
+    /* CPUの停止 */
+    fn sleep(&self);
     /* 割込みの有効化 */
     fn enable_interrupt(&self);
     /* 割込みの無効化 */

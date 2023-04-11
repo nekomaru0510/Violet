@@ -1,21 +1,32 @@
 //extern crate cc;
-
 use std::error::Error;
 //use cc::Build;
+/*
+use std::fs;
+use std::fs::File;
+use std::io::Write;
 
+use toml;
+use toml::Value;
+*/
 fn main() -> Result<(), Box<dyn Error>> {
-    // assemble the `asm.s` file
     /*
-    Build::new()
-        .file("../../driver/arch/rv64/boot/boot.s")
-        //.flag("-mabi=lp64")
-        .compile("asm");
+    let contents = fs::read_to_string("../config/setting/setting.toml").expect("Failed to read file");
+    let value = contents.parse::<Value>().unwrap();
+    
+    let a = fs::read_to_string("../config/setting/setting.toml");
+    match a {
+        None => println!("None"),
+        _ => println!("exist"),
+    }
 
-    #[cfg(target_arch = "riscv32")]
-    Build::new()
-        .file("../../driver/arch/rv32/boot/boot.s")
-        .flag("-mabi=ilp32")
-        .compile("asm");
+    //println!("env: {:?}", value["env"].as_str().unwrap());
+
+    let header = "//!setting.rs \n// Don't edit this file \n";
+
+    // 生成したコードをファイルに書き込む
+    let mut file = File::create("src/setting.rs").unwrap();
+    file.write_all(header.as_bytes()).unwrap();
     */
     Ok(())
 }

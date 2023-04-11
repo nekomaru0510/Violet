@@ -78,4 +78,17 @@ impl Rv64Inst {
             }
         }
     }
+    
+    pub fn wfi(&self) {
+        unsafe {
+            asm! ("
+            .align 8
+                    wfi
+            "
+            :
+            :
+            :
+            : "volatile");
+        }
+    }
 }

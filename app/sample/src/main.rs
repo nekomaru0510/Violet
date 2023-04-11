@@ -7,28 +7,35 @@ extern crate violet;
 use violet::CPU;
 use violet::PERIPHERALS;
 
-use violet::system::hypervisor::arch::riscv::sbi;
-use violet::system::hypervisor::mm::*;
-use violet::system::hypervisor::virtdev::vplic::VPlic;
+use violet::system::vm::VirtualMachine;
+use violet::system::vm::mm::*;
+use violet::system::vm::virtdev::vplic::VPlic;
 
 use violet::driver::arch::rv64::mmu::sv48::PageTableSv48;
-use violet::driver::arch::rv64::redirect_to_guest;
+use violet::driver::arch::rv64::sbi;
 use violet::driver::traits::arch::riscv::{Exception, Interrupt, Registers, TraitRisvCpu};
-
 use violet::driver::traits::intc::TraitIntc;
+
 use violet::environment::traits::intc::HasIntc;
 
-use crate::violet::driver::traits::cpu::mmu::PageEntry;
-use crate::violet::driver::traits::cpu::mmu::PageTable; // test //test
+use violet::kernel::syscall::toppers::{T_CTSK, cre_tsk};
+
+use crate::violet::library::std::memcpy;
 
 extern crate core;
 use core::intrinsics::transmute;
 
 #[link_section = ".init_calls"]
 #[no_mangle]
-pub static mut INIT_CALLS: Option<fn()> = Some(init_sample);
+pub static mut INIT_CALLS: Option<fn()> = Some(sample_main);
 
 static mut VPLIC: VPlic = VPlic::new();
+static mut VM: VirtualMachine = VirtualMachine::new(
+    0,              /* CPUマスク */
+    0x8020_0000,    /* 開始アドレス(ジャンプ先) */
+    0x9000_0000,    /* ベースアドレス(物理メモリ) */
+    0x1000_0000     /* メモリサイズ */
+);
 
 pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     let mut ext: i32 = (*(regs)).a7 as i32;
@@ -54,11 +61,37 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
         fid = 6;
         a2 = a1;
         a3 = a2;
-        a0 = 1;
+        a0 = a0 + 0x1000_0000;
         a1 = 0;
     }
+    /* CPUのキック */
+    if (ext == sbi::Extension::HartStateManagement as i32) {
+        if (fid == 0) {
+            unsafe{
+                VM.set_start_addr(a0, a1);
+                VM.set_boot_arg(a0, [a2, a2]);
+            } 
+            
+            cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
+            
+            (*(regs)).a0 = 0;
+            (*(regs)).a1 = 0;
+            (*(regs)).epc = (*(regs)).epc + 4;
+            
+            /* 2コア目以降のキック (現状、起床させても正常に動かない) */
+            //let hart_mask: u64 = 0x01 << a0;
+            //sbi::sbi_send_ipi(&hart_mask);
+            return;
+        }
+    }
+    /* システムのリセット */
+    if (ext == sbi::Extension::SystemReset as i32) {
+        loop{}
+    }
+
 
     let ret = CPU.inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
+    //let ret = PERIPHERALS.cpu.unwrap().inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
 
     (*(regs)).a0 = ret.0;
     (*(regs)).a1 = ret.1;
@@ -145,7 +178,8 @@ pub fn do_supervisor_timer_interrupt(_regs: &mut Registers) {
         .assert_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
 }
 
-pub fn init_sample() {
+pub fn setup_cpu() {
+
     /* 割込みを有効化 */
     CPU.int.enable_mask_s(
         Interrupt::SupervisorTimerInterrupt.mask() | Interrupt::SupervisorExternalInterrupt.mask(),
@@ -170,3 +204,43 @@ pub fn init_sample() {
         do_guest_instruction_page_fault,
     );
 }
+
+pub fn first_boot() {
+    let cpu_id: usize = 0;
+    unsafe {
+        VM.setup();
+    }
+
+    setup_cpu();
+
+    unsafe {
+        VM.set_start_addr(cpu_id, 0x8020_0000);
+        VM.set_boot_arg(cpu_id, [0, 0x8220_0000]);
+        VM.boot(cpu_id);
+    }
+}
+
+pub fn secondary_boot() {
+    unsafe {
+        VM.setup();
+    }
+
+    setup_cpu();
+ 
+    unsafe {
+        VM.boot(1)
+    }
+}
+
+pub fn sample_main() {
+
+    /* [todo fix] コピーではなく、メモリマップに変更する */
+    memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当
+    memcpy(0x88100000 + 0x1000_0000, 0x88100000, 0x20_0000); //initrd サイズはrootfs.imgより概算
+
+    first_boot();
+
+    loop{}
+}
+
+

@@ -7,10 +7,7 @@ pub extern "C" fn _start() {
     unsafe {
         asm! ("
         .option norvc
-        //.section .reset.boot, \"ax\",@progbits
         .align 8
-                // set sp
-                // csrr    t0, mhartid
                 li      t0, 0
                 li      t1, 14
                 sll     t0, t0, t1
@@ -18,6 +15,29 @@ pub extern "C" fn _start() {
                 add     sp, sp, t0
 
                 j       setup_cpu
+        "
+        :
+        :
+        :
+        : "volatile");
+    }
+}
+
+#[cfg(target_arch = "riscv64")]
+#[export_name = "_start_ap"]
+#[naked]
+#[no_mangle]
+pub extern "C" fn _start_ap() {
+    unsafe {
+        asm! ("
+        .align 8
+                add     t0, a0, 0  // a0にコア番号が格納されている
+                li      t1, 14
+                sll     t0, t0, t1
+                la      sp, __KERNEL_SP_BASE
+                add     sp, sp, t0
+
+                jalr    a1
         "
         :
         :
@@ -38,8 +58,6 @@ pub extern "C" fn _start_trap() {
 
             la sp, __KERNEL_SP_BASE //[todo fix]
             addi sp, sp, -32*8
-
-            //csrw sepc, ra
 
             // Store registers
             sd   x0, 0*8(sp)

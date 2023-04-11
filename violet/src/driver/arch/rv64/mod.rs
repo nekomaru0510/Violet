@@ -26,6 +26,8 @@ use exc::Rv64Exc;
 pub mod hyp;
 use hyp::Rv64Hyp;
 
+pub mod sbi;
+
 extern crate register;
 use register::cpu::RegisterReadWrite;
 
@@ -47,7 +49,8 @@ use csr::Csr;
 
 #[derive(Clone)]
 pub struct Rv64 {
-    pub index: u32,          /* CPUのid */
+    pub id: u64,          /* CPUのid */
+    pub status: CpuStatus,   /* 状態 */
     pub mode: PrivilegeMode, /* 動作モード */
     pub csr: Csr,            /* CSR [todo delete]*/
     pub inst: Rv64Inst,
@@ -57,15 +60,23 @@ pub struct Rv64 {
     pub hyp: Rv64Hyp,
 }
 
+#[derive(Clone)]
+pub enum CpuStatus {
+    STOPPED = 0x00,     /* 停止中(Violetとしても管理できてない) */
+    STARTED,            /* 起動中 */
+    SUSPENDED           /* 停止中(Violetが管理している) */
+}
+
 use crate::print;
 use crate::println;
 ////////////////////////////////
 /* ハードウェア依存の機能の実装 */
 ///////////////////////////////
 impl Rv64 {
-    pub const fn new(index: u32) -> Self {
+    pub const fn new(id: u64) -> Self {
         Rv64 {
-            index,
+            id,
+            status: CpuStatus::STARTED,
             mode: PrivilegeMode::ModeS,
             csr: Csr::new(),
             inst: Rv64Inst::new(),
@@ -117,6 +128,14 @@ impl Rv64 {
 /* (一般的な)CPUとして必要な機能の実装 */
 //////////////////////////////////////
 impl TraitCpu for Rv64 {
+    fn wakeup(&self) {
+        sbi::sbi_hart_start(self.id, boot::_start_ap as u64, 0xabcd);
+    }
+
+    fn sleep(&self) {
+        sbi::sbi_hart_stop();
+    }
+
     fn enable_interrupt(&self) {
         self.int.enable_s();
     }
@@ -187,16 +206,8 @@ use crate::boot_init;
 // CPU初期化処理 ブート直後に実行される
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
-pub extern "C" fn setup_cpu() {
-    boot_init();
-    /*
-    if get_cpuid() == 0 {
-        /* BSPはboot_initへ */
-        boot_init();
-    } else {
-        /* APは待ち */
-        unsafe{asm!("wfi");}
-    }*/
+pub extern "C" fn setup_cpu(cpu_id: usize) {
+    boot_init(cpu_id);
 }
 
 // 割込み・例外ハンドラ
