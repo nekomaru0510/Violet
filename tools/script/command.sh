@@ -61,7 +61,7 @@ function help () {
     echo "    This command means 'build linux and opensbi' "
 }
 
-while getopts i:b:rdmh OPT
+while getopts i:b:rdm:h OPT
 do
     case $OPT in
         i)  echo "Install"
@@ -86,10 +86,6 @@ do
             run_linux_with_violet
             ;;
         m)  echo "Monitor"
-            echo ${OPTARG}
-            if [ -z "${OPTARG}" ]; then
-                monitor_violet
-            fi
             list=(${OPTARG//,/ })
             for p in "${list[@]}"
             do
