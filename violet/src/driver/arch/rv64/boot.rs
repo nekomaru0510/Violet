@@ -11,7 +11,7 @@ pub extern "C" fn _start() {
                 li      t0, 0
                 li      t1, 14
                 sll     t0, t0, t1
-                la      sp, __KERNEL_SP_BASE
+                la      sp, __KERNEL_SP_BOTTOM
                 add     sp, sp, t0
 
                 j       setup_cpu
@@ -34,7 +34,7 @@ pub extern "C" fn _start_ap() {
                 add     t0, a0, 0  // a0にコア番号が格納されている
                 li      t1, 14
                 sll     t0, t0, t1
-                la      sp, __KERNEL_SP_BASE
+                la      sp, __KERNEL_SP_BOTTOM
                 add     sp, sp, t0
 
                 jalr    a1
@@ -56,7 +56,7 @@ pub extern "C" fn _start_trap() {
         .align 8
             csrrw sp, 0x140, sp // CSR=0x140=sscratch
 
-            la sp, __KERNEL_SP_BASE //[todo fix]
+            la sp, __KERNEL_TRAP_SP_BOTTOM
             addi sp, sp, -32*8
 
             // Store registers

@@ -43,12 +43,20 @@ use crate::kernel::heap::init_allocater;
 use crate::kernel::main_loop;
 use crate::kernel::syscall::toppers::{T_CTSK, cre_tsk};
 
+extern crate core;
+use core::intrinsics::transmute;
+
+extern "C" {
+    static __HEAP_BASE: usize;
+    static __HEAP_END: usize;
+}
+
 #[no_mangle]
 pub extern "C" fn boot_init(cpu_id: usize) {    
 //pub extern "C" fn boot_init(cpu_id: usize) -> ! {    
     /* メモリアロケータの初期化 */
-    init_allocater(0x8004_0000, 0x8006_0000);
-
+    unsafe {init_allocater(transmute(&__HEAP_BASE), transmute(&__HEAP_END));}
+    //init_allocater(0x8004_0000, 0x8006_0000);
     #[cfg(test)]
     test_main();
 

@@ -5,9 +5,9 @@ EXTERN(abort);
 
 SECTIONS
 {
-    __HEAP_SIZE = 0x10000;
+    __HEAP_SIZE = 0x20000;
     __STACK_SIFT = 14; /* 0x4000 per core */
-    __STACK_SIZE = (1 << __STACK_SIFT) * 4;
+    __STACK_SIZE = (1 << __STACK_SIFT);
 
     .reset : 
     {
@@ -42,19 +42,29 @@ SECTIONS
     .bss :
     {
         *(.bss .bss.*);
-    }
+    } > RAM
 
-    __HEAP_BASE = .;
     .heap :
     {
         *(.heap .heap.*);
-    }
+        . = ALIGN(0x1000);
+        __HEAP_BASE = .;
+        . += __HEAP_SIZE;
+        __HEAP_END = .;
+    } > RAM
 
-    __KERNEL_SP_BASE = . + __STACK_SIZE + __HEAP_SIZE;
     .stack :
     {
         *(.stack .stack.*)
-    }
+        . = ALIGN(0x1000);
+        __KERNEL_SP_TOP = .;
+        . += __STACK_SIZE*4;
+        __KERNEL_TRAP_SP_BOTTOM = .;
+
+        . = ALIGN(0x1000);
+        . += __STACK_SIZE*4;
+        __KERNEL_SP_BOTTOM = .;
+    } > RAM
 
     /DISCARD/ :
     {
