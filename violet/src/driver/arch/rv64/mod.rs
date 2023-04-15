@@ -32,10 +32,13 @@ extern crate register;
 use register::cpu::RegisterReadWrite;
 
 extern crate alloc;
+extern crate core;
+use core::intrinsics::transmute;
 
 pub mod csr;
 use csr::hstatus::*;
 use csr::scause::*;
+use csr::sscratch::*;
 use csr::sepc::*;
 use csr::sstatus::*;
 use csr::stval::*;
@@ -58,6 +61,7 @@ pub struct Rv64 {
     pub exc: Rv64Exc,
     pub mmu: Rv64Mmu,
     pub hyp: Rv64Hyp,
+    pub scratch: Scratch,  /* scratchレジスタが指す構造体 */
 }
 
 #[derive(Clone)]
@@ -67,8 +71,32 @@ pub enum CpuStatus {
     SUSPENDED           /* 停止中(Violetが管理している) */
 }
 
+// scratchレジスタが指す構造体
+#[derive(Copy,Clone)]
+pub struct Scratch {
+    cpu_id: u64,
+}
+//pub static mut SCRATCH: [Scratch; 4] = [Scratch::new(0); 4];
+
 use crate::print;
 use crate::println;
+
+impl Scratch {
+    pub const fn new(cpu_id: u64) -> Self {
+        Scratch {
+            cpu_id,
+        }
+    }
+
+    pub fn set_cpu_id(&mut self, cpu_id: u64) {
+        self.cpu_id = cpu_id;
+    }
+
+    pub fn get_cpu_id(&self) -> u64 {
+        self.cpu_id
+    }
+}
+
 ////////////////////////////////
 /* ハードウェア依存の機能の実装 */
 ///////////////////////////////
@@ -84,7 +112,12 @@ impl Rv64 {
             exc: Rv64Exc::new(),
             mmu: Rv64Mmu::new(),
             hyp: Rv64Hyp::new(),
+            scratch: Scratch::new(id),
         }
+    }
+
+    pub fn set_sscratch(&self) {
+        unsafe{ self.csr.sscratch.set(transmute(&self.scratch)); }
     }
 
     pub fn set_default_vector(&self) {
