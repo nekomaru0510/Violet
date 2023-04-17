@@ -2,9 +2,10 @@
 
 use crate::driver::traits::serial::TraitSerial;
 use crate::environment::traits::serial::HasSerial;
-use crate::PERIPHERALS;
-use core::fmt::{self, Write};
+//use crate::PERIPHERALS;
+use core::fmt::{self};
 use core::ptr::{read_volatile, write_volatile};
+use crate::kernel::container::*;
 
 #[macro_export]
 macro_rules! print{
@@ -18,16 +19,25 @@ macro_rules! println {
 }
 
 pub fn print(args: fmt::Arguments) {
-    let mut serial = unsafe { PERIPHERALS.take_serial() };
-    serial.write_fmt(args).unwrap();
-    unsafe { PERIPHERALS.release_serial(serial) };
+    let con = get_mut_container(current_container());
+    match &mut con.unwrap().serial {
+        None => (),
+        Some(s) => s.write_fmt(args).unwrap(),
+    }
 }
 
 pub fn getc() -> u8 {
+    /*
     let serial = unsafe { PERIPHERALS.take_serial() };
     let res = serial.read();
     unsafe { PERIPHERALS.release_serial(serial) };
     res
+    */
+    let con = get_mut_container(current_container());
+    match &mut con.unwrap().serial {
+        None => 0,
+        Some(s) => s.read(),
+    }
 }
 
 pub fn memcpy(dst: usize, src: usize, size: usize) {

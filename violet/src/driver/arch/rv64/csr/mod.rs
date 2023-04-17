@@ -6,7 +6,7 @@ pub mod sstatus;
 pub mod stvec;
 //pub mod scouteren;
 //pub mod senvcfg;
-//pub mod sscratch;
+pub mod sscratch;
 pub mod satp;
 pub mod scause;
 pub mod sepc;
@@ -61,6 +61,7 @@ use sip::*;
 use sstatus::*;
 use stval::*;
 use stvec::*;
+use sscratch::*;
 
 use hcounteren::*;
 use hedeleg::*;
@@ -94,6 +95,7 @@ pub struct Csr {
     pub sstatus: Sstatus,
     pub sie: Sie,
     pub stvec: Stvec,
+    pub sscratch: Sscratch,
     pub sepc: Sepc,
     pub scause: Scause,
     pub stval: Stval,
@@ -134,6 +136,7 @@ impl Csr {
             sstatus: Sstatus {},
             sie: Sie {},
             stvec: Stvec {},
+            sscratch: Sscratch {},
             sepc: Sepc {},
             scause: Scause {},
             stval: Stval {},

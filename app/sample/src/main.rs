@@ -5,7 +5,8 @@
 extern crate violet;
 
 use violet::CPU;
-use violet::PERIPHERALS;
+
+use violet::driver::arch::rv64::inst;
 
 use violet::system::vm::VirtualMachine;
 use violet::system::vm::mm::*;
@@ -19,15 +20,15 @@ use violet::driver::traits::intc::TraitIntc;
 use violet::environment::traits::intc::HasIntc;
 
 use violet::kernel::syscall::toppers::{T_CTSK, cre_tsk};
+use violet::kernel::container::*;
 
 use crate::violet::library::std::memcpy;
 
 extern crate core;
 use core::intrinsics::transmute;
 
-#[link_section = ".init_calls"]
-#[no_mangle]
-pub static mut INIT_CALLS: Option<fn()> = Some(sample_main);
+use violet::app_init;
+app_init!(sample_main);
 
 static mut VPLIC: VPlic = VPlic::new();
 static mut VM: VirtualMachine = VirtualMachine::new(
@@ -89,9 +90,14 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
         loop{}
     }
 
-
     let ret = CPU.inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
-    //let ret = PERIPHERALS.cpu.unwrap().inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
+    /*
+    let con = get_container(current_container());
+    let int_id = match &con.unwrap().cpu[0] {
+        None => 0,
+        Some(c) => c.inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5),
+    };
+    */
 
     (*(regs)).a0 = ret.0;
     (*(regs)).a1 = ret.1;
@@ -149,10 +155,14 @@ pub fn do_guest_instruction_page_fault(regs: &mut Registers) {
 }
 
 pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
-    let intc = unsafe { PERIPHERALS.take_intc() };
+
+    let con = get_container(current_container());
 
     // 物理PLICからペンディングビットを読み、クリアする
-    let int_id = intc.get_pend_int();
+    let int_id = match &con.unwrap().intc {
+        None => 0,
+        Some(i) => i.get_pend_int(),
+    };
 
     // 仮想PLICへ書込み
     unsafe {
@@ -164,9 +174,11 @@ pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
         .assert_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
 
     // PLICでペンディングビットをクリア
-    intc.set_comp_int(int_id);
+    match &con.unwrap().intc {
+        None => (),
+        Some(i) => i.set_comp_int(int_id),
+    }
 
-    unsafe { PERIPHERALS.release_intc(intc) };
 }
 
 pub fn do_supervisor_timer_interrupt(_regs: &mut Registers) {

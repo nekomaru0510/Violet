@@ -2,7 +2,8 @@
 
 use crate::driver::traits::intc::TraitIntc;
 use crate::environment::traits::intc::HasIntc;
-use crate::PERIPHERALS;
+//use crate::PERIPHERALS;
+use crate::kernel::container::*;
 
 #[repr(C)]
 #[repr(align(4096))]
@@ -55,10 +56,18 @@ impl VirtualRegister for PriorityThresholdReg {
     type Register = u32;
 
     fn write(&mut self, val: u32) {
+        /*
         let intc = unsafe { PERIPHERALS.take_intc() };
         self.reg = val & 0x7;
         intc.set_priority_threshold(self.reg);
         unsafe { PERIPHERALS.release_intc(intc) };
+        */
+        let con = get_mut_container(current_container());
+        self.reg = val & 0x7;
+        match &mut con.unwrap().intc {
+            None => (),
+            Some(i) => i.set_priority_threshold(self.reg),
+        }
     }
 
     fn read(&mut self) -> u32 {

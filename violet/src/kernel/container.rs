@@ -1,0 +1,109 @@
+//! Violetコンテナ
+extern crate alloc;
+use alloc::rc::Rc;
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+
+use crate::driver::traits::cpu::TraitCpu;
+use crate::driver::traits::serial::TraitSerial;
+use crate::driver::traits::timer::TraitTimer;
+use crate::driver::traits::intc::TraitIntc;
+
+pub struct Container {
+    pub id: usize,
+    pub cpu: Vec<Option<Box<dyn TraitCpu>>>,
+    pub serial: Option<Box<dyn TraitSerial>>,
+    pub intc: Option<Box<dyn TraitIntc>>,
+    pub timer: Option<Box<dyn TraitTimer>>,
+}
+
+impl Container {
+    pub fn new(id: usize) -> Self {
+        Container {
+            id,
+            cpu: Vec::new(),
+            intc: None,
+            serial: None,
+            timer: None,
+        }
+    }
+
+    pub fn register_cpu<T: TraitCpu + 'static>(&mut self, cpu: T) {
+        self.cpu.push(Some(Box::new(cpu)));
+    }
+
+    pub fn register_intc<T: TraitIntc + 'static>(&mut self, intc: T) {
+        self.intc = Some(Box::new(intc));
+    }
+
+    pub fn register_serial<T: TraitSerial + 'static>(&mut self, serial: T) {
+        self.serial = Some(Box::new(serial));
+    }
+
+    pub fn register_timer<T: TraitTimer + 'static>(&mut self, timer: T) {
+        self.timer = Some(Box::new(timer));
+    }
+
+}
+
+static mut CONTAINER_TABLE: Vec<Option<Box<Container>>> = Vec::new();
+
+pub fn create_container() -> usize {
+    unsafe {
+        let id: usize = CONTAINER_TABLE.len();
+        CONTAINER_TABLE.push(Some(Box::new(Container::new(id))));
+        id
+    }
+}
+
+pub fn get_mut_container(id: usize) -> Option<&'static mut Box<Container>> {
+    unsafe {
+        if (id) < CONTAINER_TABLE.len() {
+            CONTAINER_TABLE[0].as_mut()
+        }
+        else {
+            None
+        }
+    }
+}
+
+pub fn get_container(id: usize) -> Option<&'static Box<Container>> {
+    unsafe {
+        if (id) < CONTAINER_TABLE.len() {
+            CONTAINER_TABLE[0].as_ref()
+        }
+        else {
+            None
+        }
+    }
+}
+
+pub fn current_container() -> usize {
+    0 /* [todo fix] 自分のCPU番号を取得し、動作コンテナを判断する */
+}
+
+/*
+use crate::driver::board::sifive_u::uart::Uart;
+
+pub fn test_contitainer() {
+    create_container();
+
+    let uart = Uart::new(0x1000_0000);
+    let con = get_mut_container(0);
+    match con {
+        Some(c) => c.register_serial(uart),
+        None => (),
+    }
+
+    let con = get_container(0);
+    match &con.unwrap().serial {
+        None => (),
+        Some(s) => s.write('s' as u8),
+    }
+
+    match &con.unwrap().cpu[0] {
+        None => (),
+        Some(c) => c.enable_interrupt(),
+    }
+}
+*/

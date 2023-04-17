@@ -234,7 +234,7 @@ impl TraitRisvCpu for Rv64 {
 ////////////////////////////////
 
 /* カーネルの起動処理 */
-use crate::boot_init;
+use crate::kernel::boot_init;
 
 // CPU初期化処理 ブート直後に実行される
 #[cfg(target_arch = "riscv64")]

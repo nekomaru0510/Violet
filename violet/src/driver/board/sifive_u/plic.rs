@@ -12,7 +12,22 @@ pub struct Plic {
 
 //const SOURCE_1_PRIO: usize = 0x4;
 //const START_OF_PENDING_ARRAY: usize = 0x1000;
-const START_HART0_INT_ENABLE: usize = 0x2000;
+const START_HART0_M_INT_ENABLE0: usize = 0x2000;
+const START_HART0_M_INT_ENABLE1: usize = 0x2004;
+const START_HART1_M_INT_ENABLE0: usize = 0x2080;
+const START_HART1_M_INT_ENABLE1: usize = 0x2084;
+const START_HART1_S_INT_ENABLE0: usize = 0x2100;
+const START_HART1_S_INT_ENABLE1: usize = 0x2104;
+const START_HART2_M_INT_ENABLE0: usize = 0x2180;
+const START_HART2_M_INT_ENABLE1: usize = 0x2184;
+const START_HART2_S_INT_ENABLE0: usize = 0x2200;
+const START_HART2_S_INT_ENABLE1: usize = 0x2204;
+const START_HART3_M_INT_ENABLE0: usize = 0x2280;
+const START_HART3_M_INT_ENABLE1: usize = 0x2284;
+const START_HART3_S_INT_ENABLE0: usize = 0x2300;
+const START_HART3_S_INT_ENABLE1: usize = 0x2304;
+
+
 const HART0_PRIO_THRESHOLD: usize = 0x20_1000;
 const HART0_CLAIM_COMPLETE: usize = 0x20_1004;
 //const HART0_CLAIM_COMPLETE: usize = 0x20_0000;
@@ -37,6 +52,12 @@ impl TraitIntc for Plic {
     fn set_comp_int(&self, id: u32) {
         self.set_claim_complete(id);
     }
+
+    fn set_priority_threshold(&self, val: u32) {
+        unsafe {
+            write_volatile((self.base + HART0_PRIO_THRESHOLD) as *mut u32, val);
+        }
+    }
 }
 
 impl Plic {
@@ -50,7 +71,7 @@ impl Plic {
 
         unsafe {
             write_volatile(
-                (self.base + START_HART0_INT_ENABLE + offset) as *mut u64,
+                (self.base + START_HART0_M_INT_ENABLE0 + offset) as *mut u64,
                 val,
             );
         }
@@ -63,15 +84,9 @@ impl Plic {
 
         unsafe {
             write_volatile(
-                (self.base + START_HART0_INT_ENABLE + offset) as *mut u64,
+                (self.base + START_HART0_M_INT_ENABLE0 + offset) as *mut u64,
                 val,
             );
-        }
-    }
-
-    pub fn set_priority_threshold(&self, val: u32) {
-        unsafe {
-            write_volatile((self.base + HART0_PRIO_THRESHOLD) as *mut u32, val);
         }
     }
 
@@ -83,5 +98,19 @@ impl Plic {
         unsafe {
             write_volatile((self.base + HART0_CLAIM_COMPLETE) as *mut u32, id);
         }
+    }
+}
+
+use crate::driver_init;
+use crate::kernel::container::*;
+
+driver_init!(init_plic);
+
+fn init_plic() {
+    let plic = Plic::new(0x0C00_0000); /* [todo fix]ベースアドレスは、設定ファイル等を参照して得る */
+    let con = get_mut_container(0);    /* [todo fix] ドライバにコンテナを意識させない　ラップする */
+    match con {
+        Some(c) => c.register_intc(plic),
+        None => (),
     }
 }

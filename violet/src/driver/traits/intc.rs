@@ -9,4 +9,7 @@ pub trait TraitIntc {
     fn get_pend_int(&self) -> u32;
     /* 処理完了した割込み番号を格納 */
     fn set_comp_int(&self, id: u32);
+
+    /* [todo fix] 暫定追加 ioctlを作ったらどうするか考える */
+    fn set_priority_threshold(&self, val: u32);    
 }

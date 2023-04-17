@@ -2,7 +2,7 @@
 
 use core::mem::replace;
 
-use crate::PERIPHERALS;
+//use crate::PERIPHERALS;
 
 /* デバイスドライバ */
 use crate::driver::arch::rv64::*;
@@ -19,31 +19,20 @@ use crate::environment::traits::intc::HasIntc;
 use crate::environment::traits::serial::HasSerial;
 use crate::environment::traits::timer::HasTimer;
 
-use crate::kernel::main_loop;
-use crate::driver::arch::rv64::boot::_start_ap;// [todo delete]
-use crate::driver::arch::rv64::sbi; // [todo delete]
-
 static UART_BASE: usize = 0x1000_0000;
 static CLINT_TIMER_BASE: usize = 0x0200_4000;
 static PLIC_BASE: usize = 0x0C00_0000;
 
-static NUM_OF_CPUS: usize = 2;
-
-pub fn wakeup_all_cpus(cpu_id: usize) {
-    for i in 1 .. NUM_OF_CPUS+1 {
-        if i as usize != cpu_id {
-            sbi::sbi_hart_start(i as u64 , _start_ap as u64, main_loop as u64);
-        }
-    }
-}
-
 pub fn init_peripherals() {
+    /*
     unsafe {
         PERIPHERALS.cpu = Some(Rv64::new(0));
         PERIPHERALS.serial = Some(Uart::new(UART_BASE));
         PERIPHERALS.timer = Some(ClintTimer::new(CLINT_TIMER_BASE));
         PERIPHERALS.intc = Some(Plic::new(PLIC_BASE));
     }
+    */
+    ()
 }
 
 #[derive(Clone)]

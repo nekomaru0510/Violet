@@ -54,7 +54,16 @@ pub extern "C" fn _start_trap() {
         asm! ("
         // from kernel
         .align 8
+            
+
+            // SPの退避
             csrrw sp, 0x140, sp // CSR=0x140=sscratch
+            // コア番号の取得
+
+            // SPの設定
+
+            // ストア
+            
 
             la sp, __KERNEL_TRAP_SP_BOTTOM
             addi sp, sp, -32*8

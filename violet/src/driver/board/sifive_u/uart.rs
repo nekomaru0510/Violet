@@ -50,6 +50,13 @@ impl TraitSerial for Uart {
             write_volatile((self.base + IE) as *mut u8, 0x00);
         }
     }
+
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        for c in s.bytes() {
+            self.write(c);
+        }
+        Ok(())
+    }
 }
 
 impl Write for Uart {
@@ -58,5 +65,19 @@ impl Write for Uart {
             self.write(c);
         }
         Ok(())
+    }
+}
+
+use crate::driver_init;
+use crate::kernel::container::*;
+
+driver_init!(init_uart);
+
+fn init_uart() {
+    let uart = Uart::new(0x1000_0000); /* [todo fix]ベースアドレスは、設定ファイル等を参照して得る */
+    let con = get_mut_container(0);
+    match con {
+        Some(c) => c.register_serial(uart),
+        None => (),
     }
 }

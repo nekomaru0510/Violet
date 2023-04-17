@@ -35,8 +35,12 @@ SECTIONS
     /* init_calls: application initialize functions */
     .init_calls :
     {
-        INIT_CALLS_HEAD = .;
-        *(.init_calls .init_calls.*);
+        __INIT_CALLS_1_START = .;
+        *(.init_calls.1.start);
+        *(.init_calls.1.end);
+        __INIT_CALLS_2_START = .;
+        *(.init_calls.2.start);
+        *(.init_calls.2.end);
     } > RAM
 
     .bss :
