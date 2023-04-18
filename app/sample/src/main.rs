@@ -17,8 +17,6 @@ use violet::driver::arch::rv64::sbi;
 use violet::driver::traits::arch::riscv::{Exception, Interrupt, Registers, TraitRisvCpu};
 use violet::driver::traits::intc::TraitIntc;
 
-use violet::environment::traits::intc::HasIntc;
-
 use violet::kernel::syscall::toppers::{T_CTSK, cre_tsk};
 use violet::kernel::container::*;
 
@@ -156,7 +154,7 @@ pub fn do_guest_instruction_page_fault(regs: &mut Registers) {
 
 pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
 
-    let con = get_container(current_container());
+    let con = current_container();
 
     // 物理PLICからペンディングビットを読み、クリアする
     let int_id = match &con.unwrap().intc {

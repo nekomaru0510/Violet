@@ -75,6 +75,8 @@ pub enum CpuStatus {
 #[derive(Copy,Clone)]
 pub struct Scratch {
     cpu_id: u64,
+    sp:     usize,
+    tmp0:   usize,
 }
 //pub static mut SCRATCH: [Scratch; 4] = [Scratch::new(0); 4];
 
@@ -85,6 +87,8 @@ impl Scratch {
     pub const fn new(cpu_id: u64) -> Self {
         Scratch {
             cpu_id,
+            sp: 0x0,
+            tmp0: 0x0,
         }
     }
 
@@ -161,6 +165,11 @@ impl Rv64 {
 /* (一般的な)CPUとして必要な機能の実装 */
 //////////////////////////////////////
 impl TraitCpu for Rv64 {
+    fn core_init(&self) {
+        self.set_sscratch();
+        self.set_default_vector();
+    }
+
     fn wakeup(&self) {
         sbi::sbi_hart_start(self.id, boot::_start_ap as u64, 0xabcd);
     }
@@ -265,6 +274,20 @@ pub extern "C" fn trap_handler(regs: &mut Registers) {
             },
             _ => (),
         };
+    }
+}
+
+use crate::CPU;
+#[no_mangle]
+pub extern "C" fn get_cpuid() -> usize {
+    unsafe {
+        let scratch: &Scratch = transmute(CPU.csr.sscratch.get());
+        if CPU.csr.sscratch.get() == 0 {
+            0
+        }
+        else {
+            scratch.cpu_id as usize
+        }
     }
 }
 

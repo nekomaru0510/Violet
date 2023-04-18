@@ -3,6 +3,9 @@
 pub mod mmu;
 
 pub trait TraitCpu {
+    /* コアごとの初期化 */
+    fn core_init(&self);
+
     /* CPUのstart */
     fn wakeup(&self);
     /* CPUの停止 */

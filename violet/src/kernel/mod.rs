@@ -11,7 +11,8 @@ pub mod container;
 
 use crate::CPU;
 
-use crate::environment::qemu::init_peripherals;
+use crate::environment::init_environment;
+use crate::environment::NUM_OF_CPUS;
 use crate::println;
 use crate::print;
 
@@ -30,8 +31,6 @@ use traits::sched::TraitSched;
 use crate::driver::arch::rv64::boot::_start_ap;// [todo delete]
 use crate::driver::arch::rv64::sbi; // [todo delete]
 
-static NUM_OF_CPUS: usize = 2;
-
 extern crate core;
 use core::intrinsics::transmute;
 
@@ -48,30 +47,54 @@ pub extern "C" fn boot_init(cpu_id: usize) {
     #[cfg(test)]
     test_main();
 
+    /* ルートコンテナの生成 */
     create_container();
 
-    init_peripherals();
+    init_environment();
     do_driver_calls();
+
+    init_bsp(cpu_id);
 
     println!("Hello I'm {} ", "Violet Hypervisor");
 
-    // CPU0にinit_callsを実行させる
-    cre_tsk(1, &T_CTSK{task:do_app_calls, prcid:0});
     // 他CPUをすべて起動させる
     wakeup_all_cpus(cpu_id);
+
+    // CPU0にinit_callsを実行させる
+    cre_tsk(1, &T_CTSK{task:do_app_calls, prcid:0});
+
+    //init_bsp(cpu_id);
+    
+    main_loop(cpu_id);
+}
+
+fn init_bsp(cpu_id: usize) {
+    let con = get_mut_container(0); // RootContainerの取得
+    match &con.unwrap().cpu[cpu_id] {
+        None => (),
+        Some(c) => c.core_init(),
+    }
+}
+
+fn init_ap(cpu_id: usize) {
+    let con = get_mut_container(0); // RootContainerの取得
+    match &con.unwrap().cpu[cpu_id] {
+        None => (),
+        Some(c) => c.core_init(),
+    }
 
     main_loop(cpu_id);
 }
 
-pub fn wakeup_all_cpus(cpu_id: usize) {
-    for i in 1 .. NUM_OF_CPUS+1 {
+fn wakeup_all_cpus(cpu_id: usize) {
+    for i in 0..NUM_OF_CPUS {
         if i as usize != cpu_id {
-            sbi::sbi_hart_start(i as u64 , _start_ap as u64, main_loop as u64); /* [todo fix] CPU起床は抽象かする */
+            sbi::sbi_hart_start(i as u64 , _start_ap as u64, init_ap as u64); /* [todo fix] CPU起床は抽象かする */
         }
     }
 }
 
-pub fn idle_core() {
+fn idle_core() {
     CPU.inst.wfi();
 }
 

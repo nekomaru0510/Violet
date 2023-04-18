@@ -4,6 +4,8 @@ use alloc::rc::Rc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use crate::environment::NUM_OF_CPUS;
+
 use crate::driver::traits::cpu::TraitCpu;
 use crate::driver::traits::serial::TraitSerial;
 use crate::driver::traits::timer::TraitTimer;
@@ -78,9 +80,21 @@ pub fn get_container(id: usize) -> Option<&'static Box<Container>> {
     }
 }
 
-pub fn current_container() -> usize {
-    0 /* [todo fix] 自分のCPU番号を取得し、動作コンテナを判断する */
+use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
+pub fn current_container_id() -> usize {
+    unsafe {CPU_CONTAINER_MAP[get_cpuid()] }
 }
+
+pub fn current_container() -> Option<&'static Box<Container>> {
+    get_container(current_container_id())
+}
+
+pub fn current_mut_container() -> Option<&'static mut Box<Container>> {
+    get_mut_container(current_container_id())
+}
+
+/* CPU番号からコンテナ番号を取得する */
+static mut CPU_CONTAINER_MAP: [usize; NUM_OF_CPUS] = [0; NUM_OF_CPUS];
 
 /*
 use crate::driver::board::sifive_u::uart::Uart;

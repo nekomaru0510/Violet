@@ -1,7 +1,6 @@
 //! stdライブラリ
 
 use crate::driver::traits::serial::TraitSerial;
-use crate::environment::traits::serial::HasSerial;
 //use crate::PERIPHERALS;
 use core::fmt::{self};
 use core::ptr::{read_volatile, write_volatile};
@@ -19,7 +18,7 @@ macro_rules! println {
 }
 
 pub fn print(args: fmt::Arguments) {
-    let con = get_mut_container(current_container());
+    let con = current_mut_container();
     match &mut con.unwrap().serial {
         None => (),
         Some(s) => s.write_fmt(args).unwrap(),
@@ -27,13 +26,7 @@ pub fn print(args: fmt::Arguments) {
 }
 
 pub fn getc() -> u8 {
-    /*
-    let serial = unsafe { PERIPHERALS.take_serial() };
-    let res = serial.read();
-    unsafe { PERIPHERALS.release_serial(serial) };
-    res
-    */
-    let con = get_mut_container(current_container());
+    let con = current_mut_container();
     match &mut con.unwrap().serial {
         None => 0,
         Some(s) => s.read(),
