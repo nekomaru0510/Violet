@@ -62,7 +62,7 @@ pub extern "C" fn _start_trap() {
             
             // スタックサイズをspに格納
             li  t0, 1
-            slli sp, t0, 14 //__STACK_SHIFT
+            ld  sp, 24(tp)
             // コア番号の取得
             ld  t0, 0(tp)
             mul t0, t0, sp          // mulを使うかは要検討

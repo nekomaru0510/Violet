@@ -12,6 +12,7 @@ use crate::driver::board::sifive_u::uart::Uart;
 
 /* CPUコア数 */
 pub const NUM_OF_CPUS: usize = 2;
+pub const STACK_SIZE: usize = 0x4000;
 
 /* MMIO */
 static UART_BASE: usize = 0x1000_0000;

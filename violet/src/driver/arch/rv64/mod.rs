@@ -1,5 +1,8 @@
 //! RV64I CPU ドライバ
 
+/*  */
+use crate::environment::STACK_SIZE;
+
 /* ドライバ用トレイト */
 use crate::driver::traits::arch::riscv::Exception;
 use crate::driver::traits::arch::riscv::Interrupt;
@@ -77,6 +80,7 @@ pub struct Scratch {
     cpu_id: u64,
     sp:     usize,
     tmp0:   usize,
+    stack_size:   usize,
 }
 //pub static mut SCRATCH: [Scratch; 4] = [Scratch::new(0); 4];
 
@@ -89,6 +93,7 @@ impl Scratch {
             cpu_id,
             sp: 0x0,
             tmp0: 0x0,
+            stack_size: STACK_SIZE,
         }
     }
 

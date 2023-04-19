@@ -6,8 +6,8 @@ EXTERN(abort);
 SECTIONS
 {
     __HEAP_SIZE = 0x20000;
-    __STACK_SIFT = 14; /* 0x4000 per core */
-    __STACK_SIZE = (1 << __STACK_SIFT);
+    __STACK_SHIFT = 14; /* 0x4000 per core */
+    __STACK_SIZE = (1 << __STACK_SHIFT);
 
     .reset : 
     {
