@@ -7,9 +7,12 @@ use crate::environment::STACK_SIZE;
 use crate::driver::traits::arch::riscv::Exception;
 use crate::driver::traits::arch::riscv::Interrupt;
 use crate::driver::traits::arch::riscv::PrivilegeMode;
-use crate::driver::traits::arch::riscv::Registers;
+//use crate::driver::traits::arch::riscv::Registers;
 use crate::driver::traits::arch::riscv::TraitRisvCpu;
 use crate::driver::traits::cpu::TraitCpu;
+
+pub mod regs;
+use regs::Registers;
 
 pub mod boot;
 use boot::_start_trap;

@@ -7,14 +7,16 @@ extern crate violet;
 use violet::CPU;
 
 use violet::driver::arch::rv64::inst;
+use violet::driver::arch::rv64::regs::Registers;
 
 use violet::system::vm::VirtualMachine;
 use violet::system::vm::mm::*;
-use violet::system::vm::virtdev::vplic::VPlic;
+use violet::system::vm::vdev::vplic::VPlic;
+use violet::system::vm::vdev::VirtualDevice;
 
 use violet::driver::arch::rv64::mmu::sv48::PageTableSv48;
 use violet::driver::arch::rv64::sbi;
-use violet::driver::traits::arch::riscv::{Exception, Interrupt, Registers, TraitRisvCpu};
+use violet::driver::traits::arch::riscv::{Exception, Interrupt, TraitRisvCpu};
 use violet::driver::traits::intc::TraitIntc;
 
 use violet::kernel::syscall::toppers::{T_CTSK, cre_tsk};
@@ -28,7 +30,6 @@ use core::intrinsics::transmute;
 use violet::app_init;
 app_init!(sample_main);
 
-static mut VPLIC: VPlic = VPlic::new();
 static mut VM: VirtualMachine = VirtualMachine::new(
     0,              /* CPUマスク */
     0x8020_0000,    /* 開始アドレス(ジャンプ先) */
@@ -124,9 +125,13 @@ pub fn map_guest_page() {
 
 pub fn do_guest_store_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
+    
     if (0x0c20_1000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {
         unsafe {
-            VPLIC.write32(fault_paddr & 0x0000_1fff, 0);
+            match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
+                None => (),
+                Some(d) => d.write32(fault_paddr & 0x0000_1fff, 0),
+            }
         }
         (*(regs)).epc = (*(regs)).epc + 2;
         CPU.hyp
@@ -134,13 +139,31 @@ pub fn do_guest_store_page_fault(regs: &mut Registers) {
     } else {
         map_guest_page();
     }
+    /*
+    unsafe {
+        match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
+            None => {
+                map_guest_page()
+            },
+            Some(d) => {
+                d.write32(fault_paddr & 0x0000_1fff, 0);
+            }
+        }
+        (*(regs)).epc = (*(regs)).epc + 2;
+        CPU.hyp
+            .flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
+    }
+    */
 }
 
 pub fn do_guest_load_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
     if (0x0c20_1000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {
         unsafe {
-            (*(regs)).a5 = VPLIC.read32(fault_paddr & 0x0000_1fff) as usize;
+            (*(regs)).a5 = match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
+                None => 0,
+                Some(d) => d.read32(fault_paddr & 0x0000_1fff) as usize,
+            };
             (*(regs)).epc = (*(regs)).epc + 4; /* [todo fix] ld/sdの命令を解釈して、4byteか2byteか決めるべき */
         }
     } else {
@@ -164,7 +187,10 @@ pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
 
     // 仮想PLICへ書込み
     unsafe {
-        VPLIC.write32(0x1004, int_id);
+        match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
+            None => (),
+            Some(d) => d.write32(0x1004, int_id),
+        }
     }
 
     // 仮想外部割込みを発生させる
@@ -243,6 +269,8 @@ pub fn secondary_boot() {
 }
 
 pub fn sample_main() {
+
+    unsafe{ VM.register_dev(0x0c20_1000, 0x1000, VPlic::new()); }
 
     /* [todo fix] コピーではなく、メモリマップに変更する */
     memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当

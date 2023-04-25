@@ -1,13 +1,17 @@
 //! VirtualMachine
 
-pub mod arch;
 pub mod mm;
-pub mod virtdev;
+pub mod vcpu;
+pub mod vdev;
 
 extern crate alloc;
 use alloc::string::String;
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 use crate::CPU;
+
+use vcpu::VirtualCpu;
 
 use crate::driver::traits::cpu::TraitCpu;
 
@@ -110,6 +114,9 @@ impl BootParam {
     }
 }
 
+use vdev::VirtualDevice;
+use vdev::VirtualIoMap;
+
 pub struct VirtualMachine {
     /* == 必須設定項目 == */
     cpu_mask: u64,
@@ -119,6 +126,9 @@ pub struct VirtualMachine {
     mem_size: usize, 
     /* ================= */
     vmem_start: usize,
+    //vdevs: Option<BTreeMap<(usize, usize), Box<dyn VirtualDevice>>>,
+    viomap: Option<VirtualIoMap>,
+    //vcpu: Vec<VirtualCpu<>>,
 }
 
 impl VirtualMachine {
@@ -129,6 +139,9 @@ impl VirtualMachine {
             mem_start,
             mem_size,
             vmem_start: 0,
+            //vcpu: Vec::new(),
+            //vdevs: None, //BTreeMap::new(),
+            viomap: None,
         }
     }
 
@@ -174,4 +187,58 @@ impl VirtualMachine {
     pub fn set_boot_arg(&mut self, cpu_id: usize, boot_arg: [usize; NUM_OF_ARGS]) {
         self.param[cpu_id].set_arg(boot_arg);
     }
+
+    
+    pub fn register_dev<T: VirtualDevice + 'static>(&mut self, base: usize, size: usize, vdev: T) {
+        match &mut self.viomap {
+            None => {
+                self.viomap = Some(VirtualIoMap::new());
+                //self.viomap.as_mut().unwrap().insert((base, size), Box::new(vdev));
+                self.viomap.as_mut().unwrap().register(base, size, vdev);
+            }, 
+            Some(v) => {
+                v.register(base, size, vdev);
+                //v.insert((base_addr, size), Box::new(vdev));
+            }
+        }
+    }
+
+    pub fn unregister_dev<T: VirtualDevice + 'static>(&mut self, base_addr: usize, size: usize, vdev: T) {
+        // [todo fix] 実装する
+    }
+
+    //pub fn get_dev_mut<T: VirtualDevice + 'static>(&mut self, addr: usize) -> Option<&mut dyn VirtualDevice> {
+    pub fn get_dev_mut<T: VirtualDevice + 'static>(&mut self, addr: usize) -> Option<&mut Box<dyn VirtualDevice>> {
+        match &mut self.viomap {
+            None => None,
+            Some(v) => {
+                v.get_mut::<T>(addr)
+                /*
+                match &mut v.get_mut::<T>(addr) {
+                    None => None,
+                    Some(d) => Some(d.as_mut()),
+                }
+                */
+            }
+        }
+        
+        
+    }
+    /*
+    pub fn write32_dev(&mut self, addr: usize) {
+        match &mut self.vdevs {
+            None => {
+                ()
+            }, 
+            Some(v) => {
+                for d in v {
+                    if 
+                    v.insert((base_addr, size), Box::new(vdev));
+                }
+            }
+        }
+    }
+    */
+    //fn search_vdev()
+
 }

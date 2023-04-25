@@ -1,6 +1,8 @@
 //! CPU用のトレイト
 
 pub mod mmu;
+pub mod registers;
+pub mod context;
 
 pub trait TraitCpu {
     /* コアごとの初期化 */

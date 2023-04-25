@@ -2,6 +2,10 @@
 
 use crate::driver::traits::intc::TraitIntc;
 use crate::kernel::container::*;
+use super::VirtualDevice;
+use super::VirtualRegister;
+use super::ZeroReg;
+use super::{read_raw, write_raw};
 
 #[repr(C)]
 #[repr(align(4096))]
@@ -9,8 +13,28 @@ pub struct VPlic {
     priority_threshold: PriorityThresholdReg,
     claim_comp: ClaimCompReg,
     zero: ZeroReg,
-    reg: [u32; 1024],
+    //reg: [u32; 1024],
 }
+
+/*
+const START_HART0_M_INT_ENABLE0: usize = 0x2000;
+const START_HART0_M_INT_ENABLE1: usize = 0x2004;
+const START_HART1_M_INT_ENABLE0: usize = 0x2080;
+const START_HART1_M_INT_ENABLE1: usize = 0x2084;
+const START_HART1_S_INT_ENABLE0: usize = 0x2100;
+const START_HART1_S_INT_ENABLE1: usize = 0x2104;
+const START_HART2_M_INT_ENABLE0: usize = 0x2180;
+const START_HART2_M_INT_ENABLE1: usize = 0x2184;
+const START_HART2_S_INT_ENABLE0: usize = 0x2200;
+const START_HART2_S_INT_ENABLE1: usize = 0x2204;
+const START_HART3_M_INT_ENABLE0: usize = 0x2280;
+const START_HART3_M_INT_ENABLE1: usize = 0x2284;
+const START_HART3_S_INT_ENABLE0: usize = 0x2300;
+const START_HART3_S_INT_ENABLE1: usize = 0x2304;
+
+const HART0_PRIO_THRESHOLD: usize = 0x20_1000;
+const HART0_CLAIM_COMPLETE: usize = 0x20_1004;
+*/
 
 impl VPlic {
     pub const fn new() -> Self {
@@ -18,24 +42,26 @@ impl VPlic {
             priority_threshold: PriorityThresholdReg::new(),
             claim_comp: ClaimCompReg::new(),
             zero: ZeroReg::new(),
-            reg: [0 as u32; 1024],
+            //reg: [0 as u32; 1024],
         }
     }
+}
 
-    pub fn write32(&mut self, addr: usize, val: u32) {
+impl VirtualDevice for VPlic {
+    fn write32(&mut self, addr: usize, val: u32) {
         /* [todo fix] レジスタ取得を関数にまとめたい */
         match addr {
             0x1000 => self.priority_threshold.write(val),
             0x1004 => self.claim_comp.write(val),
-            _ => self.zero.write(val),
+            _ => write_raw(addr, val),//self.zero.write(val),
         };
     }
 
-    pub fn read32(&mut self, addr: usize) -> u32 {
+    fn read32(&mut self, addr: usize) -> u32 {
         match addr {
             0x1000 => self.priority_threshold.read(),
             0x1004 => self.claim_comp.read(),
-            _ => self.zero.read(),
+            _ => read_raw(addr), //self.zero.read(),
         }
     }
 }
@@ -91,31 +117,3 @@ impl VirtualRegister for ClaimCompReg {
     }
 }
 
-trait VirtualRegister {
-    type Register;
-
-    fn write(&mut self, val: Self::Register);
-    fn read(&mut self) -> Self::Register; /* 読み出し時にレジスタ値を変更するものも存在するため、mutable */
-}
-
-pub struct ZeroReg {
-    reg: u32,
-}
-
-impl ZeroReg {
-    pub const fn new() -> Self {
-        ZeroReg { reg: 0 }
-    }
-}
-
-impl VirtualRegister for ZeroReg {
-    type Register = u32;
-
-    fn write(&mut self, val: u32) {
-        ()
-    }
-
-    fn read(&mut self) -> u32 {
-        0
-    }
-}

@@ -95,7 +95,7 @@ pub fn current_mut_container() -> Option<&'static mut Box<Container>> {
 
 /* CPU番号からコンテナ番号を取得する */
 static mut CPU_CONTAINER_MAP: [usize; NUM_OF_CPUS] = [0; NUM_OF_CPUS];
-
+ 
 /*
 use crate::driver::board::sifive_u::uart::Uart;
 
