@@ -1,5 +1,8 @@
 //! RISC-V用命令
 
+use crate::driver::arch::rv64::regs::Registers;
+use crate::driver::arch::rv64::regs::*;
+
 #[derive(Clone)]
 pub struct Rv64Inst {}
 
@@ -92,3 +95,267 @@ impl Rv64Inst {
         }
     }
 }
+
+
+// Instruction Analyzer(proto)
+
+pub enum Instruction {
+    LB,
+    LH,
+    LW,
+    LD,
+    SB,
+    SH,
+    SW,
+    SD,
+    CSD,
+    CSW,
+    CSQ,
+    CLD,
+    CLW,
+    CLQ,
+    UNIMP,
+}
+
+enum Opcode {
+    Load=0b0000011,
+    Store=0b0100011,
+    UNKNOWN,
+}
+impl Opcode {
+    pub fn from_inst(inst: usize) -> Self {
+        match inst & (0b1111111) {
+            0b0000011 => Opcode::Load,
+            0b0100011 => Opcode::Store,
+            _ => Opcode::UNKNOWN,
+        }
+    }
+}
+
+enum LoadFunct3 {
+    LB=0b000,
+    LH=0b001,
+    LW=0b010,
+    LD=0b011,
+    UNKNOWN,
+}
+impl LoadFunct3 {
+    pub fn from_inst(inst: usize) -> Self {
+        match inst & ((0b111 << 12) >> 12) {
+            0b000 => LoadFunct3::LB,
+            0b001 => LoadFunct3::LH,
+            0b010 => LoadFunct3::LW,
+            0b011 => LoadFunct3::LD,
+            _ => LoadFunct3::UNKNOWN,
+        }
+    }
+}
+
+enum StoreFunct3 {
+    SB=0b000,
+    SH=0b001,
+    SW=0b010,
+    SD=0b011,
+    UNKNOWN,
+}
+impl StoreFunct3 {
+    pub fn from_inst(inst: usize) -> Self {
+        match inst & ((0b111 << 12) >> 12) {
+            0b000 => StoreFunct3::SB,
+            0b001 => StoreFunct3::SH,
+            0b010 => StoreFunct3::SW,
+            0b011 => StoreFunct3::SD,
+            _ => StoreFunct3::UNKNOWN,
+        }
+    }
+}
+
+enum CompressedInst_1_0 {
+    RVC0=0b00,
+    RVC1=0b01,
+    RVC2=0b10,
+    UNKNOWN,
+}
+impl CompressedInst_1_0 {
+    pub fn from_inst(inst: usize) -> Self {
+        match inst & (0b11 << 0) {
+            0b00 => CompressedInst_1_0::RVC0,
+            0b01 => CompressedInst_1_0::RVC1,
+            0b10 => CompressedInst_1_0::RVC2,
+            _ => CompressedInst_1_0::UNKNOWN,
+        }
+    }
+}
+
+enum CompressedInst_15_13 {
+    LQ=0b001,
+    LW=0b010,
+    LD=0b011,
+    SQ=0b101,
+    SW=0b110,
+    SD=0b111,
+    UNKNOWN,
+}
+impl CompressedInst_15_13 {
+    pub fn from_inst(inst: usize) -> Self {
+        match (inst & (0b111 << 13)) >> 13 {
+            0b001 => CompressedInst_15_13::LQ,
+            0b010 => CompressedInst_15_13::LW,
+            0b011 => CompressedInst_15_13::LD,
+            0b101 => CompressedInst_15_13::SQ,
+            0b110 => CompressedInst_15_13::SW,
+            0b111 => CompressedInst_15_13::SD,
+            _ => CompressedInst_15_13::UNKNOWN,
+        }
+    }
+}
+
+pub fn is_compressed(inst: usize) -> bool {
+    if inst & (0b11 << 0) == 0b11 {
+        false
+    }
+    else {
+        true
+    }
+}
+
+pub fn get_store_value(inst: usize, regs: &Registers) -> usize {
+    match analyze_instruction(inst) {
+        Instruction::CSD | 
+        Instruction::CSW | 
+        Instruction::CSQ => {
+            let f : CSFormat = CSFormat{inst};
+            f.get_store_value(regs)
+        }
+        Instruction::SB | 
+        Instruction::SH | 
+        Instruction::SW | 
+        Instruction::SD => {
+            let f : SFormat = SFormat{inst};
+            f.get_store_value(regs)
+        }
+        _ => 0
+    }
+}
+
+pub fn get_load_reg(inst: usize) -> usize {
+    match analyze_instruction(inst) {
+        Instruction::CLD | 
+        Instruction::CLW | 
+        Instruction::CLQ => {
+            let f : CLFormat = CLFormat{inst};
+            f.get_load_reg(inst)
+        }
+        Instruction::LB | 
+        Instruction::LH | 
+        Instruction::LW | 
+        Instruction::LD => {
+            let f : LFormat = LFormat{inst};
+            f.get_load_reg(inst)
+        }
+        _ => 0
+    }
+}
+
+/* [todo fix] storeのみ判定可能 */
+pub fn analyze_instruction(inst: usize) -> Instruction {
+    if is_compressed(inst) {
+        match CompressedInst_1_0::from_inst(inst) {
+            CompressedInst_1_0::RVC0 => {
+                match CompressedInst_15_13::from_inst(inst) {
+                    CompressedInst_15_13::LQ => Instruction::CLQ,
+                    CompressedInst_15_13::LW => Instruction::CLW,
+                    CompressedInst_15_13::LD => Instruction::CLD,
+                    CompressedInst_15_13::SQ => Instruction::CSQ,
+                    CompressedInst_15_13::SW => Instruction::CSW,
+                    CompressedInst_15_13::SD => Instruction::CSD,                    
+                    _ => Instruction::UNIMP,
+                }
+            }
+            _ => Instruction::UNIMP
+        }
+    }
+    else {
+        // S形式 .. op[6:0]
+        match Opcode::from_inst(inst) {
+            Opcode::Store => {
+                match StoreFunct3::from_inst(inst) {
+                    StoreFunct3::SB => Instruction::SB,
+                    StoreFunct3::SH => Instruction::SH,
+                    StoreFunct3::SW => Instruction::SW,
+                    StoreFunct3::SD => Instruction::SD,
+                    _ => Instruction::UNIMP,
+                }
+            }
+            Opcode::Load => {
+                match LoadFunct3::from_inst(inst) {
+                    LoadFunct3::LB => Instruction::LB,
+                    LoadFunct3::LH => Instruction::LH,
+                    LoadFunct3::LW => Instruction::LW,
+                    LoadFunct3::LD => Instruction::LD,
+                    _ => Instruction::UNIMP,
+                }
+            }
+            _ => Instruction::UNIMP,
+        }
+    }
+}
+
+pub struct LFormat {
+    pub inst: usize,
+}
+
+impl LFormat {
+    pub fn get_load_reg(&self, inst: usize) -> usize {
+        //rd [11:7]
+        (self.inst & (0b11111 << 7)) >> 7
+    }
+}
+
+pub struct CLFormat {
+    pub inst: usize,
+}
+
+impl CLFormat {
+    pub fn get_load_reg(&self, inst: usize) -> usize {
+        //rd [4:2]
+        ((self.inst & (0b111 << 2)) >> 2) + 8
+    }
+}
+
+pub struct SFormat {
+    pub inst: usize,
+}
+
+impl SFormat {
+    pub fn get_store_value(&self, regs: &Registers) -> usize {
+        //rs2 [24:20]
+        let reg = (self.inst & (0b11111 << 20)) >> 20;
+        match reg {
+            0..=0b11111 =>regs.reg[reg],
+            _ => 0,
+        }
+    }
+}
+
+pub struct CSFormat {
+    pub inst: usize,
+}
+
+impl CSFormat {
+    pub fn get_store_value(&self, regs: &Registers) -> usize {
+        //rs2 [4:2]
+        let reg = (self.inst & (0b111 << 2)) >> 2;
+        match reg {
+            0..=0b111 =>regs.reg[reg+8],
+            _ => 0,
+        }
+    }
+}
+
+
+
+
+
+
+

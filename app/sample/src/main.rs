@@ -7,7 +7,9 @@ extern crate violet;
 use violet::CPU;
 
 use violet::driver::arch::rv64::inst;
+use violet::driver::arch::rv64::inst::*;
 use violet::driver::arch::rv64::regs::Registers;
+use violet::driver::arch::rv64::regs::*;
 
 use violet::system::vm::VirtualMachine;
 use violet::system::vm::mm::*;
@@ -38,14 +40,14 @@ static mut VM: VirtualMachine = VirtualMachine::new(
 );
 
 pub fn do_ecall_from_vsmode(regs: &mut Registers) {
-    let mut ext: i32 = (*(regs)).a7 as i32;
-    let mut fid: i32 = (*(regs)).a6 as i32;
-    let mut a0: usize = (*(regs)).a0;
-    let mut a1: usize = (*(regs)).a1;
-    let mut a2: usize = (*(regs)).a2;
-    let mut a3: usize = (*(regs)).a3;
-    let a4: usize = (*(regs)).a4;
-    let a5: usize = (*(regs)).a5;
+    let mut ext: i32 = regs.reg[A7] as i32;
+    let mut fid: i32 = regs.reg[A6] as i32;
+    let mut a0: usize = regs.reg[A0];
+    let mut a1: usize = regs.reg[A1];
+    let mut a2: usize = regs.reg[A2];
+    let mut a3: usize = regs.reg[A3];
+    let a4: usize = regs.reg[A4];
+    let a5: usize = regs.reg[A5];
 
     /* タイマセット */
     if (ext == sbi::Extension::SetTimer as i32 || ext == sbi::Extension::Timer as i32) {
@@ -74,9 +76,9 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
             
             cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
             
-            (*(regs)).a0 = 0;
-            (*(regs)).a1 = 0;
-            (*(regs)).epc = (*(regs)).epc + 4;
+            regs.reg[A0] = 0;
+            regs.reg[A1] = 0;
+            regs.epc = regs.epc + 4;
             
             /* 2コア目以降のキック (現状、起床させても正常に動かない) */
             //let hart_mask: u64 = 0x01 << a0;
@@ -98,10 +100,10 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     };
     */
 
-    (*(regs)).a0 = ret.0;
-    (*(regs)).a1 = ret.1;
+    regs.reg[A0] = ret.0;
+    regs.reg[A1] = ret.1;
 
-    (*(regs)).epc = (*(regs)).epc + 4;
+    regs.epc = regs.epc + 4;
 }
 
 pub fn get_real_paddr(guest_paddr: usize) -> usize {
@@ -123,48 +125,66 @@ pub fn map_guest_page() {
     );
 }
 
+/* [todo delete] */
+use violet::system::vm::vdev::read_raw;
+fn fetch_inst(epc: usize) -> usize {
+    read_raw((epc & 0x0_ffff_ffff) + 0x1000_0000 + 0x20_0000)
+}
+
+extern crate alloc;
+use alloc::vec::Vec;
+
 pub fn do_guest_store_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
     
-    if (0x0c20_1000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {
+    let inst = fetch_inst(regs.epc);
+    let val = get_store_value(inst, regs);
+
+    if (0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {
         unsafe {
-            match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
+            match VM.get_dev_mut::<VPlic>(fault_paddr) {
                 None => (),
-                Some(d) => d.write32(fault_paddr & 0x0000_1fff, 0),
+                Some(d) => {
+                    d.write32(fault_paddr, val as u32);
+                },
             }
         }
-        (*(regs)).epc = (*(regs)).epc + 2;
+        
+        if (is_compressed(inst)) {
+            regs.epc = regs.epc + 2;
+        }
+        else {
+            regs.epc = regs.epc + 4;
+        }
+
         CPU.hyp
             .flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
     } else {
         map_guest_page();
     }
-    /*
-    unsafe {
-        match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
-            None => {
-                map_guest_page()
-            },
-            Some(d) => {
-                d.write32(fault_paddr & 0x0000_1fff, 0);
-            }
-        }
-        (*(regs)).epc = (*(regs)).epc + 2;
-        CPU.hyp
-            .flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
-    }
-    */
 }
 
 pub fn do_guest_load_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
-    if (0x0c20_1000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {
+    let inst = fetch_inst(regs.epc);
+
+    if (0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {        
+    //if (0x0c20_1000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {        
         unsafe {
-            (*(regs)).a5 = match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
-                None => 0,
-                Some(d) => d.read32(fault_paddr & 0x0000_1fff) as usize,
+            let reg_idx = get_load_reg(inst);
+            regs.reg[reg_idx] = match VM.get_dev_mut::<VPlic>(fault_paddr) {
+                None => regs.reg[reg_idx],
+                Some(d) => {
+                    d.read32(fault_paddr) as usize
+                },
             };
-            (*(regs)).epc = (*(regs)).epc + 4; /* [todo fix] ld/sdの命令を解釈して、4byteか2byteか決めるべき */
+            
+            if (is_compressed(inst)) {
+                regs.epc = regs.epc + 2;
+            }
+            else {
+                regs.epc = regs.epc + 4;
+            }
         }
     } else {
         map_guest_page();
@@ -175,7 +195,7 @@ pub fn do_guest_instruction_page_fault(regs: &mut Registers) {
     map_guest_page();
 }
 
-pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
+pub fn do_supervisor_external_interrupt(regs: &mut Registers) {
 
     let con = current_container();
 
@@ -189,7 +209,9 @@ pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
     unsafe {
         match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
             None => (),
-            Some(d) => d.write32(0x1004, int_id),
+            Some(d) => {
+                d.interrupt(int_id as usize);//write32(0x0C20_1004, int_id);
+            },
         }
     }
 
@@ -241,8 +263,13 @@ pub fn setup_cpu() {
     );
 }
 
-pub fn first_boot() {
+pub fn boot_linux() {
     let cpu_id: usize = 0;
+
+    /* [todo fix] コピーではなく、メモリマップに変更する */
+    memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当
+    memcpy(0x88100000 + 0x1000_0000, 0x88100000, 0x20_0000); //initrd サイズはrootfs.imgより概算
+
     unsafe {
         VM.setup();
     }
@@ -270,13 +297,12 @@ pub fn secondary_boot() {
 
 pub fn sample_main() {
 
-    unsafe{ VM.register_dev(0x0c20_1000, 0x1000, VPlic::new()); }
+    let mut vplic = VPlic::new();
+    vplic.set_vcpu_config([1, 1]);
+    unsafe{ VM.register_dev(0x0c00_0000, 0x0400_0000, vplic); }
+    //unsafe{ VM.register_dev(0x0c20_1000, 0x1000, vplic); }
 
-    /* [todo fix] コピーではなく、メモリマップに変更する */
-    memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当
-    memcpy(0x88100000 + 0x1000_0000, 0x88100000, 0x20_0000); //initrd サイズはrootfs.imgより概算
-
-    first_boot();
+    boot_linux();
 
     loop{}
 }

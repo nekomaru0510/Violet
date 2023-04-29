@@ -1,44 +1,72 @@
 //! RISC-V 汎用レジスタ
 
-use crate::driver::traits::cpu::registers::TraitRegisters;
+//use crate::driver::traits::cpu::registers::TraitRegisters;
 
 /* 割込み・例外元のコンテキストを示す */
 #[derive(Clone, Copy)]
 pub struct Registers {
-    pub zero: usize,
-    pub ra: usize,
-    pub sp: usize,
-    pub gp: usize,
-    pub tp: usize,
-    pub t0: usize,
-    pub t1: usize,
-    pub t2: usize,
-    pub s0: usize, //fp
-    pub s1: usize,
-    pub a0: usize,
-    pub a1: usize,
-    pub a2: usize,
-    pub a3: usize,
-    pub a4: usize,
-    pub a5: usize,
-    pub a6: usize,
-    pub a7: usize,
-    pub s2: usize,
-    pub s3: usize,
-    pub s4: usize,
-    pub s5: usize,
-    pub s6: usize,
-    pub s7: usize,
-    pub s8: usize,
-    pub s9: usize,
-    pub s10: usize,
-    pub s11: usize,
-    pub t3: usize,
-    pub t4: usize,
-    pub t5: usize,
-    pub t6: usize,
+    pub reg: [usize; 32],
     pub epc: usize,
 }
+
+pub const ZERO: usize = 0;
+pub const RA: usize = 1;
+pub const SP: usize = 2;
+pub const GP: usize = 3;
+pub const TP: usize = 4;
+pub const T0: usize = 5;
+pub const T1: usize = 6;
+pub const T2: usize = 7;
+pub const S0: usize = 8;
+pub const FP: usize = 8;
+pub const S1: usize = 9;
+pub const A0: usize = 10;
+pub const A1: usize = 11;
+pub const A2: usize = 12;
+pub const A3: usize = 13;
+pub const A4: usize = 14;
+pub const A5: usize = 15;
+pub const A6: usize = 16;
+pub const A7: usize = 17;
+pub const S2: usize = 18;
+pub const S3: usize = 19;
+pub const S4: usize = 20;
+pub const S5: usize = 21;
+pub const S6: usize = 22;
+pub const S7: usize = 23;
+pub const S8: usize = 24;
+pub const S9: usize = 25;
+pub const S10: usize = 26;
+pub const S11: usize = 27;
+pub const T3: usize = 28;
+pub const T4: usize = 29;
+pub const T5: usize = 30;
+pub const T6: usize = 31;
+
+/*
+impl Registers {
+    pub fn zero(&self) {
+        self.reg[IDX_ZERO]
+    }
+
+    pub fn ra(&self) {
+        self.reg[IDX_RA]
+    }
+
+    pub fn sp(&self) {
+        self.reg[IDX_SP]
+    }
+
+    pub fn gp(&self) {
+        self.reg[IDX_GP]
+    }
+
+    pub fn tp(&self) {
+        self.reg[IDX_TP]
+    }
+
+}
+*/
 
 /*
 impl TraitRegisters for Registers {

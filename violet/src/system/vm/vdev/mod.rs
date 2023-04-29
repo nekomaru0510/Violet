@@ -9,17 +9,18 @@ use alloc::vec::Vec;
 use core::ptr::{read_volatile, write_volatile};
 
 pub trait VirtualDevice {
-    fn write32(&mut self, addr: usize, val: u32);
+    fn write32(&mut self, addr: usize, val: u32); // [todo fix] ジェネリクスを使う
     fn read32(&mut self, addr: usize) -> u32;
     //fn write64(&mut self, addr: usize, val: u64);
     //fn read64(&mut self, addr: usize) -> u64;
+    fn interrupt(&mut self, intid: usize);
 }
 
 pub trait VirtualRegister {
     type Register;
 
-    fn write(&mut self, val: Self::Register);
-    fn read(&mut self) -> Self::Register; /* 読み出し時にレジスタ値を変更するものも存在するため、mutable */
+    fn write(&mut self, addr: usize, val: Self::Register);
+    fn read(&mut self, addr: usize) -> Self::Register; /* 読み出し時にレジスタ値を変更するものも存在するため、mutable */
 }
 
 struct IoMap {
@@ -139,11 +140,11 @@ impl ZeroReg {
 impl VirtualRegister for ZeroReg {
     type Register = u32;
 
-    fn write(&mut self, val: u32) {
+    fn write(&mut self, addr: usize, val: u32) {
         ()
     }
 
-    fn read(&mut self) -> u32 {
+    fn read(&mut self, addr: usize) -> u32 {
         0
     }
 }
