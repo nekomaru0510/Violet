@@ -74,7 +74,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
                 VM.set_boot_arg(a0, [a2, a2]);
             } 
             
-            cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
+            //cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
             
             regs.reg[A0] = 0;
             regs.reg[A1] = 0;
@@ -168,8 +168,7 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
     let inst = fetch_inst(regs.epc);
 
-    if (0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {        
-    //if (0x0c20_1000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {        
+    if (0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {
         unsafe {
             let reg_idx = get_load_reg(inst);
             regs.reg[reg_idx] = match VM.get_dev_mut::<VPlic>(fault_paddr) {
@@ -210,7 +209,7 @@ pub fn do_supervisor_external_interrupt(regs: &mut Registers) {
         match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
             None => (),
             Some(d) => {
-                d.interrupt(int_id as usize);//write32(0x0C20_1004, int_id);
+                d.interrupt(int_id as usize);
             },
         }
     }
@@ -236,7 +235,16 @@ pub fn do_supervisor_timer_interrupt(_regs: &mut Registers) {
         .assert_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
 }
 
-pub fn setup_cpu() {
+pub fn boot_linux() {
+    let cpu_id: usize = 0;
+
+    /* [todo fix] コピーではなく、メモリマップに変更する */
+    memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当
+    memcpy(0x88100000 + 0x1000_0000, 0x88100000, 0x20_0000); //initrd サイズはrootfs.imgより概算
+
+    unsafe {
+        VM.setup();
+    }
 
     /* 割込みを有効化 */
     CPU.int.enable_mask_s(
@@ -261,20 +269,6 @@ pub fn setup_cpu() {
         Exception::InstructionGuestPageFault,
         do_guest_instruction_page_fault,
     );
-}
-
-pub fn boot_linux() {
-    let cpu_id: usize = 0;
-
-    /* [todo fix] コピーではなく、メモリマップに変更する */
-    memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当
-    memcpy(0x88100000 + 0x1000_0000, 0x88100000, 0x20_0000); //initrd サイズはrootfs.imgより概算
-
-    unsafe {
-        VM.setup();
-    }
-
-    setup_cpu();
 
     unsafe {
         VM.set_start_addr(cpu_id, 0x8020_0000);
@@ -283,26 +277,30 @@ pub fn boot_linux() {
     }
 }
 
-pub fn secondary_boot() {
-    unsafe {
-        VM.setup();
-    }
-
-    setup_cpu();
- 
-    unsafe {
-        VM.boot(1)
-    }
+use violet::library::vshell::{Command, VShell};
+pub fn boot_vshell() {
+    let mut vshell = VShell::new();
+    /*vshell.add_cmd(Command {
+        name: String::from("boot"),
+        func: boot_guest,
+    });*/
+    vshell.run();
 }
 
 pub fn sample_main() {
 
     let mut vplic = VPlic::new();
-    vplic.set_vcpu_config([1, 1]);
+    vplic.set_vcpu_config([0, 1]); /* vcpu=pcpu */
+    //vplic.set_vcpu_config([1, 0]); /* vcpu!=pcpu */
     unsafe{ VM.register_dev(0x0c00_0000, 0x0400_0000, vplic); }
-    //unsafe{ VM.register_dev(0x0c20_1000, 0x1000, vplic); }
 
-    boot_linux();
+
+
+    //cre_tsk(2, &T_CTSK{task:boot_linux, prcid:1});
+    //cre_tsk(2, &T_CTSK{task:boot_vshell, prcid:1});
+    //let hart_mask: u64 = 0x01 << 1;
+    //sbi::sbi_send_ipi(&hart_mask);
+    //boot_linux();
 
     loop{}
 }

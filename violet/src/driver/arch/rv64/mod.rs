@@ -176,6 +176,7 @@ impl TraitCpu for Rv64 {
     fn core_init(&self) {
         self.set_sscratch();
         self.set_default_vector();
+        self.enable_interrupt();
     }
 
     fn wakeup(&self) {

@@ -21,8 +21,6 @@ use crate::driver::traits::arch::riscv::PagingMode;
 use crate::driver::traits::arch::riscv::PrivilegeMode;
 use crate::driver::traits::arch::riscv::TraitRisvCpu;
 
-use crate::library::vshell::{Command, VShell};
-
 use mm::*;
 
 pub fn setup_boot() {
@@ -152,13 +150,6 @@ impl VirtualMachine {
 
     pub fn run(&self) {
         boot_guest();
-
-        let mut vshell = VShell::new();
-        vshell.add_cmd(Command {
-            name: String::from("boot"),
-            func: boot_guest,
-        });
-        vshell.run();
     }
 
     pub fn boot(&self, cpu_id: usize) {

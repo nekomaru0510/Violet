@@ -5,6 +5,8 @@ use core::ptr::{read_volatile, write_volatile};
 /* ドライバ用トレイト */
 use crate::driver::traits::intc::TraitIntc;
 
+use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
+
 #[derive(Clone)]
 pub struct Plic {
     base: usize,
@@ -27,9 +29,15 @@ const START_HART3_M_INT_ENABLE1: usize = 0x2284;
 const START_HART3_S_INT_ENABLE0: usize = 0x2300;
 const START_HART3_S_INT_ENABLE1: usize = 0x2304;
 
+const INT_ENABLE0_CONTEXT0: usize = 0x2080;
+const INT_ENABLE0_HART_OFFSET: usize = 0x80;
+const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000;
+const PRIO_THRESHOLD_HART_OFFSET: usize = 0x1000;
+const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004;
+const CLAIM_COMPLETE_HART_OFFSET: usize = 0x1000;
 
-const HART0_PRIO_THRESHOLD: usize = 0x20_1000;
-const HART0_CLAIM_COMPLETE: usize = 0x20_1004;
+//const HART0_PRIO_THRESHOLD: usize = 0x20_1000;
+//const HART0_CLAIM_COMPLETE: usize = 0x20_1004;
 //const HART0_CLAIM_COMPLETE: usize = 0x20_0000;
 
 impl TraitIntc for Plic {
@@ -55,7 +63,7 @@ impl TraitIntc for Plic {
 
     fn set_priority_threshold(&self, val: u32) {
         unsafe {
-            write_volatile((self.base + HART0_PRIO_THRESHOLD) as *mut u32, val);
+            write_volatile((self.base + PRIO_THRESHOLD_CONTEXT0 + PRIO_THRESHOLD_HART_OFFSET * get_cpuid()) as *mut u32, val);
         }
     }
 }
@@ -66,7 +74,7 @@ impl Plic {
     }
 
     pub fn set_enable(&self, id: u32) {
-        let offset = ((id / 32) * 4) as usize;
+        let offset = ((id / 32) * 4) as usize/* + INT_ENABLE0_HART_OFFSET * get_cpuid()*/;
         let val = 0x01 << (id % 32) as u32;
 
         unsafe {
@@ -79,7 +87,7 @@ impl Plic {
 
     /* [todo fix] clear処理にする */
     pub fn clear_enable(&self, id: u32) {
-        let offset = ((id / 32) * 4) as usize;
+        let offset = ((id / 32) * 4) as usize/* + INT_ENABLE0_HART_OFFSET * get_cpuid()*/;
         let val = 0x01 << (id % 32) as u32;
 
         unsafe {
@@ -91,12 +99,12 @@ impl Plic {
     }
 
     pub fn get_claim_complete(&self) -> u32 {
-        unsafe { read_volatile((self.base + HART0_CLAIM_COMPLETE) as *const u32) }
+        unsafe { read_volatile((self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * get_cpuid()) as *const u32) }
     }
 
     pub fn set_claim_complete(&self, id: u32) {
         unsafe {
-            write_volatile((self.base + HART0_CLAIM_COMPLETE) as *mut u32, id);
+            write_volatile((self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * get_cpuid()) as *mut u32, id);
         }
     }
 }
