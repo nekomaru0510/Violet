@@ -52,16 +52,16 @@ pub extern "C" fn boot_init(cpu_id: usize) {
 
     init_environment();
     do_driver_calls();
-
+    
     init_bsp(cpu_id);
 
     println!("Hello I'm {} ", "Violet Hypervisor");
 
-    // 他CPUをすべて起動させる
-    wakeup_all_cpus(cpu_id);
-
     // CPU0にinit_callsを実行させる
     cre_tsk(1, &T_CTSK{task:do_app_calls, prcid:0});
+
+    // 他CPUをすべて起動させる
+    wakeup_all_cpus(cpu_id);
 
     //init_bsp(cpu_id);
     

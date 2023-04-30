@@ -5,7 +5,6 @@ pub mod vcpu;
 pub mod vdev;
 
 extern crate alloc;
-use alloc::string::String;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 

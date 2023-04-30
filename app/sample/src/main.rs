@@ -276,30 +276,88 @@ pub fn boot_linux() {
         VM.boot(cpu_id);
     }
 }
-
-use violet::library::vshell::{Command, VShell};
-pub fn boot_vshell() {
-    let mut vshell = VShell::new();
-    /*vshell.add_cmd(Command {
-        name: String::from("boot"),
-        func: boot_guest,
-    });*/
-    vshell.run();
+/*
+use violet::{println, print};
+fn timer_get(_regs: &mut Registers) {
+    println!("timer int ok!");
 }
 
+fn timer_set() {
+    let con = current_container();
+
+    CPU.int.enable_mask_s(Interrupt::SupervisorTimerInterrupt.mask());
+    CPU.register_interrupt(
+        Interrupt::SupervisorTimerInterrupt,
+        timer_get,
+    );
+    
+    match &con.unwrap().timer {
+        None => (),
+        Some(t) => {
+            t.set_interrupt_time(t.read() + 0x1000);
+        },
+    };
+}
+
+fn serial_set() {
+    let con = current_container();
+    
+    CPU.int.enable_mask_s(Interrupt::SupervisorExternalInterrupt.mask());
+    CPU.register_interrupt(
+        Interrupt::SupervisorExternalInterrupt,
+        timer_get,
+    );
+    
+    match &con.unwrap().serial {
+        None => (),
+        Some(s) => {
+            s.enable_interrupt();
+        },
+    };
+
+    match &con.unwrap().intc {
+        None => (),
+        Some(i) => {
+            i.set_prio(0xa, 1);
+            i.enable_interrupt(0xa);
+            i.set_priority_threshold(0);
+        },
+    };
+}
+
+use core::ptr::{read_volatile, write_volatile};
+use violet::library::vshell::{Command, VShell};
+use alloc::string::String;
+
+pub fn boot_vshell() {
+    
+    let mut vshell = VShell::new();
+    vshell.add_cmd(Command {
+        name: String::from("tmr"),
+        func: timer_set,
+    });
+    vshell.add_cmd(Command {
+        name: String::from("serial"),
+        func: serial_set,
+    });
+    
+    vshell.run();
+}
+*/
 pub fn sample_main() {
 
     let mut vplic = VPlic::new();
-    vplic.set_vcpu_config([0, 1]); /* vcpu=pcpu */
-    //vplic.set_vcpu_config([1, 0]); /* vcpu!=pcpu */
+    //vplic.set_vcpu_config([0, 1]); /* vcpu=pcpu */
+    vplic.set_vcpu_config([1, 0]); /* vcpu!=pcpu */
     unsafe{ VM.register_dev(0x0c00_0000, 0x0400_0000, vplic); }
 
-
-
-    //cre_tsk(2, &T_CTSK{task:boot_linux, prcid:1});
-    //cre_tsk(2, &T_CTSK{task:boot_vshell, prcid:1});
-    //let hart_mask: u64 = 0x01 << 1;
-    //sbi::sbi_send_ipi(&hart_mask);
+    //cre_tsk(2, &T_CTSK{task:boot_vshell, prcid:0});
+    //boot_vshell();
+    
+    cre_tsk(2, &T_CTSK{task:boot_linux, prcid:1});
+    let hart_mask: u64 = 0x01 << 1;
+    sbi::sbi_send_ipi(&hart_mask);
+    
     //boot_linux();
 
     loop{}

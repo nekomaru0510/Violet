@@ -14,6 +14,7 @@ pub struct Plic {
 
 //const SOURCE_1_PRIO: usize = 0x4;
 //const START_OF_PENDING_ARRAY: usize = 0x1000;
+/*
 const START_HART0_M_INT_ENABLE0: usize = 0x2000;
 const START_HART0_M_INT_ENABLE1: usize = 0x2004;
 const START_HART1_M_INT_ENABLE0: usize = 0x2080;
@@ -29,12 +30,24 @@ const START_HART3_M_INT_ENABLE1: usize = 0x2284;
 const START_HART3_S_INT_ENABLE0: usize = 0x2300;
 const START_HART3_S_INT_ENABLE1: usize = 0x2304;
 
+
 const INT_ENABLE0_CONTEXT0: usize = 0x2080;
 const INT_ENABLE0_HART_OFFSET: usize = 0x80;
 const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000;
 const PRIO_THRESHOLD_HART_OFFSET: usize = 0x1000;
 const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004;
 const CLAIM_COMPLETE_HART_OFFSET: usize = 0x1000;
+*/
+const INT_PRIO_SOURCE0: usize = 0;
+const INT_ENABLE0_HART_OFFSET: usize = 0x100;//0x80;
+const INT_ENABLE0_CONTEXT0: usize = 0x2080;
+const PRIO_THRESHOLD_HART_OFFSET: usize = 0x2000;//0x1000;
+const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000;//0x20_0000;//0x20_1000;
+const PRIO_THRESHOLD_CONTEXT1: usize = PRIO_THRESHOLD_CONTEXT0 + PRIO_THRESHOLD_HART_OFFSET;
+const CLAIM_COMPLETE_HART_OFFSET: usize = 0x2000;//0x1000;
+const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004;//0x20_0004;//0x20_1004;
+const CLAIM_COMPLETE_CONTEXT1: usize = CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET;
+
 
 //const HART0_PRIO_THRESHOLD: usize = 0x20_1000;
 //const HART0_CLAIM_COMPLETE: usize = 0x20_1004;
@@ -42,7 +55,7 @@ const CLAIM_COMPLETE_HART_OFFSET: usize = 0x1000;
 
 impl TraitIntc for Plic {
     /* 割込みの有効化 */
-    fn enable_intrrupt(&self, id: u32) {
+    fn enable_interrupt(&self, id: u32) {
         self.set_enable(id);
     }
 
@@ -59,6 +72,12 @@ impl TraitIntc for Plic {
     /* 処理完了した割込み番号を格納 */
     fn set_comp_int(&self, id: u32) {
         self.set_claim_complete(id);
+    }
+
+    fn set_prio(&self, id: u32, val: u32) {
+        unsafe {
+            write_volatile((self.base + INT_PRIO_SOURCE0 + (id*4) as usize) as *mut u32, val & 0x7);
+        }
     }
 
     fn set_priority_threshold(&self, val: u32) {
@@ -79,7 +98,7 @@ impl Plic {
 
         unsafe {
             write_volatile(
-                (self.base + START_HART0_M_INT_ENABLE0 + offset) as *mut u64,
+                (self.base + INT_ENABLE0_CONTEXT0 + offset) as *mut u32,
                 val,
             );
         }
@@ -92,7 +111,7 @@ impl Plic {
 
         unsafe {
             write_volatile(
-                (self.base + START_HART0_M_INT_ENABLE0 + offset) as *mut u64,
+                (self.base + INT_ENABLE0_CONTEXT0 + offset) as *mut u32,
                 val,
             );
         }

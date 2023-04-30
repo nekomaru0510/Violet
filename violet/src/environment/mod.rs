@@ -16,7 +16,8 @@ pub const STACK_SIZE: usize = 0x4000;
 
 /* MMIO */
 static UART_BASE: usize = 0x1000_0000;
-static CLINT_TIMER_BASE: usize = 0x0200_4000;
+//static CLINT_TIMER_BASE: usize = 0x0200_4000;
+static CLINT_TIMER_BASE: usize = 0x0200_0000;
 static PLIC_BASE: usize = 0x0C00_0000;
 
 pub fn init_environment() {
