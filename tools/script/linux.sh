@@ -39,7 +39,9 @@ function run () {
         -nographic \
         -kernel ${TARGET_PATH}/arch/riscv/boot/Image \
         -initrd ${BUSYBOX_OUTPUT_FILE} \
-        -append "root=/dev/ram console=ttyS0"
+        -append "root=/dev/ram rdinit=/sbin/init console=ttyS0 mem=0x10000000" \
+        -smp 2
+        #-append "root=/dev/ram console=ttyS0"
 }
 
 # デバッグ
@@ -48,9 +50,11 @@ function debug () {
     qemu-system-riscv64 -cpu rv64 -M virt \
         -nographic \
         -kernel ${TARGET_PATH}/arch/riscv/boot/Image \
-        -initrd ${BUSYBOX_PATH}/rootfs.img \
-        -append "root=/dev/ram console=ttyS0" \
+        -initrd ${BUSYBOX_OUTPUT_FILE} \
+        -append "root=/dev/ram rdinit=/sbin/init console=ttyS0 mem=0x10000000" \
+        -smp 2 \
         -gdb tcp::12345 -S
+        #-append "root=/dev/ram console=ttyS0" \
 }
 
 # モニタ
