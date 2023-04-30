@@ -8,9 +8,10 @@ pub extern "C" fn _start() {
         asm! ("
         .option norvc
         .align 8
-                li      t0, 0
+                li      t0, 1        
                 li      t1, 14
                 sll     t0, t0, t1
+                mul     t0, t0, a0          // mulを使うかは要検討
                 la      sp, __KERNEL_SP_BOTTOM
                 add     sp, sp, t0
 
@@ -31,9 +32,10 @@ pub extern "C" fn _start_ap() {
     unsafe {
         asm! ("
         .align 8
-                add     t0, a0, 0  // a0にコア番号が格納されている
+                li      t0, 1        
                 li      t1, 14
                 sll     t0, t0, t1
+                mul     t0, t0, a0          // mulを使うかは要検討
                 la      sp, __KERNEL_SP_BOTTOM
                 add     sp, sp, t0
 
