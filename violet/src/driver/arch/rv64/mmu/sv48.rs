@@ -278,7 +278,7 @@ impl PageTable for PageTableSv48 {
     fn get_next_table(&self, vaddr: usize, idx: usize) -> Option<&mut <Self as PageTable>::Table> {
         let vpn = SV48_VA.vpn[idx].mask(vaddr as u64);
         let ret = (*self).get_entry_ppn(vpn) << 12;
-        if (ret == 0) {
+        if ret == 0 {
             return None;
         }
         let t: &mut <Self as PageTable>::Table = unsafe { transmute(ret) };

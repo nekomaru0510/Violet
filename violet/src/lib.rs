@@ -19,13 +19,14 @@ pub mod environment;
 pub mod kernel; /* Violetの中核機能(なるべく小さくしたい) */
 pub mod library;
 pub mod system;
+#[cfg(test)]
 pub mod test;
 
 /* [todo delete]環境依存 */
 use crate::driver::arch::rv64::Rv64;
 pub static CPU: Rv64 = Rv64::new(0);
 
-/* 
+/*
  * [todo fix] 本来は、testモジュール内に配置したいが、
  * test_mainを参照できないため、ここに配置
  */

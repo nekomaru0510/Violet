@@ -45,7 +45,6 @@ pub mod csr;
 use csr::hstatus::*;
 use csr::scause::*;
 use csr::sepc::*;
-use csr::sscratch::*;
 use csr::sstatus::*;
 use csr::stval::*;
 use csr::vscause::*;

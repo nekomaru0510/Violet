@@ -2,12 +2,11 @@
 //pub mod qemu;
 
 use crate::kernel::container::*;
-use core::mem::replace;
 
 /* デバイスドライバ */
 use crate::driver::arch::rv64::Rv64;
-use crate::driver::board::sifive_u::clint_timer::ClintTimer;
-use crate::driver::board::sifive_u::plic::Plic;
+//use crate::driver::board::sifive_u::clint_timer::ClintTimer;
+//use crate::driver::board::sifive_u::plic::Plic;
 use crate::driver::board::sifive_u::uart::Uart;
 
 /* CPUコア数 */

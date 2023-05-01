@@ -26,7 +26,7 @@ pub fn enable_paging() {
 }
 
 pub fn create_page_table() {
-    for i in (0..0x100) {
+    for i in 0..0x100 {
         unsafe {
             //map_vaddr::<PageTableSv48>(&mut PAGE_TABLE_ARRAY[0], 0x8010_0000 + i*0x1000, 0x8010_0000 + i*0x1000);
             map_vaddr::<PageTableSv48>(
@@ -54,7 +54,7 @@ pub fn invalid_page<T: PageTable>(table: &mut T, vaddr: usize) {
 }
 
 pub fn map_vaddr<T: PageTable>(table: &mut T, paddr: usize, vaddr: usize) {
-    for idx in (1..5) {
+    for idx in 1..5 {
         match (*table).create_page_entry(paddr, vaddr) {
             Ok(()) => break,
             Err(i) => unsafe {
@@ -65,7 +65,7 @@ pub fn map_vaddr<T: PageTable>(table: &mut T, paddr: usize, vaddr: usize) {
                             .set_paddr(transmute(&mut PAGE_TABLE_ARRAY[PAGE_TABLE_IDX + 1]));
                         t.get_entry(vaddr, i).valid();
                         PAGE_TABLE_IDX = PAGE_TABLE_IDX + 1;
-                        if (MAX_PAGE_TABLE < PAGE_TABLE_IDX) {
+                        if MAX_PAGE_TABLE < PAGE_TABLE_IDX {
                             loop {}
                         }
                     }

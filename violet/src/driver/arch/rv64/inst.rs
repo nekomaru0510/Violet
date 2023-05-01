@@ -1,7 +1,6 @@
 //! RISC-V用命令
 
 use crate::driver::arch::rv64::regs::Registers;
-use crate::driver::arch::rv64::regs::*;
 
 #[derive(Clone)]
 pub struct Rv64Inst {}
@@ -169,24 +168,24 @@ impl StoreFunct3 {
     }
 }
 
-enum CompressedInst_1_0 {
+enum CompressedInst10 {
     RVC0 = 0b00,
     RVC1 = 0b01,
     RVC2 = 0b10,
     UNKNOWN,
 }
-impl CompressedInst_1_0 {
+impl CompressedInst10 {
     pub fn from_inst(inst: usize) -> Self {
         match inst & (0b11 << 0) {
-            0b00 => CompressedInst_1_0::RVC0,
-            0b01 => CompressedInst_1_0::RVC1,
-            0b10 => CompressedInst_1_0::RVC2,
-            _ => CompressedInst_1_0::UNKNOWN,
+            0b00 => CompressedInst10::RVC0,
+            0b01 => CompressedInst10::RVC1,
+            0b10 => CompressedInst10::RVC2,
+            _ => CompressedInst10::UNKNOWN,
         }
     }
 }
 
-enum CompressedInst_15_13 {
+enum CompressedInst1513 {
     LQ = 0b001,
     LW = 0b010,
     LD = 0b011,
@@ -195,16 +194,16 @@ enum CompressedInst_15_13 {
     SD = 0b111,
     UNKNOWN,
 }
-impl CompressedInst_15_13 {
+impl CompressedInst1513 {
     pub fn from_inst(inst: usize) -> Self {
         match (inst & (0b111 << 13)) >> 13 {
-            0b001 => CompressedInst_15_13::LQ,
-            0b010 => CompressedInst_15_13::LW,
-            0b011 => CompressedInst_15_13::LD,
-            0b101 => CompressedInst_15_13::SQ,
-            0b110 => CompressedInst_15_13::SW,
-            0b111 => CompressedInst_15_13::SD,
-            _ => CompressedInst_15_13::UNKNOWN,
+            0b001 => CompressedInst1513::LQ,
+            0b010 => CompressedInst1513::LW,
+            0b011 => CompressedInst1513::LD,
+            0b101 => CompressedInst1513::SQ,
+            0b110 => CompressedInst1513::SW,
+            0b111 => CompressedInst1513::SD,
+            _ => CompressedInst1513::UNKNOWN,
         }
     }
 }
@@ -248,14 +247,14 @@ pub fn get_load_reg(inst: usize) -> usize {
 /* [todo fix] storeのみ判定可能 */
 pub fn analyze_instruction(inst: usize) -> Instruction {
     if is_compressed(inst) {
-        match CompressedInst_1_0::from_inst(inst) {
-            CompressedInst_1_0::RVC0 => match CompressedInst_15_13::from_inst(inst) {
-                CompressedInst_15_13::LQ => Instruction::CLQ,
-                CompressedInst_15_13::LW => Instruction::CLW,
-                CompressedInst_15_13::LD => Instruction::CLD,
-                CompressedInst_15_13::SQ => Instruction::CSQ,
-                CompressedInst_15_13::SW => Instruction::CSW,
-                CompressedInst_15_13::SD => Instruction::CSD,
+        match CompressedInst10::from_inst(inst) {
+            CompressedInst10::RVC0 => match CompressedInst1513::from_inst(inst) {
+                CompressedInst1513::LQ => Instruction::CLQ,
+                CompressedInst1513::LW => Instruction::CLW,
+                CompressedInst1513::LD => Instruction::CLD,
+                CompressedInst1513::SQ => Instruction::CSQ,
+                CompressedInst1513::SW => Instruction::CSW,
+                CompressedInst1513::SD => Instruction::CSD,
                 _ => Instruction::UNIMP,
             },
             _ => Instruction::UNIMP,

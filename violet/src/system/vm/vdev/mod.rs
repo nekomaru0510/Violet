@@ -4,7 +4,6 @@ pub mod vplic;
 
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::collections::btree_map::BTreeMap;
 use alloc::vec::Vec;
 use core::ptr::{read_volatile, write_volatile};
 

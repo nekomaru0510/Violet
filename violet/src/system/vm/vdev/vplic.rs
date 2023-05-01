@@ -1,11 +1,9 @@
 //! 仮想PLIC
 
 use super::VirtualDevice;
-use super::VirtualRegister;
 use super::ZeroReg;
 use super::{read_raw, write_raw};
 use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
-use crate::driver::traits::intc::TraitIntc;
 use crate::environment::NUM_OF_CPUS;
 use crate::kernel::container::*;
 

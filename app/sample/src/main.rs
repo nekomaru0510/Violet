@@ -6,23 +6,20 @@ extern crate violet;
 
 use violet::CPU;
 
-use violet::driver::arch::rv64::inst;
 use violet::driver::arch::rv64::inst::*;
 use violet::driver::arch::rv64::regs::Registers;
 use violet::driver::arch::rv64::regs::*;
 
 use violet::system::vm::mm::*;
 use violet::system::vm::vdev::vplic::VPlic;
-use violet::system::vm::vdev::VirtualDevice;
 use violet::system::vm::VirtualMachine;
 
 use violet::driver::arch::rv64::mmu::sv48::PageTableSv48;
 use violet::driver::arch::rv64::sbi;
 use violet::driver::traits::arch::riscv::{Exception, Interrupt, TraitRisvCpu};
-use violet::driver::traits::intc::TraitIntc;
 
 use violet::kernel::container::*;
-use violet::kernel::syscall::toppers::{cre_tsk, T_CTSK};
+use violet::kernel::syscall::toppers::{cre_tsk, Ctsk};
 
 use crate::violet::library::std::memcpy;
 
@@ -31,8 +28,6 @@ use core::intrinsics::transmute;
 
 use violet::app_init;
 app_init!(sample_main);
-
-use violet::{print, println};
 
 static mut VM: VirtualMachine = VirtualMachine::new(
     0,           /* CPUマスク */
@@ -52,7 +47,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     let a5: usize = regs.reg[A5];
 
     /* タイマセット */
-    if (ext == sbi::Extension::SetTimer as i32 || ext == sbi::Extension::Timer as i32) {
+    if ext == sbi::Extension::SetTimer as i32 || ext == sbi::Extension::Timer as i32 {
         /* 仮想タイマ割込みのフラッシュ */
         /* QEMU virtの性質上、ゲストOSは必ずタイマ割込みハンドラ内でタイマセットを行う */
         /* そのため、ここで仮想タイマ割込みのフラッシュを行う */
@@ -60,7 +55,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
             .flush_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
     }
     /* キャッシュのフラッシュ */
-    if (ext == sbi::Extension::RemoteSfenceVma as i32) {
+    if ext == sbi::Extension::RemoteSfenceVma as i32 {
         ext = sbi::Extension::Rfence as i32;
         fid = 6;
         a2 = a1;
@@ -69,8 +64,8 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
         a1 = 0;
     }
     /* CPUのキック */
-    if (ext == sbi::Extension::HartStateManagement as i32) {
-        if (fid == 0) {
+    if ext == sbi::Extension::HartStateManagement as i32 {
+        if fid == 0 {
             unsafe {
                 VM.set_start_addr(a0, a1);
                 VM.set_boot_arg(a0, [a2, a2]);
@@ -89,18 +84,11 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
         }
     }
     /* システムのリセット */
-    if (ext == sbi::Extension::SystemReset as i32) {
+    if ext == sbi::Extension::SystemReset as i32 {
         loop {}
     }
 
     let ret = CPU.inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
-    /*
-    let con = get_container(current_container());
-    let int_id = match &con.unwrap().cpu[0] {
-        None => 0,
-        Some(c) => c.inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5),
-    };
-    */
 
     regs.reg[A0] = ret.0;
     regs.reg[A1] = ret.1;
@@ -109,7 +97,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
 }
 
 pub fn get_real_paddr(guest_paddr: usize) -> usize {
-    if (guest_paddr < 0x8000_0000) {
+    if guest_paddr < 0x8000_0000 {
         guest_paddr
     } else {
         guest_paddr + 0x1000_0000
@@ -133,16 +121,13 @@ fn fetch_inst(epc: usize) -> usize {
     read_raw((epc & 0x0_ffff_ffff) + 0x1000_0000 + 0x20_0000)
 }
 
-extern crate alloc;
-use alloc::vec::Vec;
-
 pub fn do_guest_store_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
 
     let inst = fetch_inst(regs.epc);
     let val = get_store_value(inst, regs);
 
-    if (0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {
+    if 0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000 {
         unsafe {
             match VM.get_dev_mut::<VPlic>(fault_paddr) {
                 None => (),
@@ -152,7 +137,7 @@ pub fn do_guest_store_page_fault(regs: &mut Registers) {
             }
         }
 
-        if (is_compressed(inst)) {
+        if is_compressed(inst) {
             regs.epc = regs.epc + 2;
         } else {
             regs.epc = regs.epc + 4;
@@ -169,7 +154,7 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
     let inst = fetch_inst(regs.epc);
 
-    if (0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000) {
+    if 0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000 {
         unsafe {
             let reg_idx = get_load_reg(inst);
             regs.reg[reg_idx] = match VM.get_dev_mut::<VPlic>(fault_paddr) {
@@ -177,7 +162,7 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
                 Some(d) => d.read32(fault_paddr) as usize,
             };
 
-            if (is_compressed(inst)) {
+            if is_compressed(inst) {
                 regs.epc = regs.epc + 2;
             } else {
                 regs.epc = regs.epc + 4;
@@ -188,11 +173,11 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
     }
 }
 
-pub fn do_guest_instruction_page_fault(regs: &mut Registers) {
+pub fn do_guest_instruction_page_fault(_regs: &mut Registers) {
     map_guest_page();
 }
 
-pub fn do_supervisor_external_interrupt(regs: &mut Registers) {
+pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
     let con = current_container();
 
     // 物理PLICからペンディングビットを読み、クリアする
@@ -353,7 +338,7 @@ pub fn sample_main() {
 
     cre_tsk(
         2,
-        &T_CTSK {
+        &Ctsk {
             task: boot_linux,
             prcid: 1,
         },

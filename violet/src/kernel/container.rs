@@ -1,7 +1,7 @@
 //! Violetコンテナ
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::rc::Rc;
+//use alloc::rc::Rc;
 use alloc::vec::Vec;
 
 use crate::environment::NUM_OF_CPUS;

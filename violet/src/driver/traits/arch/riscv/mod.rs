@@ -32,7 +32,7 @@ pub enum Interrupt {
 
 impl Interrupt {
     pub fn mask(&self) -> usize {
-        (1 << *self as usize)
+        1 << *self as usize
     }
 }
 
@@ -63,7 +63,7 @@ pub enum Exception {
 
 impl Exception {
     pub fn mask(&self) -> usize {
-        (1 << *self as usize)
+        1 << *self as usize
     }
 }
 

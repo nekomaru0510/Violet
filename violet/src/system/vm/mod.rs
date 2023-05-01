@@ -6,11 +6,8 @@ pub mod vdev;
 
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::vec::Vec;
 
 use crate::CPU;
-
-use vcpu::VirtualCpu;
 
 use crate::driver::traits::cpu::TraitCpu;
 

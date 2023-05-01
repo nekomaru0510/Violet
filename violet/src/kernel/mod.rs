@@ -15,6 +15,7 @@ use crate::environment::init_environment;
 use crate::environment::NUM_OF_CPUS;
 use crate::print;
 use crate::println;
+#[cfg(test)]
 use crate::test_entry;
 
 use container::*;
@@ -22,12 +23,11 @@ use dispatcher::minimal_dispatcher::MinimalDispatcher;
 use heap::init_allocater;
 use init_calls::*;
 use sched::fifo::FifoScheduler;
-use syscall::toppers::{cre_tsk, T_CTSK};
+use syscall::toppers::{cre_tsk, Ctsk};
 use task::Task;
 
 use traits::dispatcher::TraitDispatcher;
 use traits::sched::TraitSched;
-use traits::task::TraitTask;
 
 use crate::driver::arch::rv64::boot::_start_ap; // [todo delete]
 use crate::driver::arch::rv64::sbi; // [todo delete]
@@ -63,7 +63,7 @@ pub extern "C" fn boot_init(cpu_id: usize) {
     // CPU0にinit_callsを実行させる
     cre_tsk(
         1,
-        &T_CTSK {
+        &Ctsk {
             task: do_app_calls,
             prcid: 0,
         },
