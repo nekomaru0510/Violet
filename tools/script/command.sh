@@ -15,7 +15,10 @@ VIOLET_OUTPUT_FILE="${VIOLET_BIN_PATH}/sample"
 
 NUM_OF_CPUS="2"
 MEMORY_SIZE="2G"
-QEMU_OPTIONS="
+QEMU_OPTIONS=""
+
+function generate_qemu_option () {
+    QEMU_OPTIONS="
         -cpu rv64 -M virt \
         -nographic \
         -m ${MEMORY_SIZE} \
@@ -24,11 +27,13 @@ QEMU_OPTIONS="
         -kernel ${VIOLET_OUTPUT_FILE} \
         -initrd ${BUSYBOX_OUTPUT_FILE} \
         -append \"root=/dev/ram rdinit=/sbin/init console=ttyS0 mem=0x10000000\" \
-        -device loader,file=${LINUX_OUTPUT_FILE},addr=0x90200000,force-raw=true"
-
+        -device loader,file=${LINUX_OUTPUT_FILE},addr=0x90200000,force-raw=true \
+        ${DEBUG_OPTION} "    
+}
 
 # Violet+Linuxの起動(Linuxの配置を変更)
 function run_linux_with_violet () {
+    generate_qemu_option
     eval qemu-system-riscv64 ${QEMU_OPTIONS}
 }
 
@@ -55,13 +60,14 @@ function help () {
     echo "-b    build targets"
     echo "-r    run"
     echo "-d    debug"
+    echo "-t    test"
     echo "-m    monitor targets"
     echo "targets ... specify operation target"
     echo "ex) ./command.sh -b linux,opensbi "
     echo "    This command means 'build linux and opensbi' "
 }
 
-while getopts i:b:rdm:h OPT
+while getopts i:b:rdm:t:h OPT
 do
     case $OPT in
         i)  echo "Install"
@@ -82,7 +88,11 @@ do
             run_linux_with_violet
             ;;
         d)  echo "Debug"
-            QEMU_OPTIONS="${QEMU_OPTIONS} ${QEMU_DEBUG_OPTION}"
+            DEBUG_OPTION=${QEMU_DEBUG_OPTION}
+            run_linux_with_violet
+            ;;
+        t)  echo "Test"
+            VIOLET_OUTPUT_FILE="${OPTARG}"
             run_linux_with_violet
             ;;
         m)  echo "Monitor"
