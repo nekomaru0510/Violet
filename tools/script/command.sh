@@ -1,12 +1,12 @@
 #!/bin/bash
-cd `dirname $0`
+THISFILE_PATH=`dirname $0`
 # 共通設定ファイルの読込み
-source ./header.sh
+source ${THISFILE_PATH}/header.sh
 
 # 各種ツールのパス設定
-OPENSBI_OUTPUT_FILE=`bash -c 'source ./opensbi.sh && echo ${OUTPUT_FILE}'`
-BUSYBOX_OUTPUT_FILE=`bash -c 'source ./busybox.sh && echo ${OUTPUT_FILE}'`
-LINUX_OUTPUT_FILE=`bash -c 'source ./linux.sh && echo ${OUTPUT_FILE}'`
+OPENSBI_OUTPUT_FILE=`cd ${THISFILE_PATH} && bash -c 'source ./opensbi.sh && echo ${OUTPUT_FILE}'`
+BUSYBOX_OUTPUT_FILE=`cd ${THISFILE_PATH} && bash -c 'source ./busybox.sh && echo ${OUTPUT_FILE}'`
+LINUX_OUTPUT_FILE=`cd ${THISFILE_PATH} && bash -c 'source ./linux.sh && echo ${OUTPUT_FILE}'`
 
 VIOLET_RLS_BIN_PATH="${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/release"
 VIOLET_DBG_BIN_PATH="${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/debug"
@@ -70,32 +70,32 @@ function help () {
 while getopts i:b:rdm:t:h OPT
 do
     case $OPT in
-        i)  echo "Install"
+        i)  
             list=(${OPTARG//,/ })
             for p in "${list[@]}"
             do
                 install $p
             done
             ;;
-        b)  echo "Build"
+        b)  
             list=(${OPTARG//,/ })
             for p in "${list[@]}"
             do
                 build $p
             done
             ;;
-        r)  echo "Run"
+        r)  
             run_linux_with_violet
             ;;
-        d)  echo "Debug"
+        d)  
             DEBUG_OPTION=${QEMU_DEBUG_OPTION}
             run_linux_with_violet
             ;;
-        t)  echo "Test"
+        t)  
             VIOLET_OUTPUT_FILE="${OPTARG}"
             run_linux_with_violet
             ;;
-        m)  echo "Monitor"
+        m)  
             list=(${OPTARG//,/ })
             for p in "${list[@]}"
             do

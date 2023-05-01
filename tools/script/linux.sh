@@ -1,13 +1,13 @@
 #!/bin/bash
-
+THISFILE_PATH="$( cd "$( dirname "$BASH_SOURCE" )" && pwd -P )"
 # 共通設定ファイルの読込み
-source ./header.sh
+source ${THISFILE_PATH}/header.sh
 
 # 各種ツールのパス設定
 TARGET_PATH="${RISCV_PATH}/linux"
 OUTPUT_FILE="${TARGET_PATH}/vmlinux.bin"
 
-BUSYBOX_OUTPUT_FILE=`bash -c 'source ./busybox.sh && echo ${OUTPUT_FILE}'`
+BUSYBOX_OUTPUT_FILE=`bash -c "source ${THISFILE_PATH}/busybox.sh && echo '${OUTPUT_FILE}'"`
 
 # インストール
 function install () {

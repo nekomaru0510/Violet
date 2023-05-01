@@ -1,7 +1,7 @@
 #!/bin/bash
-
+THISFILE_PATH="$( cd "$( dirname "$BASH_SOURCE" )" && pwd -P )"
 # 共通設定ファイルの読込み
-source ./header.sh
+source ${THISFILE_PATH}/header.sh
 
 # 各種ツールのパス設定
 TARGET_PATH="${RISCV_PATH}/busybox"
