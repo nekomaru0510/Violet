@@ -128,26 +128,3 @@ pub fn write_raw<T>(addr: usize, val: T) {
         write_volatile(addr as *mut T, val);
     }
 }
-
-/* ゼロレジスタ */
-pub struct ZeroReg {
-    reg: u32,
-}
-
-impl ZeroReg {
-    pub const fn new() -> Self {
-        ZeroReg { reg: 0 }
-    }
-}
-
-impl VirtualRegister for ZeroReg {
-    type Register = u32;
-
-    fn write(&mut self, addr: usize, val: u32) {
-        ()
-    }
-
-    fn read(&mut self, addr: usize) -> u32 {
-        0
-    }
-}

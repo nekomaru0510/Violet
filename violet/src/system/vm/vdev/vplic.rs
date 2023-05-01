@@ -1,7 +1,6 @@
 //! 仮想PLIC
 
 use super::VirtualDevice;
-use super::ZeroReg;
 use super::{read_raw, write_raw};
 use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
 use crate::environment::NUM_OF_CPUS;
@@ -12,7 +11,6 @@ use crate::kernel::container::*;
 pub struct VPlic {
     priority_threshold: u32,
     claim_comp: [u32; NUM_OF_CPUS],
-    zero: ZeroReg,
     //interrupt: [InterruptState; 64],
     v2p_cpu: [usize; NUM_OF_CPUS],
     p2v_cpu: [usize; NUM_OF_CPUS],
@@ -49,7 +47,6 @@ impl VPlic {
             //claim_comp: ClaimCompReg::new(),
             priority_threshold: 0,
             claim_comp: [0; NUM_OF_CPUS],
-            zero: ZeroReg::new(),
             v2p_cpu: [0; NUM_OF_CPUS],
             p2v_cpu: [0; NUM_OF_CPUS],
         }
