@@ -2,9 +2,9 @@
 
 use crate::driver::traits::serial::TraitSerial;
 //use crate::PERIPHERALS;
+use crate::kernel::container::*;
 use core::fmt::{self};
 use core::ptr::{read_volatile, write_volatile};
-use crate::kernel::container::*;
 
 #[macro_export]
 macro_rules! print{

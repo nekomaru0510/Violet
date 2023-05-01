@@ -11,18 +11,18 @@ use violet::driver::arch::rv64::inst::*;
 use violet::driver::arch::rv64::regs::Registers;
 use violet::driver::arch::rv64::regs::*;
 
-use violet::system::vm::VirtualMachine;
 use violet::system::vm::mm::*;
 use violet::system::vm::vdev::vplic::VPlic;
 use violet::system::vm::vdev::VirtualDevice;
+use violet::system::vm::VirtualMachine;
 
 use violet::driver::arch::rv64::mmu::sv48::PageTableSv48;
 use violet::driver::arch::rv64::sbi;
 use violet::driver::traits::arch::riscv::{Exception, Interrupt, TraitRisvCpu};
 use violet::driver::traits::intc::TraitIntc;
 
-use violet::kernel::syscall::toppers::{T_CTSK, cre_tsk};
 use violet::kernel::container::*;
+use violet::kernel::syscall::toppers::{cre_tsk, T_CTSK};
 
 use crate::violet::library::std::memcpy;
 
@@ -32,11 +32,13 @@ use core::intrinsics::transmute;
 use violet::app_init;
 app_init!(sample_main);
 
+use violet::{print, println};
+
 static mut VM: VirtualMachine = VirtualMachine::new(
-    0,              /* CPUマスク */
-    0x8020_0000,    /* 開始アドレス(ジャンプ先) */
-    0x9000_0000,    /* ベースアドレス(物理メモリ) */
-    0x1000_0000     /* メモリサイズ */
+    0,           /* CPUマスク */
+    0x8020_0000, /* 開始アドレス(ジャンプ先) */
+    0x9000_0000, /* ベースアドレス(物理メモリ) */
+    0x1000_0000, /* メモリサイズ */
 );
 
 pub fn do_ecall_from_vsmode(regs: &mut Registers) {
@@ -69,17 +71,17 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     /* CPUのキック */
     if (ext == sbi::Extension::HartStateManagement as i32) {
         if (fid == 0) {
-            unsafe{
+            unsafe {
                 VM.set_start_addr(a0, a1);
                 VM.set_boot_arg(a0, [a2, a2]);
-            } 
-            
+            }
+
             //cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
-            
+
             regs.reg[A0] = 0;
             regs.reg[A1] = 0;
             regs.epc = regs.epc + 4;
-            
+
             /* 2コア目以降のキック (現状、起床させても正常に動かない) */
             //let hart_mask: u64 = 0x01 << a0;
             //sbi::sbi_send_ipi(&hart_mask);
@@ -88,7 +90,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     }
     /* システムのリセット */
     if (ext == sbi::Extension::SystemReset as i32) {
-        loop{}
+        loop {}
     }
 
     let ret = CPU.inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
@@ -136,7 +138,7 @@ use alloc::vec::Vec;
 
 pub fn do_guest_store_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
-    
+
     let inst = fetch_inst(regs.epc);
     let val = get_store_value(inst, regs);
 
@@ -146,14 +148,13 @@ pub fn do_guest_store_page_fault(regs: &mut Registers) {
                 None => (),
                 Some(d) => {
                     d.write32(fault_paddr, val as u32);
-                },
+                }
             }
         }
-        
+
         if (is_compressed(inst)) {
             regs.epc = regs.epc + 2;
-        }
-        else {
+        } else {
             regs.epc = regs.epc + 4;
         }
 
@@ -173,15 +174,12 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
             let reg_idx = get_load_reg(inst);
             regs.reg[reg_idx] = match VM.get_dev_mut::<VPlic>(fault_paddr) {
                 None => regs.reg[reg_idx],
-                Some(d) => {
-                    d.read32(fault_paddr) as usize
-                },
+                Some(d) => d.read32(fault_paddr) as usize,
             };
-            
+
             if (is_compressed(inst)) {
                 regs.epc = regs.epc + 2;
-            }
-            else {
+            } else {
                 regs.epc = regs.epc + 4;
             }
         }
@@ -195,7 +193,6 @@ pub fn do_guest_instruction_page_fault(regs: &mut Registers) {
 }
 
 pub fn do_supervisor_external_interrupt(regs: &mut Registers) {
-
     let con = current_container();
 
     // 物理PLICからペンディングビットを読み、クリアする
@@ -210,7 +207,7 @@ pub fn do_supervisor_external_interrupt(regs: &mut Registers) {
             None => (),
             Some(d) => {
                 d.interrupt(int_id as usize);
-            },
+            }
         }
     }
 
@@ -223,7 +220,6 @@ pub fn do_supervisor_external_interrupt(regs: &mut Registers) {
         None => (),
         Some(i) => i.set_comp_int(int_id),
     }
-
 }
 
 pub fn do_supervisor_timer_interrupt(_regs: &mut Registers) {
@@ -290,7 +286,7 @@ fn timer_set() {
         Interrupt::SupervisorTimerInterrupt,
         timer_get,
     );
-    
+
     match &con.unwrap().timer {
         None => (),
         Some(t) => {
@@ -301,13 +297,13 @@ fn timer_set() {
 
 fn serial_set() {
     let con = current_container();
-    
+
     CPU.int.enable_mask_s(Interrupt::SupervisorExternalInterrupt.mask());
     CPU.register_interrupt(
         Interrupt::SupervisorExternalInterrupt,
         timer_get,
     );
-    
+
     match &con.unwrap().serial {
         None => (),
         Some(s) => {
@@ -330,7 +326,7 @@ use violet::library::vshell::{Command, VShell};
 use alloc::string::String;
 
 pub fn boot_vshell() {
-    
+
     let mut vshell = VShell::new();
     vshell.add_cmd(Command {
         name: String::from("tmr"),
@@ -340,27 +336,32 @@ pub fn boot_vshell() {
         name: String::from("serial"),
         func: serial_set,
     });
-    
+
     vshell.run();
 }
 */
 pub fn sample_main() {
-
     let mut vplic = VPlic::new();
     //vplic.set_vcpu_config([0, 1]); /* vcpu=pcpu */
     vplic.set_vcpu_config([1, 0]); /* vcpu!=pcpu */
-    unsafe{ VM.register_dev(0x0c00_0000, 0x0400_0000, vplic); }
+    unsafe {
+        VM.register_dev(0x0c00_0000, 0x0400_0000, vplic);
+    }
 
     //cre_tsk(2, &T_CTSK{task:boot_vshell, prcid:0});
     //boot_vshell();
-    
-    cre_tsk(2, &T_CTSK{task:boot_linux, prcid:1});
+
+    cre_tsk(
+        2,
+        &T_CTSK {
+            task: boot_linux,
+            prcid: 1,
+        },
+    );
     let hart_mask: u64 = 0x01 << 1;
     sbi::sbi_send_ipi(&hart_mask);
-    
+
     //boot_linux();
 
-    loop{}
+    loop {}
 }
-
-

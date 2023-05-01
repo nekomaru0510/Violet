@@ -33,7 +33,7 @@ pub fn sbi_set_timer(stime_value: u64) -> (usize, usize) {
 pub fn sbi_send_ipi(hart_mask: &u64) -> (usize, usize) {
     let ext = Extension::SendIpi as i32;
     let fid = 0 as i32;
-    let a0: usize = unsafe {transmute(hart_mask)};
+    let a0: usize = unsafe { transmute(hart_mask) };
 
     CPU.inst.do_ecall(ext, fid, a0, 0, 0, 0, 0, 0)
 }

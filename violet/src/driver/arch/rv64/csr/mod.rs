@@ -6,11 +6,11 @@ pub mod sstatus;
 pub mod stvec;
 //pub mod scouteren;
 //pub mod senvcfg;
-pub mod sscratch;
 pub mod satp;
 pub mod scause;
 pub mod sepc;
 pub mod sip;
+pub mod sscratch;
 pub mod stval;
 //pub mod scontext;
 
@@ -58,10 +58,10 @@ use scause::*;
 use sepc::*;
 use sie::*;
 use sip::*;
+use sscratch::*;
 use sstatus::*;
 use stval::*;
 use stvec::*;
-use sscratch::*;
 
 use hcounteren::*;
 use hedeleg::*;

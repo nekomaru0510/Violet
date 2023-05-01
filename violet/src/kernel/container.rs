@@ -1,15 +1,15 @@
 //! Violetコンテナ
 extern crate alloc;
-use alloc::rc::Rc;
 use alloc::boxed::Box;
+use alloc::rc::Rc;
 use alloc::vec::Vec;
 
 use crate::environment::NUM_OF_CPUS;
 
 use crate::driver::traits::cpu::TraitCpu;
+use crate::driver::traits::intc::TraitIntc;
 use crate::driver::traits::serial::TraitSerial;
 use crate::driver::traits::timer::TraitTimer;
-use crate::driver::traits::intc::TraitIntc;
 
 pub struct Container {
     pub id: usize,
@@ -45,7 +45,6 @@ impl Container {
     pub fn register_timer<T: TraitTimer + 'static>(&mut self, timer: T) {
         self.timer = Some(Box::new(timer));
     }
-
 }
 
 static mut CONTAINER_TABLE: Vec<Option<Box<Container>>> = Vec::new();
@@ -62,8 +61,7 @@ pub fn get_mut_container(id: usize) -> Option<&'static mut Box<Container>> {
     unsafe {
         if (id) < CONTAINER_TABLE.len() {
             CONTAINER_TABLE[0].as_mut()
-        }
-        else {
+        } else {
             None
         }
     }
@@ -73,8 +71,7 @@ pub fn get_container(id: usize) -> Option<&'static Box<Container>> {
     unsafe {
         if (id) < CONTAINER_TABLE.len() {
             CONTAINER_TABLE[0].as_ref()
-        }
-        else {
+        } else {
             None
         }
     }
@@ -82,7 +79,7 @@ pub fn get_container(id: usize) -> Option<&'static Box<Container>> {
 
 use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
 pub fn current_container_id() -> usize {
-    unsafe {CPU_CONTAINER_MAP[get_cpuid()] }
+    unsafe { CPU_CONTAINER_MAP[get_cpuid()] }
 }
 
 pub fn current_container() -> Option<&'static Box<Container>> {
@@ -95,7 +92,7 @@ pub fn current_mut_container() -> Option<&'static mut Box<Container>> {
 
 /* CPU番号からコンテナ番号を取得する */
 static mut CPU_CONTAINER_MAP: [usize; NUM_OF_CPUS] = [0; NUM_OF_CPUS];
- 
+
 /*
 use crate::driver::board::sifive_u::uart::Uart;
 

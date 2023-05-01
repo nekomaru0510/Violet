@@ -1,11 +1,11 @@
 //! Toppersシステムコールインタフェース
 
-use crate::kernel::traits::task::TraitTask;
 use crate::kernel::task::Task;
 use crate::kernel::traits::sched::TraitSched;
+use crate::kernel::traits::task::TraitTask;
 use crate::kernel::SCHEDULER;
 
-pub struct T_CTSK{
+pub struct T_CTSK {
     /*
     tskatr: ATR,
     exinf: EXINF,
@@ -21,9 +21,9 @@ pub struct T_CTSK{
     pub prcid: usize,
 }
 
-
 pub fn cre_tsk(tskid: usize, ctsk: &T_CTSK) {
     let task = Task::new(tskid as u64, ctsk.task);
-    unsafe{SCHEDULER[ctsk.prcid].register(task);}
+    unsafe {
+        SCHEDULER[ctsk.prcid].register(task);
+    }
 }
-

@@ -1,34 +1,35 @@
-//! Kernel 
+//! Kernel
 
-pub mod init_calls;
-pub mod heap;
+pub mod container;
 pub mod dispatcher;
+pub mod heap;
+pub mod init_calls;
 pub mod sched;
+pub mod syscall;
 pub mod task;
 pub mod traits;
-pub mod syscall;
-pub mod container;
 
 use crate::CPU;
 
 use crate::environment::init_environment;
 use crate::environment::NUM_OF_CPUS;
-use crate::println;
 use crate::print;
+use crate::println;
+use crate::test_entry;
 
-use init_calls::*;
-use heap::init_allocater;
-use syscall::toppers::{T_CTSK, cre_tsk};
 use container::*;
-use sched::fifo::FifoScheduler;
 use dispatcher::minimal_dispatcher::MinimalDispatcher;
+use heap::init_allocater;
+use init_calls::*;
+use sched::fifo::FifoScheduler;
+use syscall::toppers::{cre_tsk, T_CTSK};
 use task::Task;
 
 use traits::dispatcher::TraitDispatcher;
-use traits::task::TraitTask;
 use traits::sched::TraitSched;
+use traits::task::TraitTask;
 
-use crate::driver::arch::rv64::boot::_start_ap;// [todo delete]
+use crate::driver::arch::rv64::boot::_start_ap; // [todo delete]
 use crate::driver::arch::rv64::sbi; // [todo delete]
 
 extern crate core;
@@ -40,31 +41,39 @@ extern "C" {
 }
 
 #[no_mangle]
-pub extern "C" fn boot_init(cpu_id: usize) {    
+pub extern "C" fn boot_init(cpu_id: usize) {
     /* メモリアロケータの初期化 */
-    unsafe {init_allocater(transmute(&__HEAP_BASE), transmute(&__HEAP_END));}
-
-    #[cfg(test)]
-    test_main();
+    unsafe {
+        init_allocater(transmute(&__HEAP_BASE), transmute(&__HEAP_END));
+    }
 
     /* ルートコンテナの生成 */
     create_container();
 
     init_environment();
     do_driver_calls();
-    
+
     init_bsp(cpu_id);
 
     println!("Hello I'm {} ", "Violet Hypervisor");
 
+    #[cfg(test)]
+    test_entry();
+
     // CPU0にinit_callsを実行させる
-    cre_tsk(1, &T_CTSK{task:do_app_calls, prcid:0});
+    cre_tsk(
+        1,
+        &T_CTSK {
+            task: do_app_calls,
+            prcid: 0,
+        },
+    );
 
     // 他CPUをすべて起動させる
     wakeup_all_cpus(cpu_id);
 
     //init_bsp(cpu_id);
-    
+
     main_loop(cpu_id);
 }
 
@@ -89,7 +98,7 @@ fn init_ap(cpu_id: usize) {
 fn wakeup_all_cpus(cpu_id: usize) {
     for i in 0..NUM_OF_CPUS {
         if i as usize != cpu_id {
-            sbi::sbi_hart_start(i as u64 , _start_ap as u64, init_ap as u64); /* [todo fix] CPU起床は抽象かする */
+            sbi::sbi_hart_start(i as u64, _start_ap as u64, init_ap as u64); /* [todo fix] CPU起床は抽象かする */
         }
     }
 }
@@ -99,15 +108,10 @@ fn idle_core() {
 }
 
 /* [todo fix] 本来はコアごと？にスケジューラ、ディスパッチャを指定したい */
-pub static mut SCHEDULER: [FifoScheduler<Task>; 2] = [
-    FifoScheduler::new(),
-    FifoScheduler::new(),
-];
+pub static mut SCHEDULER: [FifoScheduler<Task>; 2] = [FifoScheduler::new(), FifoScheduler::new()];
 
-pub static mut DISPATCHER: [MinimalDispatcher; 2] = [
-    MinimalDispatcher::new(),
-    MinimalDispatcher::new(),
-];
+pub static mut DISPATCHER: [MinimalDispatcher; 2] =
+    [MinimalDispatcher::new(), MinimalDispatcher::new()];
 
 pub fn main_loop(cpu_id: usize) {
     loop {
@@ -117,7 +121,7 @@ pub fn main_loop(cpu_id: usize) {
                 None => idle_core(),
                 Some(t) => {
                     DISPATCHER[cpu_id].dispatch(t);
-                },
+                }
             }
         }
     }

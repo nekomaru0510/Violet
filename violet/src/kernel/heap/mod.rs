@@ -172,4 +172,3 @@ impl Heap {
 fn on_oom(_layout: Layout) -> ! {
     panic!("Alloc Error !");
 }
-

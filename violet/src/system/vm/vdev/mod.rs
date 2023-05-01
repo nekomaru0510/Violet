@@ -3,8 +3,8 @@
 pub mod vplic;
 
 extern crate alloc;
-use alloc::collections::btree_map::BTreeMap;
 use alloc::boxed::Box;
+use alloc::collections::btree_map::BTreeMap;
 use alloc::vec::Vec;
 use core::ptr::{read_volatile, write_volatile};
 
@@ -29,9 +29,7 @@ struct IoMap {
 
 impl IoMap {
     pub fn new() -> Self {
-        IoMap {
-            map: Vec::new(),
-        }
+        IoMap { map: Vec::new() }
     }
 
     pub fn register(&mut self, dev: Io) {
@@ -49,13 +47,16 @@ impl IoMap {
 
     //pub fn find(&self, addr: usize) -> Option<&'static Io> {
     pub fn find(&self, addr: usize) -> Option<&Io> {
-        self.map.iter().find(|e| e.base <= addr && addr < e.base+e.size )
+        self.map
+            .iter()
+            .find(|e| e.base <= addr && addr < e.base + e.size)
     }
 
     pub fn find_mut(&mut self, addr: usize) -> Option<&mut Io> {
-        self.map.iter_mut().find(|e| e.base <= addr && addr < e.base+e.size )
+        self.map
+            .iter_mut()
+            .find(|e| e.base <= addr && addr < e.base + e.size)
     }
-
 }
 
 struct Io {
@@ -79,7 +80,6 @@ pub struct VirtualIoMap {
     map: IoMap,
 }
 
-
 impl VirtualIoMap {
     pub fn new() -> Self {
         VirtualIoMap {
@@ -87,37 +87,41 @@ impl VirtualIoMap {
             map: IoMap::new(),
         }
     }
-    
+
     pub fn register<T: VirtualDevice + 'static>(&mut self, base: usize, size: usize, vdev: T) {
         self.map.register(Io::new(base, size, vdev));
     }
 
-    pub fn unregister<T: VirtualDevice + 'static>(&mut self, base_addr: usize, size: usize, vdev: T) {
+    pub fn unregister<T: VirtualDevice + 'static>(
+        &mut self,
+        base_addr: usize,
+        size: usize,
+        vdev: T,
+    ) {
         // [todo fix] 実装する
     }
 
     pub fn get<T: VirtualDevice + 'static>(&self, addr: usize) -> Option<&Box<dyn VirtualDevice>> {
-    //pub fn get<T: VirtualDevice + 'static>(&self, addr: usize) -> Option<&'static Box<dyn VirtualDevice>> {
+        //pub fn get<T: VirtualDevice + 'static>(&self, addr: usize) -> Option<&'static Box<dyn VirtualDevice>> {
         match self.map.find(addr) {
             None => None,
             Some(i) => Some(&i.vdev),
         }
     }
 
-    pub fn get_mut<T: VirtualDevice + 'static>(&mut self, addr: usize) -> Option<&mut Box<dyn VirtualDevice>> {
+    pub fn get_mut<T: VirtualDevice + 'static>(
+        &mut self,
+        addr: usize,
+    ) -> Option<&mut Box<dyn VirtualDevice>> {
         match self.map.find_mut(addr) {
             None => None,
             Some(i) => Some(&mut i.vdev),
         }
     }
-    
-
 }
 
 pub fn read_raw<T>(addr: usize) -> T {
-    unsafe { 
-        read_volatile(addr as *const T)
-    }
+    unsafe { read_volatile(addr as *const T) }
 }
 
 pub fn write_raw<T>(addr: usize, val: T) {

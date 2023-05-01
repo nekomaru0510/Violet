@@ -9,11 +9,7 @@ pub struct Task {
 
 impl TraitTask for Task {
     fn new(id: u64, func: fn()) -> Self {
-        Task {
-            id,
-            func,
-            prio: 32,
-        }
+        Task { id, func, prio: 32 }
     }
 
     fn get_entry(&self) -> fn() {
@@ -27,5 +23,4 @@ impl TraitTask for Task {
     fn get_priority(&self) -> u64 {
         self.prio
     }
-
 }

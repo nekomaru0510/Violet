@@ -24,7 +24,7 @@ pub fn do_init_calls() {
 
 pub fn do_driver_calls() {
     unsafe {
-        for i in (0 .. MAX_INIT_CALLS_1) {
+        for i in (0..MAX_INIT_CALLS_1) {
             match __INIT_CALLS_1_START[i] {
                 Some(func) => {
                     func();
@@ -39,7 +39,7 @@ pub fn do_driver_calls() {
 
 pub fn do_app_calls() {
     unsafe {
-        for i in (0 .. MAX_INIT_CALLS_2) {
+        for i in (0..MAX_INIT_CALLS_2) {
             match __INIT_CALLS_2_START[i] {
                 Some(func) => {
                     func();
@@ -69,4 +69,3 @@ macro_rules! app_init {
         pub static __APP_INIT_FUNC: Option<fn()> = Some($func);
     };
 }
-

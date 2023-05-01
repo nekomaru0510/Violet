@@ -12,46 +12,15 @@ pub struct Plic {
     base: usize,
 }
 
-//const SOURCE_1_PRIO: usize = 0x4;
-//const START_OF_PENDING_ARRAY: usize = 0x1000;
-/*
-const START_HART0_M_INT_ENABLE0: usize = 0x2000;
-const START_HART0_M_INT_ENABLE1: usize = 0x2004;
-const START_HART1_M_INT_ENABLE0: usize = 0x2080;
-const START_HART1_M_INT_ENABLE1: usize = 0x2084;
-const START_HART1_S_INT_ENABLE0: usize = 0x2100;
-const START_HART1_S_INT_ENABLE1: usize = 0x2104;
-const START_HART2_M_INT_ENABLE0: usize = 0x2180;
-const START_HART2_M_INT_ENABLE1: usize = 0x2184;
-const START_HART2_S_INT_ENABLE0: usize = 0x2200;
-const START_HART2_S_INT_ENABLE1: usize = 0x2204;
-const START_HART3_M_INT_ENABLE0: usize = 0x2280;
-const START_HART3_M_INT_ENABLE1: usize = 0x2284;
-const START_HART3_S_INT_ENABLE0: usize = 0x2300;
-const START_HART3_S_INT_ENABLE1: usize = 0x2304;
-
-
-const INT_ENABLE0_CONTEXT0: usize = 0x2080;
-const INT_ENABLE0_HART_OFFSET: usize = 0x80;
-const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000;
-const PRIO_THRESHOLD_HART_OFFSET: usize = 0x1000;
-const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004;
-const CLAIM_COMPLETE_HART_OFFSET: usize = 0x1000;
-*/
 const INT_PRIO_SOURCE0: usize = 0;
-const INT_ENABLE0_HART_OFFSET: usize = 0x100;//0x80;
+const INT_ENABLE0_HART_OFFSET: usize = 0x100; //0x80;
 const INT_ENABLE0_CONTEXT0: usize = 0x2080;
-const PRIO_THRESHOLD_HART_OFFSET: usize = 0x2000;//0x1000;
-const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000;//0x20_0000;//0x20_1000;
+const PRIO_THRESHOLD_HART_OFFSET: usize = 0x2000; //0x1000;
+const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000; //0x20_0000;//0x20_1000;
 const PRIO_THRESHOLD_CONTEXT1: usize = PRIO_THRESHOLD_CONTEXT0 + PRIO_THRESHOLD_HART_OFFSET;
-const CLAIM_COMPLETE_HART_OFFSET: usize = 0x2000;//0x1000;
-const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004;//0x20_0004;//0x20_1004;
+const CLAIM_COMPLETE_HART_OFFSET: usize = 0x2000; //0x1000;
+const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004; //0x20_0004;//0x20_1004;
 const CLAIM_COMPLETE_CONTEXT1: usize = CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET;
-
-
-//const HART0_PRIO_THRESHOLD: usize = 0x20_1000;
-//const HART0_CLAIM_COMPLETE: usize = 0x20_1004;
-//const HART0_CLAIM_COMPLETE: usize = 0x20_0000;
 
 impl TraitIntc for Plic {
     /* 割込みの有効化 */
@@ -76,13 +45,20 @@ impl TraitIntc for Plic {
 
     fn set_prio(&self, id: u32, val: u32) {
         unsafe {
-            write_volatile((self.base + INT_PRIO_SOURCE0 + (id*4) as usize) as *mut u32, val & 0x7);
+            write_volatile(
+                (self.base + INT_PRIO_SOURCE0 + (id * 4) as usize) as *mut u32,
+                val & 0x7,
+            );
         }
     }
 
     fn set_priority_threshold(&self, val: u32) {
         unsafe {
-            write_volatile((self.base + PRIO_THRESHOLD_CONTEXT0 + PRIO_THRESHOLD_HART_OFFSET * get_cpuid()) as *mut u32, val);
+            write_volatile(
+                (self.base + PRIO_THRESHOLD_CONTEXT0 + PRIO_THRESHOLD_HART_OFFSET * get_cpuid())
+                    as *mut u32,
+                val,
+            );
         }
     }
 }
@@ -97,10 +73,7 @@ impl Plic {
         let val = 0x01 << (id % 32) as u32;
 
         unsafe {
-            write_volatile(
-                (self.base + INT_ENABLE0_CONTEXT0 + offset) as *mut u32,
-                val,
-            );
+            write_volatile((self.base + INT_ENABLE0_CONTEXT0 + offset) as *mut u32, val);
         }
     }
 
@@ -110,20 +83,26 @@ impl Plic {
         let val = 0x01 << (id % 32) as u32;
 
         unsafe {
-            write_volatile(
-                (self.base + INT_ENABLE0_CONTEXT0 + offset) as *mut u32,
-                val,
-            );
+            write_volatile((self.base + INT_ENABLE0_CONTEXT0 + offset) as *mut u32, val);
         }
     }
 
     pub fn get_claim_complete(&self) -> u32 {
-        unsafe { read_volatile((self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * get_cpuid()) as *const u32) }
+        unsafe {
+            read_volatile(
+                (self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * get_cpuid())
+                    as *const u32,
+            )
+        }
     }
 
     pub fn set_claim_complete(&self, id: u32) {
         unsafe {
-            write_volatile((self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * get_cpuid()) as *mut u32, id);
+            write_volatile(
+                (self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * get_cpuid())
+                    as *mut u32,
+                id,
+            );
         }
     }
 }
@@ -135,7 +114,7 @@ driver_init!(init_plic);
 
 fn init_plic() {
     let plic = Plic::new(0x0C00_0000); /* [todo fix]ベースアドレスは、設定ファイル等を参照して得る */
-    let con = get_mut_container(0);    /* [todo fix] ドライバにコンテナを意識させない　ラップする */
+    let con = get_mut_container(0); /* [todo fix] ドライバにコンテナを意識させない　ラップする */
     match con {
         Some(c) => c.register_intc(plic),
         None => (),

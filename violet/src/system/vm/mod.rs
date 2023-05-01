@@ -69,7 +69,6 @@ pub fn boot_guest() {
     /* sret後に、VS-modeに移行させるよう設定 */
     CPU.set_next_mode(PrivilegeMode::ModeVS);
 
-    
     CPU.inst.jump_by_sret(0x8020_0000, 0, 0x8220_0000); //linux
                                                         //CPU.inst.jump_by_sret(0x9000_0000, 0, 0x8220_0000); //xv6
                                                         //CPU.inst.jump_by_sret(0x8000_0000, 0, 0x8220_0000); //xv6
@@ -101,7 +100,7 @@ impl BootParam {
     }
 
     pub fn set_arg(&mut self, arg: [usize; NUM_OF_ARGS]) {
-        for i in 0 .. NUM_OF_ARGS {
+        for i in 0..NUM_OF_ARGS {
             self.arg[i] = arg[i];
         }
     }
@@ -120,7 +119,7 @@ pub struct VirtualMachine {
     //start_addr: usize, /* VM内の開始アドレス */
     param: [BootParam; NUM_OF_CPUS], /* コアごとのブート情報 */
     mem_start: usize,
-    mem_size: usize, 
+    mem_size: usize,
     /* ================= */
     vmem_start: usize,
     //vdevs: Option<BTreeMap<(usize, usize), Box<dyn VirtualDevice>>>,
@@ -129,9 +128,14 @@ pub struct VirtualMachine {
 }
 
 impl VirtualMachine {
-    pub const fn new(cpu_mask: u64, start_addr: usize, mem_start: usize, mem_size: usize) -> VirtualMachine {
-        VirtualMachine { 
-            cpu_mask, 
+    pub const fn new(
+        cpu_mask: u64,
+        start_addr: usize,
+        mem_start: usize,
+        mem_size: usize,
+    ) -> VirtualMachine {
+        VirtualMachine {
+            cpu_mask,
             param: [BootParam::new(start_addr); NUM_OF_CPUS],
             mem_start,
             mem_size,
@@ -155,9 +159,9 @@ impl VirtualMachine {
         /* sret後に、VS-modeに移行させるよう設定 */
         CPU.set_next_mode(PrivilegeMode::ModeVS);
         CPU.inst.jump_by_sret(
-            self.param[cpu_id].get_addr(), 
-            self.param[cpu_id].get_arg(0), 
-            self.param[cpu_id].get_arg(1)
+            self.param[cpu_id].get_addr(),
+            self.param[cpu_id].get_arg(0),
+            self.param[cpu_id].get_arg(1),
         );
     }
 
@@ -178,14 +182,13 @@ impl VirtualMachine {
         self.param[cpu_id].set_arg(boot_arg);
     }
 
-    
     pub fn register_dev<T: VirtualDevice + 'static>(&mut self, base: usize, size: usize, vdev: T) {
         match &mut self.viomap {
             None => {
                 self.viomap = Some(VirtualIoMap::new());
                 //self.viomap.as_mut().unwrap().insert((base, size), Box::new(vdev));
                 self.viomap.as_mut().unwrap().register(base, size, vdev);
-            }, 
+            }
             Some(v) => {
                 v.register(base, size, vdev);
                 //v.insert((base_addr, size), Box::new(vdev));
@@ -193,12 +196,20 @@ impl VirtualMachine {
         }
     }
 
-    pub fn unregister_dev<T: VirtualDevice + 'static>(&mut self, base_addr: usize, size: usize, vdev: T) {
+    pub fn unregister_dev<T: VirtualDevice + 'static>(
+        &mut self,
+        base_addr: usize,
+        size: usize,
+        vdev: T,
+    ) {
         // [todo fix] 実装する
     }
 
     //pub fn get_dev_mut<T: VirtualDevice + 'static>(&mut self, addr: usize) -> Option<&mut dyn VirtualDevice> {
-    pub fn get_dev_mut<T: VirtualDevice + 'static>(&mut self, addr: usize) -> Option<&mut Box<dyn VirtualDevice>> {
+    pub fn get_dev_mut<T: VirtualDevice + 'static>(
+        &mut self,
+        addr: usize,
+    ) -> Option<&mut Box<dyn VirtualDevice>> {
         match &mut self.viomap {
             None => None,
             Some(v) => {
@@ -211,18 +222,16 @@ impl VirtualMachine {
                 */
             }
         }
-        
-        
     }
     /*
     pub fn write32_dev(&mut self, addr: usize) {
         match &mut self.vdevs {
             None => {
                 ()
-            }, 
+            },
             Some(v) => {
                 for d in v {
-                    if 
+                    if
                     v.insert((base_addr, size), Box::new(vdev));
                 }
             }
@@ -230,5 +239,4 @@ impl VirtualMachine {
     }
     */
     //fn search_vdev()
-
 }

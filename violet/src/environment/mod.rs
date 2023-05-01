@@ -1,8 +1,8 @@
 //! 動作環境
 //pub mod qemu;
 
-use core::mem::replace;
 use crate::kernel::container::*;
+use core::mem::replace;
 
 /* デバイスドライバ */
 use crate::driver::arch::rv64::Rv64;
@@ -30,10 +30,10 @@ pub fn init_cpus() {
     let con = get_mut_container(0); // RootContainerの取得
     match con {
         Some(c) => {
-            for i in 0 .. NUM_OF_CPUS {
+            for i in 0..NUM_OF_CPUS {
                 c.register_cpu(Rv64::new(i as u64));
             }
-        },
+        }
         None => (),
     }
 }

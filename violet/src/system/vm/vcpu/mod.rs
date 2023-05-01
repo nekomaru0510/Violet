@@ -9,12 +9,11 @@ pub enum VcpuStatus {
     SUSPENDED,
 }
 
-
-pub struct VirtualCpu<T: TraitRegisters/*TraitContext*/> {
-    vcpuid: usize,      /* 仮想CPU番号 */
-    cpuid: usize,       /* 対応する物理CPU番号 */
+pub struct VirtualCpu<T: TraitRegisters /*TraitContext*/> {
+    vcpuid: usize, /* 仮想CPU番号 */
+    cpuid: usize,  /* 対応する物理CPU番号 */
     //pub context: T,
-    pub regs: T, 
+    pub regs: T,
     status: VcpuStatus,
 }
 
@@ -32,9 +31,6 @@ impl<T: TraitRegisters> VirtualCpu<T> {
     pub fn enter(&self, sp: &T) {
         // レジスタの復帰
         self.regs.restore_to(sp);
-        // 
+        //
     }
-
-
 }
-

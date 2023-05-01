@@ -81,7 +81,7 @@ impl Rv64Inst {
             }
         }
     }
-    
+
     pub fn wfi(&self) {
         unsafe {
             asm! ("
@@ -95,7 +95,6 @@ impl Rv64Inst {
         }
     }
 }
-
 
 // Instruction Analyzer(proto)
 
@@ -118,8 +117,8 @@ pub enum Instruction {
 }
 
 enum Opcode {
-    Load=0b0000011,
-    Store=0b0100011,
+    Load = 0b0000011,
+    Store = 0b0100011,
     UNKNOWN,
 }
 impl Opcode {
@@ -133,10 +132,10 @@ impl Opcode {
 }
 
 enum LoadFunct3 {
-    LB=0b000,
-    LH=0b001,
-    LW=0b010,
-    LD=0b011,
+    LB = 0b000,
+    LH = 0b001,
+    LW = 0b010,
+    LD = 0b011,
     UNKNOWN,
 }
 impl LoadFunct3 {
@@ -152,10 +151,10 @@ impl LoadFunct3 {
 }
 
 enum StoreFunct3 {
-    SB=0b000,
-    SH=0b001,
-    SW=0b010,
-    SD=0b011,
+    SB = 0b000,
+    SH = 0b001,
+    SW = 0b010,
+    SD = 0b011,
     UNKNOWN,
 }
 impl StoreFunct3 {
@@ -171,9 +170,9 @@ impl StoreFunct3 {
 }
 
 enum CompressedInst_1_0 {
-    RVC0=0b00,
-    RVC1=0b01,
-    RVC2=0b10,
+    RVC0 = 0b00,
+    RVC1 = 0b01,
+    RVC2 = 0b10,
     UNKNOWN,
 }
 impl CompressedInst_1_0 {
@@ -188,12 +187,12 @@ impl CompressedInst_1_0 {
 }
 
 enum CompressedInst_15_13 {
-    LQ=0b001,
-    LW=0b010,
-    LD=0b011,
-    SQ=0b101,
-    SW=0b110,
-    SD=0b111,
+    LQ = 0b001,
+    LW = 0b010,
+    LD = 0b011,
+    SQ = 0b101,
+    SW = 0b110,
+    SD = 0b111,
     UNKNOWN,
 }
 impl CompressedInst_15_13 {
@@ -213,47 +212,36 @@ impl CompressedInst_15_13 {
 pub fn is_compressed(inst: usize) -> bool {
     if inst & (0b11 << 0) == 0b11 {
         false
-    }
-    else {
+    } else {
         true
     }
 }
 
 pub fn get_store_value(inst: usize, regs: &Registers) -> usize {
     match analyze_instruction(inst) {
-        Instruction::CSD | 
-        Instruction::CSW | 
-        Instruction::CSQ => {
-            let f : CSFormat = CSFormat{inst};
+        Instruction::CSD | Instruction::CSW | Instruction::CSQ => {
+            let f: CSFormat = CSFormat { inst };
             f.get_store_value(regs)
         }
-        Instruction::SB | 
-        Instruction::SH | 
-        Instruction::SW | 
-        Instruction::SD => {
-            let f : SFormat = SFormat{inst};
+        Instruction::SB | Instruction::SH | Instruction::SW | Instruction::SD => {
+            let f: SFormat = SFormat { inst };
             f.get_store_value(regs)
         }
-        _ => 0
+        _ => 0,
     }
 }
 
 pub fn get_load_reg(inst: usize) -> usize {
     match analyze_instruction(inst) {
-        Instruction::CLD | 
-        Instruction::CLW | 
-        Instruction::CLQ => {
-            let f : CLFormat = CLFormat{inst};
+        Instruction::CLD | Instruction::CLW | Instruction::CLQ => {
+            let f: CLFormat = CLFormat { inst };
             f.get_load_reg(inst)
         }
-        Instruction::LB | 
-        Instruction::LH | 
-        Instruction::LW | 
-        Instruction::LD => {
-            let f : LFormat = LFormat{inst};
+        Instruction::LB | Instruction::LH | Instruction::LW | Instruction::LD => {
+            let f: LFormat = LFormat { inst };
             f.get_load_reg(inst)
         }
-        _ => 0
+        _ => 0,
     }
 }
 
@@ -261,41 +249,34 @@ pub fn get_load_reg(inst: usize) -> usize {
 pub fn analyze_instruction(inst: usize) -> Instruction {
     if is_compressed(inst) {
         match CompressedInst_1_0::from_inst(inst) {
-            CompressedInst_1_0::RVC0 => {
-                match CompressedInst_15_13::from_inst(inst) {
-                    CompressedInst_15_13::LQ => Instruction::CLQ,
-                    CompressedInst_15_13::LW => Instruction::CLW,
-                    CompressedInst_15_13::LD => Instruction::CLD,
-                    CompressedInst_15_13::SQ => Instruction::CSQ,
-                    CompressedInst_15_13::SW => Instruction::CSW,
-                    CompressedInst_15_13::SD => Instruction::CSD,                    
-                    _ => Instruction::UNIMP,
-                }
-            }
-            _ => Instruction::UNIMP
+            CompressedInst_1_0::RVC0 => match CompressedInst_15_13::from_inst(inst) {
+                CompressedInst_15_13::LQ => Instruction::CLQ,
+                CompressedInst_15_13::LW => Instruction::CLW,
+                CompressedInst_15_13::LD => Instruction::CLD,
+                CompressedInst_15_13::SQ => Instruction::CSQ,
+                CompressedInst_15_13::SW => Instruction::CSW,
+                CompressedInst_15_13::SD => Instruction::CSD,
+                _ => Instruction::UNIMP,
+            },
+            _ => Instruction::UNIMP,
         }
-    }
-    else {
+    } else {
         // S形式 .. op[6:0]
         match Opcode::from_inst(inst) {
-            Opcode::Store => {
-                match StoreFunct3::from_inst(inst) {
-                    StoreFunct3::SB => Instruction::SB,
-                    StoreFunct3::SH => Instruction::SH,
-                    StoreFunct3::SW => Instruction::SW,
-                    StoreFunct3::SD => Instruction::SD,
-                    _ => Instruction::UNIMP,
-                }
-            }
-            Opcode::Load => {
-                match LoadFunct3::from_inst(inst) {
-                    LoadFunct3::LB => Instruction::LB,
-                    LoadFunct3::LH => Instruction::LH,
-                    LoadFunct3::LW => Instruction::LW,
-                    LoadFunct3::LD => Instruction::LD,
-                    _ => Instruction::UNIMP,
-                }
-            }
+            Opcode::Store => match StoreFunct3::from_inst(inst) {
+                StoreFunct3::SB => Instruction::SB,
+                StoreFunct3::SH => Instruction::SH,
+                StoreFunct3::SW => Instruction::SW,
+                StoreFunct3::SD => Instruction::SD,
+                _ => Instruction::UNIMP,
+            },
+            Opcode::Load => match LoadFunct3::from_inst(inst) {
+                LoadFunct3::LB => Instruction::LB,
+                LoadFunct3::LH => Instruction::LH,
+                LoadFunct3::LW => Instruction::LW,
+                LoadFunct3::LD => Instruction::LD,
+                _ => Instruction::UNIMP,
+            },
             _ => Instruction::UNIMP,
         }
     }
@@ -332,7 +313,7 @@ impl SFormat {
         //rs2 [24:20]
         let reg = (self.inst & (0b11111 << 20)) >> 20;
         match reg {
-            0..=0b11111 =>regs.reg[reg],
+            0..=0b11111 => regs.reg[reg],
             _ => 0,
         }
     }
@@ -347,15 +328,8 @@ impl CSFormat {
         //rs2 [4:2]
         let reg = (self.inst & (0b111 << 2)) >> 2;
         match reg {
-            0..=0b111 =>regs.reg[reg+8],
+            0..=0b111 => regs.reg[reg + 8],
             _ => 0,
         }
     }
 }
-
-
-
-
-
-
-

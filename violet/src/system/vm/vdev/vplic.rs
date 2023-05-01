@@ -1,13 +1,13 @@
 //! 仮想PLIC
 
-use crate::driver::traits::intc::TraitIntc;
-use crate::kernel::container::*;
-use crate::environment::NUM_OF_CPUS;
-use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
 use super::VirtualDevice;
 use super::VirtualRegister;
 use super::ZeroReg;
 use super::{read_raw, write_raw};
+use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
+use crate::driver::traits::intc::TraitIntc;
+use crate::environment::NUM_OF_CPUS;
+use crate::kernel::container::*;
 
 #[repr(C)]
 #[repr(align(4096))]
@@ -20,7 +20,7 @@ pub struct VPlic {
     p2v_cpu: [usize; NUM_OF_CPUS],
 }
 
-/* 
+/*
  * 1. 割り込み発生 -> ACTIVEに
  * 2. ゲストから割り込み完了通知 -> INACTIVEに
  */
@@ -31,13 +31,13 @@ enum InterruptState {
     //PENDING,
 }
 
-const INT_ENABLE0_HART_OFFSET: usize = 0x100;//0x80;
+const INT_ENABLE0_HART_OFFSET: usize = 0x100; //0x80;
 const INT_ENABLE0_CONTEXT0: usize = 0x2080;
-const PRIO_THRESHOLD_HART_OFFSET: usize = 0x2000;//0x1000;
-const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000;//0x20_0000;//0x20_1000;
+const PRIO_THRESHOLD_HART_OFFSET: usize = 0x2000; //0x1000;
+const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000; //0x20_0000;//0x20_1000;
 const PRIO_THRESHOLD_CONTEXT1: usize = PRIO_THRESHOLD_CONTEXT0 + PRIO_THRESHOLD_HART_OFFSET;
-const CLAIM_COMPLETE_HART_OFFSET: usize = 0x2000;//0x1000;
-const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004;//0x20_0004;//0x20_1004;
+const CLAIM_COMPLETE_HART_OFFSET: usize = 0x2000; //0x1000;
+const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004; //0x20_0004;//0x20_1004;
 const CLAIM_COMPLETE_CONTEXT1: usize = CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET;
 
 const BASE_ADDRESS: usize = 0xC00_0000; /* [todo delete] */
@@ -69,35 +69,36 @@ impl VPlic {
     }
 
     fn enable_write(&mut self, addr: usize, val: u32) {
-        let hart_offset = INT_ENABLE0_HART_OFFSET;    
+        let hart_offset = INT_ENABLE0_HART_OFFSET;
         let vcpuid = (addr - BASE_ADDRESS - INT_ENABLE0_CONTEXT0) / hart_offset;
-        write_raw(addr + self.v2p_cpu[vcpuid]*hart_offset, val);
+        write_raw(addr + self.v2p_cpu[vcpuid] * hart_offset, val);
     }
 
     fn enable_read(&mut self, addr: usize) -> u32 {
-        let hart_offset = INT_ENABLE0_HART_OFFSET;    
+        let hart_offset = INT_ENABLE0_HART_OFFSET;
         let vcpuid = (addr - BASE_ADDRESS - INT_ENABLE0_CONTEXT0) / hart_offset;
-        read_raw(addr + self.v2p_cpu[vcpuid]*hart_offset)
+        read_raw(addr + self.v2p_cpu[vcpuid] * hart_offset)
     }
 
     fn priority_threshold_write(&mut self, addr: usize, val: u32) {
-        let hart_offset = PRIO_THRESHOLD_HART_OFFSET;    
+        let hart_offset = PRIO_THRESHOLD_HART_OFFSET;
         let vcpuid = (addr - BASE_ADDRESS - PRIO_THRESHOLD_CONTEXT0) / hart_offset;
-        write_raw(BASE_ADDRESS + PRIO_THRESHOLD_CONTEXT0 + self.v2p_cpu[vcpuid]*hart_offset, val);
+        write_raw(
+            BASE_ADDRESS + PRIO_THRESHOLD_CONTEXT0 + self.v2p_cpu[vcpuid] * hart_offset,
+            val,
+        );
     }
 
     fn priority_threshold_read(&mut self, addr: usize) -> u32 {
-        let hart_offset = PRIO_THRESHOLD_HART_OFFSET;    
+        let hart_offset = PRIO_THRESHOLD_HART_OFFSET;
         let vcpuid = (addr - BASE_ADDRESS - PRIO_THRESHOLD_CONTEXT0) / hart_offset;
-        read_raw(BASE_ADDRESS + PRIO_THRESHOLD_CONTEXT0 + self.v2p_cpu[vcpuid]*hart_offset)
-    }   
-    
-    fn claim_comp_write(&mut self, addr: usize, val: u32) {
-
+        read_raw(BASE_ADDRESS + PRIO_THRESHOLD_CONTEXT0 + self.v2p_cpu[vcpuid] * hart_offset)
     }
 
+    fn claim_comp_write(&mut self, addr: usize, val: u32) {}
+
     fn claim_comp_read(&mut self, addr: usize) -> u32 {
-        let hart_offset = CLAIM_COMPLETE_HART_OFFSET;    
+        let hart_offset = CLAIM_COMPLETE_HART_OFFSET;
         let vcpuid = (addr - BASE_ADDRESS - CLAIM_COMPLETE_CONTEXT0) / hart_offset;
 
         let result = self.claim_comp[vcpuid];
@@ -114,7 +115,6 @@ impl VPlic {
         let vcpuid = self.p2v_cpu[get_cpuid()];
         self.claim_comp[vcpuid] = intid as u32;
     }
-
 }
 
 impl VirtualDevice for VPlic {
@@ -141,10 +141,8 @@ impl VirtualDevice for VPlic {
 
     fn interrupt(&mut self, intid: usize) {
         self.claim_comp_int(intid as u32);
-    }    
-
+    }
 }
-
 
 /*
 pub struct PriorityThresholdReg {

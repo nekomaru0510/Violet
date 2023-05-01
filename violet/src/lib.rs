@@ -5,23 +5,35 @@
 #![feature(alloc_error_handler)]
 #![feature(const_fn)]
 /* テスト用 */
-//#![feature(custom_test_frameworks)]
-//#![test_runner(crate::container::hypervisor_container::test_runner)]
-//#![reexport_test_harness_main = "test_main"]
+#![cfg_attr(test, no_main)]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 /* warning抑制 */
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![no_std]
 
-pub mod kernel;     /* Violetの中核機能(なるべく小さくしたい) */
 pub mod driver;
 pub mod environment;
+pub mod kernel; /* Violetの中核機能(なるべく小さくしたい) */
 pub mod library;
 pub mod system;
+pub mod test;
 
 /* [todo delete]環境依存 */
 use crate::driver::arch::rv64::Rv64;
 pub static CPU: Rv64 = Rv64::new(0);
+
+/* 
+ * [todo fix] 本来は、testモジュール内に配置したいが、
+ * test_mainを参照できないため、ここに配置
+ */
+#[no_mangle]
+pub fn test_entry() {
+    #[cfg(test)]
+    test_main();
+}
 
 /* 無いとコンパイルエラー(言語仕様) */
 use core::panic::PanicInfo;

@@ -12,5 +12,5 @@ pub trait TraitIntc {
     /* 指定割込みに対して、優先度を設定 */
     fn set_prio(&self, id: u32, val: u32);
     /* [todo fix] 暫定追加 ioctlを作ったらどうするか考える */
-    fn set_priority_threshold(&self, val: u32);    
+    fn set_priority_threshold(&self, val: u32);
 }

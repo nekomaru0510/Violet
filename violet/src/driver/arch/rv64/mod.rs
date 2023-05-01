@@ -44,8 +44,8 @@ use core::intrinsics::transmute;
 pub mod csr;
 use csr::hstatus::*;
 use csr::scause::*;
-use csr::sscratch::*;
 use csr::sepc::*;
+use csr::sscratch::*;
 use csr::sstatus::*;
 use csr::stval::*;
 use csr::vscause::*;
@@ -58,7 +58,7 @@ use csr::Csr;
 
 #[derive(Clone)]
 pub struct Rv64 {
-    pub id: u64,          /* CPUのid */
+    pub id: u64,             /* CPUのid */
     pub status: CpuStatus,   /* 状態 */
     pub mode: PrivilegeMode, /* 動作モード */
     pub csr: Csr,            /* CSR [todo delete]*/
@@ -67,23 +67,23 @@ pub struct Rv64 {
     pub exc: Rv64Exc,
     pub mmu: Rv64Mmu,
     pub hyp: Rv64Hyp,
-    pub scratch: Scratch,  /* scratchレジスタが指す構造体 */
+    pub scratch: Scratch, /* scratchレジスタが指す構造体 */
 }
 
 #[derive(Clone)]
 pub enum CpuStatus {
-    STOPPED = 0x00,     /* 停止中(Violetとしても管理できてない) */
-    STARTED,            /* 起動中 */
-    SUSPENDED           /* 停止中(Violetが管理している) */
+    STOPPED = 0x00, /* 停止中(Violetとしても管理できてない) */
+    STARTED,        /* 起動中 */
+    SUSPENDED,      /* 停止中(Violetが管理している) */
 }
 
 // scratchレジスタが指す構造体
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub struct Scratch {
     cpu_id: u64,
-    sp:     usize,
-    tmp0:   usize,
-    stack_size:   usize,
+    sp: usize,
+    tmp0: usize,
+    stack_size: usize,
 }
 //pub static mut SCRATCH: [Scratch; 4] = [Scratch::new(0); 4];
 
@@ -129,7 +129,9 @@ impl Rv64 {
     }
 
     pub fn set_sscratch(&self) {
-        unsafe{ self.csr.sscratch.set(transmute(&self.scratch)); }
+        unsafe {
+            self.csr.sscratch.set(transmute(&self.scratch));
+        }
     }
 
     pub fn set_default_vector(&self) {
@@ -293,8 +295,7 @@ pub extern "C" fn get_cpuid() -> usize {
         let scratch: &Scratch = transmute(CPU.csr.sscratch.get());
         if CPU.csr.sscratch.get() == 0 {
             0
-        }
-        else {
+        } else {
             scratch.cpu_id as usize
         }
     }

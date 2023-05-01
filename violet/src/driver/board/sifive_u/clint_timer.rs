@@ -68,7 +68,7 @@ driver_init!(init_clinttimer);
 
 fn init_clinttimer() {
     let timer = ClintTimer::new(0x0200_4000); /* [todo fix]ベースアドレスは、設定ファイル等を参照して得る */
-    let con = get_mut_container(0);             /* [todo fix] ドライバにコンテナを意識させない　ラップする */
+    let con = get_mut_container(0); /* [todo fix] ドライバにコンテナを意識させない　ラップする */
     match con {
         Some(c) => c.register_timer(timer),
         None => (),
