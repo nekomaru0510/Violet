@@ -1,5 +1,5 @@
 #!/bin/bash
-
+cd `dirname $0`
 # 共通設定ファイルの読込み
 source ./header.sh
 
@@ -13,7 +13,7 @@ VIOLET_DBG_BIN_PATH="${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/debug"
 VIOLET_BIN_PATH="${VIOLET_DBG_BIN_PATH}"
 VIOLET_OUTPUT_FILE="${VIOLET_BIN_PATH}/sample"
 
-NUM_OF_CPUS="1"
+NUM_OF_CPUS="2"
 MEMORY_SIZE="2G"
 QEMU_OPTIONS="
         -cpu rv64 -M virt \
