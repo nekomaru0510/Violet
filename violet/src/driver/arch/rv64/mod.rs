@@ -166,6 +166,11 @@ impl TraitCpu for Rv64 {
     fn disable_interrupt(&self) {
         self.int.disable_s();
     }
+
+    fn ipi(&self, core_id: usize) {
+        let hart_mask: u64 = 0x01 << core_id;
+        sbi::sbi_send_ipi(&hart_mask);
+    }
 }
 
 const NUM_OF_INTERRUPTS: usize = 32;

@@ -16,4 +16,7 @@ pub trait TraitCpu {
     fn enable_interrupt(&self);
     /* 割込みの無効化 */
     fn disable_interrupt(&self);
+
+    /* コア間通信 */
+    fn ipi(&self, core_id: usize);
 }

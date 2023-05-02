@@ -20,15 +20,18 @@ impl FifoScheduler<Task> {
 }
 
 impl<T: TraitTask> TraitSched<T> for FifoScheduler<T> {
-    fn next(&self) -> Option<&T> {
-        match self.task_queue.first() {
+    fn next(&mut self) -> Option<T> {
+        match self.task_queue.pop() {
             None => None,
-            Some(task) => task.as_ref(),
+            Some(task) => {
+                task
+            },
         }
     }
 
     fn register(&mut self, task: T) {
-        self.task_queue.push(Some(task));
+        //self.task_queue.push(Some(task));
+        self.task_queue.insert(0, Some(task));
     }
 
     fn unregister(&mut self) {

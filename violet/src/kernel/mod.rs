@@ -118,9 +118,9 @@ pub fn main_loop(cpu_id: usize) {
         unsafe {
             let task = SCHEDULER[cpu_id].next();
             match task {
-                None => idle_core(),
+                None => (),//idle_core(),
                 Some(t) => {
-                    DISPATCHER[cpu_id].dispatch(t);
+                    DISPATCHER[cpu_id].dispatch(&t);
                 }
             }
         }

@@ -7,7 +7,6 @@ extern crate violet;
 use violet::CPU;
 
 use violet::driver::arch::rv64::inst::*;
-use violet::driver::arch::rv64::regs::Registers;
 use violet::driver::arch::rv64::regs::*;
 
 use violet::system::vm::mm::*;
@@ -37,14 +36,8 @@ static mut VM: VirtualMachine = VirtualMachine::new(
 );
 
 pub fn do_ecall_from_vsmode(regs: &mut Registers) {
-    let mut ext: i32 = regs.reg[A7] as i32;
-    let mut fid: i32 = regs.reg[A6] as i32;
-    let mut a0: usize = regs.reg[A0];
-    let mut a1: usize = regs.reg[A1];
-    let mut a2: usize = regs.reg[A2];
-    let mut a3: usize = regs.reg[A3];
-    let a4: usize = regs.reg[A4];
-    let a5: usize = regs.reg[A5];
+    let ext: i32 = regs.reg[A7] as i32;
+    let fid: i32 = regs.reg[A6] as i32;
 
     match sbi::Extension::from_ext(ext) {
         /* タイマセット */
@@ -52,19 +45,11 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
         sbi::Extension::Timer => {
             CPU.hyp.flush_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
         },
-        sbi::Extension::RemoteSfenceVma => {
-            ext = sbi::Extension::Rfence as i32;
-            fid = 6;
-            a2 = a1;
-            a3 = a2;
-            a0 = a0 + 0x1000_0000;
-            a1 = 0;
-        },
         sbi::Extension::HartStateManagement => {
             if fid == 0 {
                 unsafe {
-                    VM.set_start_addr(a0, a1);
-                    VM.set_boot_arg(a0, [a2, a2]);
+                    VM.set_start_addr(regs.reg[A0], regs.reg[A1]);
+                    VM.set_boot_arg(regs.reg[A0], [regs.reg[A2], regs.reg[A2]]);
                 }
     
                 //cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
@@ -72,10 +57,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
                 regs.reg[A0] = 0;
                 regs.reg[A1] = 0;
                 regs.epc = regs.epc + 4;
-    
-                /* 2コア目以降のキック (現状、起床させても正常に動かない) */
-                //let hart_mask: u64 = 0x01 << a0;
-                //sbi::sbi_send_ipi(&hart_mask);
+
                 return;
             }
         },
@@ -87,7 +69,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
         }
     }
 
-    let ret = CPU.inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
+    let ret = CPU.inst.do_ecall(ext, fid, regs.reg[A0], regs.reg[A1], regs.reg[A2], regs.reg[A3], regs.reg[A4], regs.reg[A5]);
 
     regs.reg[A0] = ret.0;
     regs.reg[A1] = ret.1;
@@ -95,6 +77,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     regs.epc = regs.epc + 4; /* todo fix */
 }
 
+/* [todo delete] */
 pub fn get_real_paddr(guest_paddr: usize) -> usize {
     if guest_paddr < 0x8000_0000 {
         guest_paddr
@@ -240,27 +223,18 @@ pub fn boot_linux() {
 }
 
 pub fn sample_main() {
+    let boot_core = 1;
     let mut vplic = VPlic::new();
-    //vplic.set_vcpu_config([0, 1]); /* vcpu=pcpu */
-    vplic.set_vcpu_config([1, 0]); /* vcpu!=pcpu */
+    vplic.set_vcpu_config([boot_core, 0]); /* vcpu!=pcpu */
     unsafe {
         VM.register_dev(0x0c00_0000, 0x0400_0000, vplic);
     }
-
-    //cre_tsk(2, &T_CTSK{task:boot_vshell, prcid:0});
-    //boot_vshell();
 
     cre_tsk(
         2,
         &Ctsk {
             task: boot_linux,
-            prcid: 1,
+            prcid: boot_core,
         },
     );
-    let hart_mask: u64 = 0x01 << 1;
-    sbi::sbi_send_ipi(&hart_mask);
-
-    //boot_linux();
-
-    loop {}
 }
