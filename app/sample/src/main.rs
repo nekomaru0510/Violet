@@ -129,7 +129,7 @@ pub fn do_guest_store_page_fault(regs: &mut Registers) {
 
     if 0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000 {
         unsafe {
-            match VM.get_dev_mut::<VPlic>(fault_paddr) {
+            match VM.get_dev_mut(fault_paddr) {
                 None => (),
                 Some(d) => {
                     d.write32(fault_paddr, val as u32);
@@ -157,7 +157,7 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
     if 0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000 {
         unsafe {
             let reg_idx = get_load_reg(inst);
-            regs.reg[reg_idx] = match VM.get_dev_mut::<VPlic>(fault_paddr) {
+            regs.reg[reg_idx] = match VM.get_dev_mut(fault_paddr) {
                 None => regs.reg[reg_idx],
                 Some(d) => d.read32(fault_paddr) as usize,
             };
@@ -188,7 +188,7 @@ pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
 
     // 仮想PLICへ書込み
     unsafe {
-        match VM.get_dev_mut::<VPlic>(0x0c20_1000) {
+        match VM.get_dev_mut(0x0c20_1000) {
             None => (),
             Some(d) => {
                 d.interrupt(int_id as usize);

@@ -202,21 +202,14 @@ impl VirtualMachine {
         // [todo fix] 実装する
     }
 
-    //pub fn get_dev_mut<T: VirtualDevice + 'static>(&mut self, addr: usize) -> Option<&mut dyn VirtualDevice> {
-    pub fn get_dev_mut<T: VirtualDevice + 'static>(
+    pub fn get_dev_mut(
         &mut self,
         addr: usize,
     ) -> Option<&mut Box<dyn VirtualDevice>> {
         match &mut self.viomap {
             None => None,
             Some(v) => {
-                v.get_mut::<T>(addr)
-                /*
-                match &mut v.get_mut::<T>(addr) {
-                    None => None,
-                    Some(d) => Some(d.as_mut()),
-                }
-                */
+                v.get_mut(addr)
             }
         }
     }
