@@ -6,24 +6,16 @@ extern crate violet;
 
 use violet::CPU;
 
-use violet::driver::arch::rv64::inst::*;
-use violet::driver::arch::rv64::regs::*;
-
-use violet::system::vm::mm::*;
 use violet::system::vm::vdev::vplic::VPlic;
 use violet::system::vm::VirtualMachine;
 
-use violet::driver::arch::rv64::mmu::sv48::PageTableSv48;
+use violet::driver::arch::rv64::inst::*;
+use violet::driver::arch::rv64::regs::*;
 use violet::driver::arch::rv64::sbi;
 use violet::driver::arch::rv64::{Exception, Interrupt, TraitRisvCpu};
 
 use violet::kernel::container::*;
 use violet::kernel::syscall::toppers::{cre_tsk, Ctsk};
-
-use crate::violet::library::std::memcpy;
-
-extern crate core;
-use core::intrinsics::transmute;
 
 use violet::app_init;
 app_init!(sample_main);
@@ -41,60 +33,45 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
 
     match sbi::Extension::from_ext(ext) {
         /* タイマセット */
-        sbi::Extension::SetTimer |
-        sbi::Extension::Timer => {
-            CPU.hyp.flush_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
-        },
+        sbi::Extension::SetTimer | sbi::Extension::Timer => {
+            CPU.hyp
+                .flush_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
+        }
         sbi::Extension::HartStateManagement => {
             if fid == 0 {
                 unsafe {
                     VM.set_start_addr(regs.reg[A0], regs.reg[A1]);
                     VM.set_boot_arg(regs.reg[A0], [regs.reg[A2], regs.reg[A2]]);
                 }
-    
+
                 //cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
-    
+
                 regs.reg[A0] = 0;
                 regs.reg[A1] = 0;
                 regs.epc = regs.epc + 4;
 
                 return;
             }
-        },
-        sbi::Extension::SystemReset => {
-            loop {}
-        },
-        _ => {
-
         }
+        sbi::Extension::SystemReset => loop {},
+        _ => {}
     }
 
-    let ret = CPU.inst.do_ecall(ext, fid, regs.reg[A0], regs.reg[A1], regs.reg[A2], regs.reg[A3], regs.reg[A4], regs.reg[A5]);
+    let ret = CPU.inst.do_ecall(
+        ext,
+        fid,
+        regs.reg[A0],
+        regs.reg[A1],
+        regs.reg[A2],
+        regs.reg[A3],
+        regs.reg[A4],
+        regs.reg[A5],
+    );
 
     regs.reg[A0] = ret.0;
     regs.reg[A1] = ret.1;
 
     regs.epc = regs.epc + 4; /* todo fix */
-}
-
-/* [todo delete] */
-pub fn get_real_paddr(guest_paddr: usize) -> usize {
-    if guest_paddr < 0x8000_0000 {
-        guest_paddr
-    } else {
-        guest_paddr + 0x1000_0000
-    }
-}
-
-pub fn map_guest_page() {
-    let gpaddr = CPU.hyp.get_vs_fault_paddr() as usize;
-    let paddr = get_real_paddr(gpaddr);
-    //let paddr = gpaddr;
-    map_vaddr::<PageTableSv48>(
-        unsafe { transmute(CPU.hyp.get_hs_pagetable()) },
-        paddr,
-        gpaddr,
-    );
 }
 
 /* [todo delete] */
@@ -110,9 +87,9 @@ pub fn do_guest_store_page_fault(regs: &mut Registers) {
     let val = get_store_value(inst, regs);
 
     match unsafe { VM.write_dev(fault_paddr, val) } {
-        None => {
-            map_guest_page();
-        }
+        None => unsafe {
+            VM.map_guest_page(CPU.hyp.get_vs_fault_paddr() as usize);
+        },
         Some(()) => {
             regs.epc = regs.epc + inst_size(inst);
             CPU.hyp
@@ -126,9 +103,9 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
     let inst = fetch_inst(regs.epc);
 
     match unsafe { VM.read_dev(fault_paddr) } {
-        None => {
-            map_guest_page();
-        }
+        None => unsafe {
+            VM.map_guest_page(CPU.hyp.get_vs_fault_paddr() as usize);
+        },
         Some(x) => {
             regs.reg[get_load_reg(inst)] = x;
             regs.epc = regs.epc + inst_size(inst);
@@ -137,11 +114,13 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
 }
 
 pub fn do_guest_instruction_page_fault(_regs: &mut Registers) {
-    map_guest_page();
+    unsafe {
+        VM.map_guest_page(CPU.hyp.get_vs_fault_paddr() as usize);
+    }
 }
 
 pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
-    let con = current_container();
+    let con = current_container(); /* [todo delete] アプリがコンテナを意識するのはおかしい */
 
     // 物理PLICからペンディングビットを読み、クリアする
     let int_id = match &con.unwrap().intc {
@@ -183,10 +162,6 @@ pub fn do_supervisor_timer_interrupt(_regs: &mut Registers) {
 pub fn boot_linux() {
     let cpu_id: usize = 0;
 
-    /* [todo fix] コピーではなく、メモリマップに変更する */
-    memcpy(0x8220_0000 + 0x1000_0000, 0x8220_0000, 0x2_0000); //FDT サイズは適当
-    memcpy(0x88100000 + 0x1000_0000, 0x88100000, 0x20_0000); //initrd サイズはrootfs.imgより概算
-
     unsafe {
         VM.setup();
     }
@@ -227,6 +202,16 @@ pub fn sample_main() {
     let mut vplic = VPlic::new();
     vplic.set_vcpu_config([boot_core, 0]); /* vcpu!=pcpu */
     unsafe {
+        /* RAM */
+        //VM.register_mem(0x8020_0000, 0x9020_0000, 0x1000_0000);
+        VM.register_mem(0x8020_0000, 0x9020_0000, 0x0200_0000);
+        VM.register_mem(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
+        VM.register_mem(0x8222_0000, 0x9222_0000, 0x8810_0000 - 0x8222_0000); // [todo fix] 隙間のマップは自動でできるように
+        VM.register_mem(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
+        VM.register_mem(0x8830_0000, 0x9830_0000, 0x1000_0000);
+        /* MMIO */
+        VM.register_mem(0x0000_0000, 0x0000_0000, 0x0c00_0000);
+        VM.register_mem(0x1000_0000, 0x1000_0000, 0x7000_0000);
         VM.register_dev(0x0c00_0000, 0x0400_0000, vplic);
     }
 

@@ -3,6 +3,7 @@
 pub mod mm;
 pub mod vcpu;
 pub mod vdev;
+pub mod vmem;
 
 extern crate alloc;
 use alloc::boxed::Box;
@@ -12,7 +13,10 @@ use crate::CPU;
 use crate::driver::arch::rv64::{Exception, Interrupt, PagingMode, PrivilegeMode, TraitRisvCpu};
 use crate::driver::traits::cpu::TraitCpu;
 
-use mm::*;
+use crate::driver::arch::rv64::mmu::sv48::PageTableSv48;
+use mm::*; /* [todo delete] */
+extern crate core;
+use core::intrinsics::transmute;
 
 pub fn setup_boot() {
     CPU.switch_hs_mode();
@@ -104,6 +108,7 @@ impl BootParam {
 
 use vdev::VirtualDevice;
 use vdev::VirtualIoMap;
+use vmem::VirtualMemoryMap;
 
 pub struct VirtualMachine {
     /* == 必須設定項目 == */
@@ -114,6 +119,7 @@ pub struct VirtualMachine {
     mem_size: usize,
     /* ================= */
     vmem_start: usize,
+    vmem: VirtualMemoryMap,
     viomap: Option<VirtualIoMap>,
 }
 
@@ -131,7 +137,7 @@ impl VirtualMachine {
             mem_size,
             vmem_start: 0,
             //vcpu: Vec::new(),
-            //vdevs: None, //BTreeMap::new(),
+            vmem: VirtualMemoryMap::new(),
             viomap: None,
         }
     }
@@ -170,6 +176,40 @@ impl VirtualMachine {
 
     pub fn set_boot_arg(&mut self, cpu_id: usize, boot_arg: [usize; NUM_OF_ARGS]) {
         self.param[cpu_id].set_arg(boot_arg);
+    }
+
+    /*
+    pub fn map_all_guest_page(&mut self) {
+
+    }*/
+
+    pub fn register_mem(&mut self, vaddr: usize, paddr: usize, size: usize) {
+        self.vmem.register(vaddr, paddr, size);
+    }
+
+    /*
+    pub fn unregister_mem(&mut self, ) {
+
+    }
+    */
+
+    pub fn map_guest_page(&mut self, guest_paddr: usize) {
+        match self.vmem.get(guest_paddr) {
+            None => {}
+            Some(m) => {
+                match m.get_paddr(guest_paddr) {
+                    None => {}
+                    Some(r) => {
+                        /* [todo fix] CPUトレイトから呼び出す */
+                        map_vaddr::<PageTableSv48>(
+                            unsafe { transmute(CPU.hyp.get_hs_pagetable()) },
+                            r,
+                            guest_paddr,
+                        );
+                    }
+                }
+            }
+        }
     }
 
     pub fn register_dev<T: VirtualDevice + 'static>(&mut self, base: usize, size: usize, vdev: T) {
@@ -254,3 +294,18 @@ fn test_read_write_dev() -> Result<(), &'static str> {
 
     result
 }
+
+/*
+#[test_case]
+fn test_vmem() -> Result<(), &'static str> {
+    let mut vm: VirtualMachine = VirtualMachine::new(
+        0,           /* CPUマスク */
+        0x8020_0000, /* 開始アドレス(ジャンプ先) */
+        0x9000_0000, /* ベースアドレス(物理メモリ) */
+        0x1000_0000, /* メモリサイズ */
+    );
+
+    //vm.map_all_guest_page(); /* 登録されたページをすべてマップ(静的にマップするときに使う) */
+    //vm.map_guest_page(guest_paddr); /* 指定ページをマップ(動的にマップするときに使う) */
+    Ok(())
+}*/

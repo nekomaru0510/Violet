@@ -23,9 +23,7 @@ impl<T: TraitTask> TraitSched<T> for FifoScheduler<T> {
     fn next(&mut self) -> Option<T> {
         match self.task_queue.pop() {
             None => None,
-            Some(task) => {
-                task
-            },
+            Some(task) => task,
         }
     }
 

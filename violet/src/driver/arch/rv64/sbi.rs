@@ -38,7 +38,7 @@ impl Extension {
             0x00000010 => Extension::Base,
             0x0048534D => Extension::HartStateManagement,
             0x00735049 => Extension::Ipi,
-            0x54494D45 => Extension::Timer,            
+            0x54494D45 => Extension::Timer,
             0x52464E43 => Extension::Rfence,
             0x53525354 => Extension::Base,
             _ => Extension::Unknown,
