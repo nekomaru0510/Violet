@@ -1,5 +1,19 @@
 [env]
 version = "0.1.0"
+arch = "rv64"
 cpus = 2
+memory = [0x8010_0000, 0x3FF0_0000]
 
+[os.linux_1]
+type = "linux"
+cpu = [1]
+memory = [0x9020_0000, 0x1000_0000]
+bootparam = []
+path = ""
 
+[os.freertos_1]
+type = "freertos"
+cpu = [0]
+memory = [0xa020_0000, 0x1000_0000]
+bootparam = []
+path = ""
