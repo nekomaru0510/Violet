@@ -46,46 +46,45 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     let a4: usize = regs.reg[A4];
     let a5: usize = regs.reg[A5];
 
-    /* タイマセット */
-    if ext == sbi::Extension::SetTimer as i32 || ext == sbi::Extension::Timer as i32 {
-        /* 仮想タイマ割込みのフラッシュ */
-        /* QEMU virtの性質上、ゲストOSは必ずタイマ割込みハンドラ内でタイマセットを行う */
-        /* そのため、ここで仮想タイマ割込みのフラッシュを行う */
-        CPU.hyp
-            .flush_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
-    }
-    /* キャッシュのフラッシュ */
-    if ext == sbi::Extension::RemoteSfenceVma as i32 {
-        ext = sbi::Extension::Rfence as i32;
-        fid = 6;
-        a2 = a1;
-        a3 = a2;
-        a0 = a0 + 0x1000_0000;
-        a1 = 0;
-    }
-    /* CPUのキック */
-    if ext == sbi::Extension::HartStateManagement as i32 {
-        if fid == 0 {
-            unsafe {
-                VM.set_start_addr(a0, a1);
-                VM.set_boot_arg(a0, [a2, a2]);
+    match sbi::Extension::from_ext(ext) {
+        /* タイマセット */
+        sbi::Extension::SetTimer |
+        sbi::Extension::Timer => {
+            CPU.hyp.flush_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
+        },
+        sbi::Extension::RemoteSfenceVma => {
+            ext = sbi::Extension::Rfence as i32;
+            fid = 6;
+            a2 = a1;
+            a3 = a2;
+            a0 = a0 + 0x1000_0000;
+            a1 = 0;
+        },
+        sbi::Extension::HartStateManagement => {
+            if fid == 0 {
+                unsafe {
+                    VM.set_start_addr(a0, a1);
+                    VM.set_boot_arg(a0, [a2, a2]);
+                }
+    
+                //cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
+    
+                regs.reg[A0] = 0;
+                regs.reg[A1] = 0;
+                regs.epc = regs.epc + 4;
+    
+                /* 2コア目以降のキック (現状、起床させても正常に動かない) */
+                //let hart_mask: u64 = 0x01 << a0;
+                //sbi::sbi_send_ipi(&hart_mask);
+                return;
             }
+        },
+        sbi::Extension::SystemReset => {
+            loop {}
+        },
+        _ => {
 
-            //cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
-
-            regs.reg[A0] = 0;
-            regs.reg[A1] = 0;
-            regs.epc = regs.epc + 4;
-
-            /* 2コア目以降のキック (現状、起床させても正常に動かない) */
-            //let hart_mask: u64 = 0x01 << a0;
-            //sbi::sbi_send_ipi(&hart_mask);
-            return;
         }
-    }
-    /* システムのリセット */
-    if ext == sbi::Extension::SystemReset as i32 {
-        loop {}
     }
 
     let ret = CPU.inst.do_ecall(ext, fid, a0, a1, a2, a3, a4, a5);
@@ -93,7 +92,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     regs.reg[A0] = ret.0;
     regs.reg[A1] = ret.1;
 
-    regs.epc = regs.epc + 4;
+    regs.epc = regs.epc + 4; /* todo fix */
 }
 
 pub fn get_real_paddr(guest_paddr: usize) -> usize {

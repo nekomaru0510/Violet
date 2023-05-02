@@ -20,6 +20,30 @@ pub enum Extension {
     Ipi = 0x735049,
     Rfence = 0x52464E43,
     SystemReset = 0x53525354,
+    Unknown,
+}
+
+impl Extension {
+    pub fn from_ext(ext: i32) -> Self {
+        match ext {
+            0x00000000 => Extension::SetTimer,
+            0x00000001 => Extension::ConsolePutchar,
+            0x00000002 => Extension::ConsoleGetchar,
+            0x00000003 => Extension::ClearIpi,
+            0x00000004 => Extension::SendIpi,
+            0x00000005 => Extension::RemoteFenceI,
+            0x00000006 => Extension::RemoteSfenceVma,
+            0x00000007 => Extension::RemoteSfenceVmaWithAsid,
+            0x00000008 => Extension::SystemShutdown,
+            0x00000010 => Extension::Base,
+            0x0048534D => Extension::HartStateManagement,
+            0x00735049 => Extension::Ipi,
+            0x54494D45 => Extension::Timer,            
+            0x52464E43 => Extension::Rfence,
+            0x53525354 => Extension::Base,
+            _ => Extension::Unknown,
+        }
+    }
 }
 
 pub fn sbi_set_timer(stime_value: u64) -> (usize, usize) {
