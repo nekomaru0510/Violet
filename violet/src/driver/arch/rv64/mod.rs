@@ -79,10 +79,6 @@ pub struct Scratch {
     tmp0: usize,
     stack_size: usize,
 }
-//pub static mut SCRATCH: [Scratch; 4] = [Scratch::new(0); 4];
-
-use crate::print;
-use crate::println;
 
 impl Scratch {
     pub const fn new(cpu_id: u64) -> Self {
@@ -142,26 +138,6 @@ impl Rv64 {
             }
             _ => {}
         }
-    }
-
-    pub fn print_csr(&self) {
-        println!("hstatus: {:x}", self.csr.hstatus.get());
-        println!("hideleg: {:x}", self.csr.hideleg.get());
-        println!("hedeleg: {:x}", self.csr.hedeleg.get());
-        println!("hie: {:x}", self.csr.hie.get());
-        println!("hip: {:x}", self.csr.hip.get());
-        println!("hvip: {:x}", self.csr.hvip.get());
-
-        println!("sstatus: {:x}", self.csr.sstatus.get());
-        println!("sepc: {:x}", self.csr.sepc.get());
-        println!("scause: {:x}", self.csr.scause.get());
-
-        println!("vsstatus: {:x}", self.csr.vsstatus.get());
-        println!("vsie: {:x}", self.csr.vsie.get());
-        println!("vsip: {:x}", self.csr.vsip.get());
-        println!("vsepc: {:x}", self.csr.vsepc.get());
-        println!("vscause: {:x}", self.csr.vscause.get());
-        println!("vstvec: {:x}", self.csr.vstvec.get());
     }
 }
 
