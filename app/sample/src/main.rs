@@ -127,26 +127,19 @@ pub fn do_guest_store_page_fault(regs: &mut Registers) {
     let inst = fetch_inst(regs.epc);
     let val = get_store_value(inst, regs);
 
-    if 0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000 {
-        unsafe {
-            match VM.get_dev_mut(fault_paddr) {
-                None => (),
-                Some(d) => {
-                    d.write32(fault_paddr, val as u32);
-                }
+    match unsafe { VM.write_dev(fault_paddr, val) } {
+        None => {
+            map_guest_page();
+        }
+        Some(()) => {
+            if is_compressed(inst) {
+                regs.epc = regs.epc + 2;
+            } else {
+                regs.epc = regs.epc + 4;
             }
+            CPU.hyp
+                .flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
         }
-
-        if is_compressed(inst) {
-            regs.epc = regs.epc + 2;
-        } else {
-            regs.epc = regs.epc + 4;
-        }
-
-        CPU.hyp
-            .flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
-    } else {
-        map_guest_page();
     }
 }
 
@@ -154,22 +147,18 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
     let inst = fetch_inst(regs.epc);
 
-    if 0x0c00_0000 <= fault_paddr && fault_paddr < 0x0c20_1000 + 0x1000 {
-        unsafe {
-            let reg_idx = get_load_reg(inst);
-            regs.reg[reg_idx] = match VM.get_dev_mut(fault_paddr) {
-                None => regs.reg[reg_idx],
-                Some(d) => d.read32(fault_paddr) as usize,
-            };
-
+    match unsafe { VM.read_dev(fault_paddr) } {
+        None => {
+            map_guest_page();
+        }
+        Some(x) => {
+            regs.reg[get_load_reg(inst)] = x;
             if is_compressed(inst) {
                 regs.epc = regs.epc + 2;
             } else {
                 regs.epc = regs.epc + 4;
             }
         }
-    } else {
-        map_guest_page();
     }
 }
 

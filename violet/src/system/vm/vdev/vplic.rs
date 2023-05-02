@@ -113,25 +113,26 @@ impl VPlic {
 }
 
 impl VirtualDevice for VPlic {
-    fn write32(&mut self, addr: usize, val: u32) {
+    fn write(&mut self, addr: usize, val: usize) {
         /* [todo fix] レジスタ取得を関数にまとめたい */
         match addr & MASK {
-            INT_ENABLE0_CONTEXT0 => self.enable_write(addr, val),
-            PRIO_THRESHOLD_CONTEXT0 => self.priority_threshold_write(addr, val),
-            PRIO_THRESHOLD_CONTEXT1 => self.priority_threshold_write(addr, val),
-            CLAIM_COMPLETE_CONTEXT0 => self.claim_comp_write(addr, val),
-            _ => write_raw(addr, val),
+            INT_ENABLE0_CONTEXT0 => self.enable_write(addr, val as u32),
+            PRIO_THRESHOLD_CONTEXT0 => self.priority_threshold_write(addr, val as u32),
+            PRIO_THRESHOLD_CONTEXT1 => self.priority_threshold_write(addr, val as u32),
+            CLAIM_COMPLETE_CONTEXT0 => self.claim_comp_write(addr, val as u32),
+            _ => write_raw(addr, val as u32),
         };
     }
 
-    fn read32(&mut self, addr: usize) -> u32 {
-        match addr & MASK {
+    fn read(&mut self, addr: usize) -> usize {
+        let ret = match addr & MASK {
             INT_ENABLE0_CONTEXT0 => self.enable_read(addr),
             PRIO_THRESHOLD_CONTEXT0 => self.priority_threshold_read(addr),
             PRIO_THRESHOLD_CONTEXT1 => self.priority_threshold_read(addr),
             CLAIM_COMPLETE_CONTEXT0 => self.claim_comp_read(addr),
             _ => read_raw(addr),
-        }
+        };
+        ret as usize
     }
 
     fn interrupt(&mut self, intid: usize) {

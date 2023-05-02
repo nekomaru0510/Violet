@@ -202,31 +202,64 @@ impl VirtualMachine {
         // [todo fix] 実装する
     }
 
-    pub fn get_dev_mut(
-        &mut self,
-        addr: usize,
-    ) -> Option<&mut Box<dyn VirtualDevice>> {
+    pub fn get_dev_mut(&mut self, addr: usize) -> Option<&mut Box<dyn VirtualDevice>> {
         match &mut self.viomap {
             None => None,
-            Some(v) => {
-                v.get_mut(addr)
+            Some(v) => v.get_mut(addr),
+        }
+    }
+
+    pub fn write_dev(&mut self, addr: usize, val: usize) -> Option<()> {
+        match self.get_dev_mut(addr) {
+            None => None,
+            Some(d) => {
+                d.write(addr, val);
+                Some(())
             }
         }
     }
-    /*
-    pub fn write32_dev(&mut self, addr: usize) {
-        match &mut self.vdevs {
-            None => {
-                ()
-            },
-            Some(v) => {
-                for d in v {
-                    if
-                    v.insert((base_addr, size), Box::new(vdev));
-                }
-            }
+
+    pub fn read_dev(&mut self, addr: usize) -> Option<usize> {
+        match self.get_dev_mut(addr) {
+            None => None,
+            Some(d) => Some(d.read(addr) as usize),
         }
     }
-    */
-    //fn search_vdev()
+}
+
+#[cfg(test)]
+use crate::system::vm::vdev::vplic::VPlic;
+
+#[test_case]
+fn test_read_write_dev() -> Result<(), &'static str> {
+    let mut vm: VirtualMachine = VirtualMachine::new(
+        0,           /* CPUマスク */
+        0x8020_0000, /* 開始アドレス(ジャンプ先) */
+        0x9000_0000, /* ベースアドレス(物理メモリ) */
+        0x1000_0000, /* メモリサイズ */
+    );
+    let vplic = VPlic::new();
+    let val = 0x01;
+    vm.register_dev(0x0c00_0000, 0x0400_0000, vplic);
+
+    let mut result = match vm.write_dev(0xc00_0000, val) {
+        None => Err("can't write virtual device"),
+        Some(x) => Ok(()),
+    };
+    if result != Ok(()) {
+        return result;
+    };
+
+    result = match vm.read_dev(0xc00_0000) {
+        None => Err("can't read virtual device"),
+        Some(x) => {
+            if x == val {
+                Ok(())
+            } else {
+                Err("Invalid value")
+            }
+        }
+    };
+
+    result
 }

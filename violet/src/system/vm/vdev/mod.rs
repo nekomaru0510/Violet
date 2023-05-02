@@ -8,10 +8,8 @@ use alloc::vec::Vec;
 use core::ptr::{read_volatile, write_volatile};
 
 pub trait VirtualDevice {
-    fn write32(&mut self, addr: usize, val: u32); // [todo fix] ジェネリクスを使う
-    fn read32(&mut self, addr: usize) -> u32;
-    //fn write64(&mut self, addr: usize, val: u64);
-    //fn read64(&mut self, addr: usize) -> u64;
+    fn write(&mut self, addr: usize, val: usize);
+    fn read(&mut self, addr: usize) -> usize;
     fn interrupt(&mut self, intid: usize);
 }
 
@@ -79,9 +77,7 @@ pub struct VirtualIoMap {
 
 impl VirtualIoMap {
     pub fn new() -> Self {
-        VirtualIoMap {
-            map: IoMap::new(),
-        }
+        VirtualIoMap { map: IoMap::new() }
     }
 
     pub fn register<T: VirtualDevice + 'static>(&mut self, base: usize, size: usize, vdev: T) {
@@ -104,10 +100,7 @@ impl VirtualIoMap {
         }
     }
 
-    pub fn get_mut(
-        &mut self,
-        addr: usize,
-    ) -> Option<&mut Box<dyn VirtualDevice>> {
+    pub fn get_mut(&mut self, addr: usize) -> Option<&mut Box<dyn VirtualDevice>> {
         match self.map.find_mut(addr) {
             None => None,
             Some(i) => Some(&mut i.vdev),
@@ -129,49 +122,41 @@ pub fn write_raw<T>(addr: usize, val: T) {
 use crate::system::vm::vdev::vplic::VPlic;
 
 #[test_case]
-fn test_get() -> Result<(),  &'static str> {
+fn test_get() -> Result<(), &'static str> {
     let mut map = VirtualIoMap::new();
     let vplic = VPlic::new();
     map.register(0x0c00_0000, 0x0400_0000, vplic);
 
     let mut result = match map.get(0x0c00_0000) {
         None => Err("can't get virtual device"),
-        Some(d) => {
-            Ok(())
-        },
+        Some(d) => Ok(()),
     };
 
     if result != Ok(()) {
-        return result
+        return result;
     };
 
     result = match map.get(0x0bff_ffff) {
         None => Ok(()),
-        Some(d) => {
-            Err("invalid virtual device")
-        },
+        Some(d) => Err("invalid virtual device"),
     };
 
     if result != Ok(()) {
-        return result
+        return result;
     };
 
     result = match map.get(0x0fff_ffff) {
         None => Err("can't get virtual device"),
-        Some(d) => {
-            Ok(())
-        },
+        Some(d) => Ok(()),
     };
 
     if result != Ok(()) {
-        return result
+        return result;
     };
-    
+
     result = match map.get(0x1000_0000) {
         None => Ok(()),
-        Some(d) => {
-            Err("invalid virtual device")
-        },
+        Some(d) => Err("invalid virtual device"),
     };
 
     result

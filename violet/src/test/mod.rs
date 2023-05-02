@@ -1,7 +1,7 @@
 //! Test関連
 extern crate core;
-use core::intrinsics::transmute;
 use crate::{print, println};
+use core::intrinsics::transmute;
 
 #[cfg(test)]
 pub fn test_runner(tests: &[&dyn Fn() -> Result<(), &'static str>]) {
@@ -12,9 +12,9 @@ pub fn test_runner(tests: &[&dyn Fn() -> Result<(), &'static str>]) {
             Ok(()) => {
                 println!("[ok]");
                 success += 1;
-            },
+            }
             Err(e) => {
-                let addr: usize = unsafe {transmute(test)};
+                let addr: usize = unsafe { transmute(test) };
                 println!("[ng] Function:0x{:x} ... {}", addr, e);
             }
         }
