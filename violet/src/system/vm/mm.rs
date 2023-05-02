@@ -6,7 +6,7 @@ use core::intrinsics::transmute;
 use crate::CPU;
 
 use crate::driver::arch::rv64::mmu::sv48::PageTableSv48;
-use crate::driver::traits::arch::riscv::*;
+use crate::driver::arch::rv64::PagingMode;
 use crate::driver::traits::cpu::mmu::{PageEntry, PageTable}; /* todo delete*/
 
 static mut PAGE_TABLE_ARRAY: [PageTableSv48; MAX_PAGE_TABLE] =

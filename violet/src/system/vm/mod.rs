@@ -9,13 +9,8 @@ use alloc::boxed::Box;
 
 use crate::CPU;
 
+use crate::driver::arch::rv64::{Exception, Interrupt, PagingMode, PrivilegeMode, TraitRisvCpu};
 use crate::driver::traits::cpu::TraitCpu;
-
-use crate::driver::traits::arch::riscv::Exception;
-use crate::driver::traits::arch::riscv::Interrupt;
-use crate::driver::traits::arch::riscv::PagingMode;
-use crate::driver::traits::arch::riscv::PrivilegeMode;
-use crate::driver::traits::arch::riscv::TraitRisvCpu;
 
 use mm::*;
 
@@ -119,9 +114,7 @@ pub struct VirtualMachine {
     mem_size: usize,
     /* ================= */
     vmem_start: usize,
-    //vdevs: Option<BTreeMap<(usize, usize), Box<dyn VirtualDevice>>>,
     viomap: Option<VirtualIoMap>,
-    //vcpu: Vec<VirtualCpu<>>,
 }
 
 impl VirtualMachine {
@@ -183,12 +176,10 @@ impl VirtualMachine {
         match &mut self.viomap {
             None => {
                 self.viomap = Some(VirtualIoMap::new());
-                //self.viomap.as_mut().unwrap().insert((base, size), Box::new(vdev));
                 self.viomap.as_mut().unwrap().register(base, size, vdev);
             }
             Some(v) => {
                 v.register(base, size, vdev);
-                //v.insert((base_addr, size), Box::new(vdev));
             }
         }
     }

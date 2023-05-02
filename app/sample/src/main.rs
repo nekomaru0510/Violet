@@ -16,7 +16,7 @@ use violet::system::vm::VirtualMachine;
 
 use violet::driver::arch::rv64::mmu::sv48::PageTableSv48;
 use violet::driver::arch::rv64::sbi;
-use violet::driver::traits::arch::riscv::{Exception, Interrupt, TraitRisvCpu};
+use violet::driver::arch::rv64::{Exception, Interrupt, TraitRisvCpu};
 
 use violet::kernel::container::*;
 use violet::kernel::syscall::toppers::{cre_tsk, Ctsk};
@@ -132,11 +132,7 @@ pub fn do_guest_store_page_fault(regs: &mut Registers) {
             map_guest_page();
         }
         Some(()) => {
-            if is_compressed(inst) {
-                regs.epc = regs.epc + 2;
-            } else {
-                regs.epc = regs.epc + 4;
-            }
+            regs.epc = regs.epc + inst_size(inst);
             CPU.hyp
                 .flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
         }
@@ -153,11 +149,7 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
         }
         Some(x) => {
             regs.reg[get_load_reg(inst)] = x;
-            if is_compressed(inst) {
-                regs.epc = regs.epc + 2;
-            } else {
-                regs.epc = regs.epc + 4;
-            }
+            regs.epc = regs.epc + inst_size(inst);
         }
     }
 }
@@ -178,6 +170,7 @@ pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
     // 仮想PLICへ書込み
     unsafe {
         match VM.get_dev_mut(0x0c20_1000) {
+            // [todo fix] 割込み番号で検索できるようにする
             None => (),
             Some(d) => {
                 d.interrupt(int_id as usize);
@@ -246,74 +239,7 @@ pub fn boot_linux() {
         VM.boot(cpu_id);
     }
 }
-/*
-use violet::{println, print};
-fn timer_get(_regs: &mut Registers) {
-    println!("timer int ok!");
-}
 
-fn timer_set() {
-    let con = current_container();
-
-    CPU.int.enable_mask_s(Interrupt::SupervisorTimerInterrupt.mask());
-    CPU.register_interrupt(
-        Interrupt::SupervisorTimerInterrupt,
-        timer_get,
-    );
-
-    match &con.unwrap().timer {
-        None => (),
-        Some(t) => {
-            t.set_interrupt_time(t.read() + 0x1000);
-        },
-    };
-}
-
-fn serial_set() {
-    let con = current_container();
-
-    CPU.int.enable_mask_s(Interrupt::SupervisorExternalInterrupt.mask());
-    CPU.register_interrupt(
-        Interrupt::SupervisorExternalInterrupt,
-        timer_get,
-    );
-
-    match &con.unwrap().serial {
-        None => (),
-        Some(s) => {
-            s.enable_interrupt();
-        },
-    };
-
-    match &con.unwrap().intc {
-        None => (),
-        Some(i) => {
-            i.set_prio(0xa, 1);
-            i.enable_interrupt(0xa);
-            i.set_priority_threshold(0);
-        },
-    };
-}
-
-use core::ptr::{read_volatile, write_volatile};
-use violet::library::vshell::{Command, VShell};
-use alloc::string::String;
-
-pub fn boot_vshell() {
-
-    let mut vshell = VShell::new();
-    vshell.add_cmd(Command {
-        name: String::from("tmr"),
-        func: timer_set,
-    });
-    vshell.add_cmd(Command {
-        name: String::from("serial"),
-        func: serial_set,
-    });
-
-    vshell.run();
-}
-*/
 pub fn sample_main() {
     let mut vplic = VPlic::new();
     //vplic.set_vcpu_config([0, 1]); /* vcpu=pcpu */

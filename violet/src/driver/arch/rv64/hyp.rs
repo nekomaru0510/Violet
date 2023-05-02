@@ -3,7 +3,7 @@
 extern crate register;
 use register::cpu::RegisterReadWrite;
 
-use crate::driver::traits::arch::riscv::PagingMode;
+use crate::driver::arch::rv64::PagingMode;
 
 use super::csr::hcounteren::*;
 use super::csr::hedeleg::*;

@@ -208,6 +208,14 @@ impl CompressedInst1513 {
     }
 }
 
+pub fn inst_size(inst: usize) -> usize {
+    if is_compressed(inst) {
+        2
+    } else {
+        4
+    }
+}
+
 pub fn is_compressed(inst: usize) -> bool {
     if inst & (0b11 << 0) == 0b11 {
         false
