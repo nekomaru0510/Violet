@@ -1,6 +1,6 @@
 //! RISC-V 汎用レジスタ
 
-//use crate::driver::traits::cpu::registers::TraitRegisters;
+use crate::driver::traits::cpu::registers::TraitRegisters;
 
 /* 割込み・例外元のコンテキストを示す */
 #[derive(Clone, Copy)]
@@ -43,41 +43,40 @@ pub const T4: usize = 29;
 pub const T5: usize = 30;
 pub const T6: usize = 31;
 
-/*
+pub const NUM_OF_REGS: usize = 32;
+
 impl Registers {
-    pub fn zero(&self) {
-        self.reg[IDX_ZERO]
+    pub fn new() -> Self {
+        Registers {
+            reg: [0; 32],
+            epc: 0,
+        }
     }
-
-    pub fn ra(&self) {
-        self.reg[IDX_RA]
-    }
-
-    pub fn sp(&self) {
-        self.reg[IDX_SP]
-    }
-
-    pub fn gp(&self) {
-        self.reg[IDX_GP]
-    }
-
-    pub fn tp(&self) {
-        self.reg[IDX_TP]
-    }
-
 }
-*/
 
-/*
 impl TraitRegisters for Registers {
     // レジスタの退避
-    fn save_from(&mut self, from: &mut Self) {
-        self = from;
-    }
-
-    // レジスタの復帰
-    fn restore_to(&mut self, to: &mut Self) {
-        to = self
+    fn switch(&mut self, regs: &mut Self) {
+        let tmp: Registers = *regs;
+        *regs = *self;
+        *self = tmp;
     }
 }
-*/
+
+#[test_case]
+fn test_regs() -> Result<(), &'static str> {
+    let mut r1 = Registers::new();
+    let mut r2 = Registers::new();
+
+    r1.reg[A0] = 1;
+
+    r1.switch(&mut r2);
+
+    if r1.reg[A0] != 0 {
+        Err("Fail to switch registers")
+    } else if r2.reg[A0] != 1 {
+        Err("Fail to switch registers")
+    } else {
+        Ok(())
+    }
+}

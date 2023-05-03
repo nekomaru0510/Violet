@@ -14,18 +14,16 @@ use violet::driver::arch::rv64::regs::*;
 use violet::driver::arch::rv64::sbi;
 use violet::driver::arch::rv64::{Exception, Interrupt, TraitRisvCpu};
 
-use violet::kernel::container::*;
+use violet::driver::arch::rv64::vscontext::*;
+use violet::driver::traits::cpu::context::TraitContext;
+
+use violet::kernel::container::*; /* [todo delete] */
 use violet::kernel::syscall::toppers::{cre_tsk, Ctsk};
 
 use violet::app_init;
 app_init!(sample_main);
 
-static mut VM: VirtualMachine = VirtualMachine::new(
-    0,           /* CPUマスク */
-    0x8020_0000, /* 開始アドレス(ジャンプ先) */
-    0x9000_0000, /* ベースアドレス(物理メモリ) */
-    0x1000_0000, /* メモリサイズ */
-);
+static mut VM: VirtualMachine = VirtualMachine::new();
 
 pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     let ext: i32 = regs.reg[A7] as i32;
@@ -39,10 +37,11 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
         }
         sbi::Extension::HartStateManagement => {
             if fid == 0 {
+                /*
                 unsafe {
                     VM.set_start_addr(regs.reg[A0], regs.reg[A1]);
                     VM.set_boot_arg(regs.reg[A0], [regs.reg[A2], regs.reg[A2]]);
-                }
+                }*/
 
                 //cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
 
@@ -191,9 +190,15 @@ pub fn boot_linux() {
     );
 
     unsafe {
-        VM.set_start_addr(cpu_id, 0x8020_0000);
-        VM.set_boot_arg(cpu_id, [0, 0x8220_0000]);
-        VM.boot(cpu_id);
+        match VM.vcpu_mut(0) {
+            None => (),
+            Some(v) => {
+                v.context.set(JUMP_ADDR, 0x8020_0000);
+                v.context.set(ARG0, cpu_id);
+                v.context.set(ARG1, 0x8220_0000);
+            }
+        }
+        VM.run();
     }
 }
 
@@ -202,6 +207,8 @@ pub fn sample_main() {
     let mut vplic = VPlic::new();
     vplic.set_vcpu_config([boot_core, 0]); /* vcpu!=pcpu */
     unsafe {
+        /* CPU */
+        VM.register_cpu(0, 1);
         /* RAM */
         //VM.register_mem(0x8020_0000, 0x9020_0000, 0x1000_0000);
         VM.register_mem(0x8020_0000, 0x9020_0000, 0x0200_0000);

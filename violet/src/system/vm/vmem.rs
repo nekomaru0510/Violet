@@ -2,44 +2,7 @@
 
 extern crate alloc;
 use alloc::vec::Vec;
-/*
-pub struct VirtualMemoryMap {
-    map: Vec<VirtualMemoryArea>,
-}
 
-impl VirtualMemoryMap {
-    pub fn new() -> Self {
-        VirtualMemoryMap {
-            map: Vec::new(),
-        }
-    }
-
-    pub fn register(vaddr: usize, paddr: usize, size: usize) {
-        map.push(vaddr, paddr, size);
-    }
-
-    /* [todo fix] 実装する */
-    /*
-    pub fn unregister() {
-
-    }*/
-
-    pub fn get(&self, addr: usize) -> Option<&VirtualMemoryArea> {
-        match self.map.find(addr) {
-            None => None,
-            Some(m) => Some(&m.vdev),
-        }
-    }
-
-    pub fn get_mut(&mut self, addr: usize) -> Option<&mut VirtualMemoryArea> {
-        match self.map.find_mut(addr) {
-            None => None,
-            Some(m) => Some(&mut m.vdev),
-        }
-    }
-
-}
-*/
 pub struct VirtualMemoryMap {
     map: Vec<VirtualMemoryArea>,
 }

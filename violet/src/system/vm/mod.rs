@@ -10,10 +10,10 @@ use alloc::boxed::Box;
 
 use crate::CPU;
 
-use crate::driver::arch::rv64::{Exception, Interrupt, PagingMode, PrivilegeMode, TraitRisvCpu};
+use crate::driver::arch::rv64::mmu::sv48::PageTableSv48;
+use crate::driver::arch::rv64::{Exception, Interrupt, PagingMode, TraitRisvCpu};
 use crate::driver::traits::cpu::TraitCpu;
 
-use crate::driver::arch::rv64::mmu::sv48::PageTableSv48;
 use mm::*; /* [todo delete] */
 extern crate core;
 use core::intrinsics::transmute;
@@ -61,82 +61,25 @@ pub fn setup_boot() {
     CPU.hyp.enable_vsmode_counter_access(0xffff_ffff);
 }
 
-pub fn boot_guest() {
-    /* sret後に、VS-modeに移行させるよう設定 */
-    CPU.set_next_mode(PrivilegeMode::ModeVS);
-
-    CPU.inst.jump_by_sret(0x8020_0000, 0, 0x8220_0000); //linux
-                                                        //CPU.inst.jump_by_sret(0x9000_0000, 0, 0x8220_0000); //xv6
-                                                        //CPU.inst.jump_by_sret(0x8000_0000, 0, 0x8220_0000); //xv6
-}
-
-pub const NUM_OF_CPUS: usize = 2;
-pub const NUM_OF_ARGS: usize = 2;
-
-#[derive(Clone, Copy)]
-pub struct BootParam {
-    addr: usize,
-    arg: [usize; NUM_OF_ARGS],
-}
-
-impl BootParam {
-    pub const fn new(start_addr: usize) -> Self {
-        BootParam {
-            addr: start_addr,
-            arg: [0; NUM_OF_ARGS],
-        }
-    }
-
-    pub fn set_addr(&mut self, addr: usize) {
-        self.addr = addr;
-    }
-
-    pub fn get_addr(&self) -> usize {
-        self.addr
-    }
-
-    pub fn set_arg(&mut self, arg: [usize; NUM_OF_ARGS]) {
-        for i in 0..NUM_OF_ARGS {
-            self.arg[i] = arg[i];
-        }
-    }
-
-    pub fn get_arg(&self, arg_idx: usize) -> usize {
-        self.arg[arg_idx]
-    }
-}
-
+use vcpu::VirtualCpu;
+use vcpu::VirtualCpuMap;
 use vdev::VirtualDevice;
 use vdev::VirtualIoMap;
 use vmem::VirtualMemoryMap;
 
+use crate::driver::arch::rv64::vscontext::VsContext;
+use crate::driver::traits::cpu::context::TraitContext; //[todo delete]
+
 pub struct VirtualMachine {
-    /* == 必須設定項目 == */
-    cpu_mask: u64,
-    //start_addr: usize, /* VM内の開始アドレス */
-    param: [BootParam; NUM_OF_CPUS], /* コアごとのブート情報 */
-    mem_start: usize,
-    mem_size: usize,
-    /* ================= */
-    vmem_start: usize,
+    vcpumap: VirtualCpuMap<VsContext>, /* [todo fix]ここでコンテキストの型を指定したくないが、ジェネリクスにもしたくない */
     vmem: VirtualMemoryMap,
     viomap: Option<VirtualIoMap>,
 }
 
 impl VirtualMachine {
-    pub const fn new(
-        cpu_mask: u64,
-        start_addr: usize,
-        mem_start: usize,
-        mem_size: usize,
-    ) -> VirtualMachine {
+    pub const fn new() -> VirtualMachine {
         VirtualMachine {
-            cpu_mask,
-            param: [BootParam::new(start_addr); NUM_OF_CPUS],
-            mem_start,
-            mem_size,
-            vmem_start: 0,
-            //vcpu: Vec::new(),
+            vcpumap: VirtualCpuMap::<VsContext>::new(),
             vmem: VirtualMemoryMap::new(),
             viomap: None,
         }
@@ -147,35 +90,23 @@ impl VirtualMachine {
         setup_boot();
     }
 
-    pub fn run(&self) {
-        boot_guest();
+    pub fn run(&mut self) {
+        match self.vcpu(self.vcpumap.get_vcpuid()) {
+            None => (),
+            Some(v) => v.context.jump(),
+        };
     }
 
-    pub fn boot(&self, cpu_id: usize) {
-        /* sret後に、VS-modeに移行させるよう設定 */
-        CPU.set_next_mode(PrivilegeMode::ModeVS);
-        CPU.inst.jump_by_sret(
-            self.param[cpu_id].get_addr(),
-            self.param[cpu_id].get_arg(0),
-            self.param[cpu_id].get_arg(1),
-        );
+    pub fn register_cpu(&mut self, vcpuid: usize, pcpuid: usize) {
+        self.vcpumap.create_vcpu(vcpuid, pcpuid);
     }
 
-    pub fn set_cpu(&mut self, cpu_mask: u64) {
-        self.cpu_mask |= cpu_mask;
+    pub fn vcpu(&self, vcpuid: usize) -> Option<&VirtualCpu<VsContext>> {
+        self.vcpumap.find(vcpuid)
     }
 
-    pub fn set_memory(&mut self, mem_start: usize, mem_size: usize) {
-        self.mem_start = mem_start;
-        self.mem_size = mem_size;
-    }
-
-    pub fn set_start_addr(&mut self, cpu_id: usize, start_addr: usize) {
-        self.param[cpu_id].set_addr(start_addr);
-    }
-
-    pub fn set_boot_arg(&mut self, cpu_id: usize, boot_arg: [usize; NUM_OF_ARGS]) {
-        self.param[cpu_id].set_arg(boot_arg);
+    pub fn vcpu_mut(&mut self, vcpuid: usize) -> Option<&mut VirtualCpu<VsContext>> {
+        self.vcpumap.find_mut(vcpuid)
     }
 
     /*
@@ -263,12 +194,7 @@ use crate::system::vm::vdev::vplic::VPlic;
 
 #[test_case]
 fn test_read_write_dev() -> Result<(), &'static str> {
-    let mut vm: VirtualMachine = VirtualMachine::new(
-        0,           /* CPUマスク */
-        0x8020_0000, /* 開始アドレス(ジャンプ先) */
-        0x9000_0000, /* ベースアドレス(物理メモリ) */
-        0x1000_0000, /* メモリサイズ */
-    );
+    let mut vm: VirtualMachine = VirtualMachine::new();
     let vplic = VPlic::new();
     let val = 0x01;
     vm.register_dev(0x0c00_0000, 0x0400_0000, vplic);
@@ -293,6 +219,28 @@ fn test_read_write_dev() -> Result<(), &'static str> {
     };
 
     result
+}
+
+#[cfg(test)]
+use crate::driver::arch::rv64::vscontext::*; //[todo delete]
+
+#[test_case]
+fn test_vcpu() -> Result<(), &'static str> {
+    let mut vm: VirtualMachine = VirtualMachine::new();
+    // ブート
+    // 自動で自分のCPU番号から仮想CPUを取得
+    vm.register_cpu(1, 0);
+    match vm.vcpu_mut(1) {
+        None => (),
+        Some(v) => {
+            v.context.set(JUMP_ADDR /*EPC*/, 0x9020_0000);
+            v.context.set(ARG0, 0x0000_0000);
+            v.context.set(ARG1, 0x0000_0000);
+        }
+    }
+    //vm.run();
+
+    Ok(())
 }
 
 /*

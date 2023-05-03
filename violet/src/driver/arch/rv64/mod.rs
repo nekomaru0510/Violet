@@ -29,6 +29,8 @@ use hyp::Rv64Hyp;
 
 pub mod sbi;
 
+pub mod vscontext;
+
 extern crate register;
 use register::cpu::RegisterReadWrite;
 
