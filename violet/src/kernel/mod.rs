@@ -23,7 +23,7 @@ use dispatcher::minimal_dispatcher::MinimalDispatcher;
 use heap::init_allocater;
 use init_calls::*;
 use sched::fifo::FifoScheduler;
-use syscall::toppers::{cre_tsk, Ctsk};
+use syscall::vsi::create_task;
 use task::Task;
 
 use traits::dispatcher::TraitDispatcher;
@@ -61,18 +61,10 @@ pub extern "C" fn boot_init(cpu_id: usize) {
     test_entry();
 
     // CPU0にinit_callsを実行させる
-    cre_tsk(
-        1,
-        &Ctsk {
-            task: do_app_calls,
-            prcid: 0,
-        },
-    );
-
+    create_task(1, do_app_calls, 0);
+    
     // 他CPUをすべて起動させる
     wakeup_all_cpus(cpu_id);
-
-    //init_bsp(cpu_id);
 
     main_loop(cpu_id);
 }

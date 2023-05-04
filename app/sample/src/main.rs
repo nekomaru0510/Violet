@@ -18,7 +18,7 @@ use violet::driver::arch::rv64::vscontext::*;
 use violet::driver::traits::cpu::context::TraitContext;
 
 use violet::kernel::container::*; /* [todo delete] */
-use violet::kernel::syscall::toppers::{cre_tsk, Ctsk};
+use violet::kernel::syscall::vsi::create_task;
 
 use violet::app_init;
 app_init!(sample_main);
@@ -37,14 +37,6 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
         }
         sbi::Extension::HartStateManagement => {
             if fid == 0 {
-                /*
-                unsafe {
-                    VM.set_start_addr(regs.reg[A0], regs.reg[A1]);
-                    VM.set_boot_arg(regs.reg[A0], [regs.reg[A2], regs.reg[A2]]);
-                }*/
-
-                //cre_tsk(1+a0, &T_CTSK{task:secondary_boot, prcid:a0});
-
                 regs.reg[A0] = 0;
                 regs.reg[A1] = 0;
                 regs.epc = regs.epc + 4;
@@ -159,8 +151,6 @@ pub fn do_supervisor_timer_interrupt(_regs: &mut Registers) {
 }
 
 pub fn boot_linux() {
-    let cpu_id: usize = 0;
-
     unsafe {
         VM.setup();
     }
@@ -190,14 +180,6 @@ pub fn boot_linux() {
     );
 
     unsafe {
-        match VM.vcpu_mut(0) {
-            None => (),
-            Some(v) => {
-                v.context.set(JUMP_ADDR, 0x8020_0000);
-                v.context.set(ARG0, cpu_id);
-                v.context.set(ARG1, 0x8220_0000);
-            }
-        }
         VM.run();
     }
 }
@@ -205,10 +187,18 @@ pub fn boot_linux() {
 pub fn sample_main() {
     let boot_core = 1;
     let mut vplic = VPlic::new();
-    vplic.set_vcpu_config([boot_core, 0]); /* vcpu!=pcpu */
+    vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
     unsafe {
         /* CPU */
-        VM.register_cpu(0, 1);
+        VM.register_cpu(0, boot_core);      /* vcpu0 ... pcpu1 */
+        match VM.vcpu_mut(0) {
+            None => (),
+            Some(v) => {
+                v.context.set(JUMP_ADDR, 0x8020_0000);
+                v.context.set(ARG0, 0);
+                v.context.set(ARG1, 0x8220_0000);
+            }
+        }
         /* RAM */
         //VM.register_mem(0x8020_0000, 0x9020_0000, 0x1000_0000);
         VM.register_mem(0x8020_0000, 0x9020_0000, 0x0200_0000);
@@ -222,11 +212,6 @@ pub fn sample_main() {
         VM.register_dev(0x0c00_0000, 0x0400_0000, vplic);
     }
 
-    cre_tsk(
-        2,
-        &Ctsk {
-            task: boot_linux,
-            prcid: boot_core,
-        },
-    );
+    /* コア1でLinuxを起動させる */
+    create_task(2, boot_linux, boot_core);
 }
