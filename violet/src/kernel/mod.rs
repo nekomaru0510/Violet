@@ -62,7 +62,7 @@ pub extern "C" fn boot_init(cpu_id: usize) {
 
     // CPU0にinit_callsを実行させる
     create_task(1, do_app_calls, 0);
-    
+
     // 他CPUをすべて起動させる
     wakeup_all_cpus(cpu_id);
 

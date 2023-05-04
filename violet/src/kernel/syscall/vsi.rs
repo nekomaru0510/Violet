@@ -11,5 +11,3 @@ pub fn create_task(taskid: u64, task: fn(), prcid: usize) {
         SCHEDULER[prcid].register(task);
     }
 }
-
-

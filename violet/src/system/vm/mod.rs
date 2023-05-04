@@ -1,65 +1,17 @@
 //! VirtualMachine
+extern crate alloc;
+use alloc::boxed::Box;
+extern crate core;
+use core::intrinsics::transmute; // [todo delete]
 
-pub mod mm;
 pub mod vcpu;
 pub mod vdev;
 pub mod vmem;
 
-extern crate alloc;
-use alloc::boxed::Box;
-
 use crate::CPU;
 
+use crate::driver::arch::rv64::hyp::*;
 use crate::driver::arch::rv64::mmu::sv48::PageTableSv48;
-use crate::driver::arch::rv64::{Exception, Interrupt, PagingMode, TraitRisvCpu};
-use crate::driver::traits::cpu::TraitCpu;
-
-use mm::*; /* [todo delete] */
-extern crate core;
-use core::intrinsics::transmute;
-
-pub fn setup_boot() {
-    CPU.switch_hs_mode();
-
-    CPU.enable_interrupt();
-    CPU.set_default_vector();
-
-    enable_paging();
-
-    CPU.int.disable_mask_s(
-        Interrupt::SupervisorSoftwareInterrupt.mask()
-            | Interrupt::SupervisorTimerInterrupt.mask()
-            | Interrupt::SupervisorExternalInterrupt.mask(),
-    );
-
-    CPU.int.enable_mask_s(
-        Interrupt::VirtualSupervisorSoftwareInterrupt.mask()
-            | Interrupt::VirtualSupervisorTimerInterrupt.mask()
-            | Interrupt::VirtualSupervisorExternalInterrupt.mask()
-            | Interrupt::SupervisorGuestExternalInterrupt.mask(),
-    );
-
-    CPU.hyp.set_delegation_exc(
-        Exception::InstructionAddressMisaligned.mask()
-            | Exception::Breakpoint.mask()
-            | Exception::EnvironmentCallFromUmodeOrVUmode.mask()
-            | Exception::InstructionPageFault.mask()
-            | Exception::LoadPageFault.mask()
-            | Exception::StoreAmoPageFault.mask(),
-    );
-
-    CPU.hyp.set_delegation_int(
-        Interrupt::VirtualSupervisorSoftwareInterrupt.mask()
-            | Interrupt::VirtualSupervisorTimerInterrupt.mask()
-            | Interrupt::VirtualSupervisorExternalInterrupt.mask(),
-    );
-
-    CPU.hyp.flush_vsmode_interrupt(0xffff_ffff_ffff_ffff);
-
-    CPU.mmu.set_paging_mode(PagingMode::Bare);
-
-    CPU.hyp.enable_vsmode_counter_access(0xffff_ffff);
-}
 
 use vcpu::VirtualCpu;
 use vcpu::VirtualCpuMap;
@@ -87,7 +39,8 @@ impl VirtualMachine {
 
     pub fn setup(&self) {
         /* ゲスト起動前のデフォルトセットアップ */
-        setup_boot();
+        //setup_boot();
+        CPU.hyp.setup();
     }
 
     pub fn run(&mut self) {
@@ -126,7 +79,16 @@ impl VirtualMachine {
 
     pub fn map_guest_page(&mut self, guest_paddr: usize) {
         match self.vmem.get(guest_paddr) {
-            None => {}
+            None => {
+                /* 設定していないアドレスは、基本パススルーとする */
+                /* アクセス禁止にしたい場合、少なくとも、アクセス時の動作を設定する必要があるはず */
+                /* [todo fix] CPUトレイトから呼び出す */
+                map_vaddr::<PageTableSv48>(
+                    unsafe { transmute(CPU.hyp.get_hs_pagetable()) },
+                    guest_paddr,
+                    guest_paddr,
+                );
+            }
             Some(m) => {
                 match m.get_paddr(guest_paddr) {
                     None => {}
@@ -243,17 +205,17 @@ fn test_vcpu() -> Result<(), &'static str> {
     Ok(())
 }
 
-/*
 #[test_case]
 fn test_vmem() -> Result<(), &'static str> {
-    let mut vm: VirtualMachine = VirtualMachine::new(
-        0,           /* CPUマスク */
-        0x8020_0000, /* 開始アドレス(ジャンプ先) */
-        0x9000_0000, /* ベースアドレス(物理メモリ) */
-        0x1000_0000, /* メモリサイズ */
-    );
+    //let mut vm: VirtualMachine = VirtualMachine::new();
+    /*
+    VM.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
+    VM.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
+    VM.mem.register(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
+    VM.io.register(0x0c00_0000, 0x0400_0000, vplic); // 仮想デバイス追加したら、勝手にマップしないようにしたい？
+    */
 
     //vm.map_all_guest_page(); /* 登録されたページをすべてマップ(静的にマップするときに使う) */
     //vm.map_guest_page(guest_paddr); /* 指定ページをマップ(動的にマップするときに使う) */
     Ok(())
-}*/
+}

@@ -15,7 +15,7 @@ impl VirtualMemoryMap {
     pub fn register(&mut self, vaddr: usize, paddr: usize, size: usize) {
         /* [todo fix] メモリマップが被らないか確認 */
         self.map.push(VirtualMemoryArea::new(vaddr, paddr, size));
-        self.sort();
+        //self.sort();
     }
 
     /* [todo fix] 実装する */
@@ -39,13 +39,13 @@ impl VirtualMemoryMap {
     pub fn find(&self, addr: usize) -> Option<&VirtualMemoryArea> {
         self.map
             .iter()
-            .find(|e| e.vaddr <= addr && addr < e.vaddr + e.size)
+            .rfind(|e| e.vaddr <= addr && addr < e.vaddr + e.size)
     }
 
     pub fn find_mut(&mut self, addr: usize) -> Option<&mut VirtualMemoryArea> {
         self.map
             .iter_mut()
-            .find(|e| e.vaddr <= addr && addr < e.vaddr + e.size)
+            .rfind(|e| e.vaddr <= addr && addr < e.vaddr + e.size)
     }
 }
 

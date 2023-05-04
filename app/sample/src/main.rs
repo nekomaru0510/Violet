@@ -190,7 +190,7 @@ pub fn sample_main() {
     vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
     unsafe {
         /* CPU */
-        VM.register_cpu(0, boot_core);      /* vcpu0 ... pcpu1 */
+        VM.register_cpu(0, boot_core); /* vcpu0 ... pcpu1 */
         match VM.vcpu_mut(0) {
             None => (),
             Some(v) => {
@@ -200,15 +200,10 @@ pub fn sample_main() {
             }
         }
         /* RAM */
-        //VM.register_mem(0x8020_0000, 0x9020_0000, 0x1000_0000);
-        VM.register_mem(0x8020_0000, 0x9020_0000, 0x0200_0000);
+        VM.register_mem(0x8020_0000, 0x9020_0000, 0x1000_0000);
         VM.register_mem(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
-        VM.register_mem(0x8222_0000, 0x9222_0000, 0x8810_0000 - 0x8222_0000); // [todo fix] 隙間のマップは自動でできるように
         VM.register_mem(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
-        VM.register_mem(0x8830_0000, 0x9830_0000, 0x1000_0000);
-        /* MMIO */
-        VM.register_mem(0x0000_0000, 0x0000_0000, 0x0c00_0000);
-        VM.register_mem(0x1000_0000, 0x1000_0000, 0x7000_0000);
+                                                             /* MMIO */
         VM.register_dev(0x0c00_0000, 0x0400_0000, vplic);
     }
 
