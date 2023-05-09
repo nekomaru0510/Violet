@@ -2,14 +2,15 @@
 
 ## 概要
 Violetは、RISC-Vアーキテクチャ向けのハイパーバイザである。
-ハイパーバイザとして動作するアプリケーションを作成することが可能であり、ハイパーバイザに任意の機能を持たせることが可能である。
 
-## 現状可能なこと
-* QEMU7.0.0上での動作
-* Linux単体での起動
+## 動作環境
+QEMU7.0.0 (virt)
+
+## 対応OS
+Linux5.17(単体)
 
 ## 対応アーキテクチャ
-* RISC-V
+RISC-V (64bit, H拡張)
 
 ## 環境構築方法
 VSCode拡張のRemote-Containersを利用することを想定。
@@ -29,11 +30,16 @@ OpenSBI、Linux、Busyboxのビルド
 Violet本体のビルド
 ```
 % rustup target add riscv64imac-unknown-none-elf
-% cargo make build
+% cargo build
 ```
+※ 以降、`cargo build`のみでビルド可能
 
 ## 実行方法
 ```
-% cargo make run
+% cargo run
 ```
+
+## License
+This software is released under the MIT License, see LICENSE.txt.
+
 
