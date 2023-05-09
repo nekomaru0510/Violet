@@ -54,6 +54,7 @@ use csr::Csr;
 
 #[derive(Clone)]
 pub struct Rv64 {
+    pub scratch: Scratch, /* scratchレジスタが指す構造体 */
     pub id: u64,             /* CPUのid */
     pub status: CpuStatus,   /* 状態 */
     pub mode: PrivilegeMode, /* 動作モード */
@@ -63,7 +64,7 @@ pub struct Rv64 {
     pub exc: Rv64Exc,
     pub mmu: Rv64Mmu,
     pub hyp: Rv64Hyp,
-    pub scratch: Scratch, /* scratchレジスタが指す構造体 */
+    
 }
 
 #[derive(Clone)]
@@ -408,4 +409,50 @@ pub trait TraitRisvCpu {
     fn switch_hs_mode(&self);
     /* 次の特権モードの設定 */
     fn set_next_mode(&self, mode: PrivilegeMode);
+}
+
+#[test_case]
+fn test_rv64() -> Result<(), &'static str> {
+    
+    /*
+    cpu!()
+    cpu().
+
+    /*  */
+    cpu().register_interrupt(
+        Interrupt::SupervisorExternalInterrupt,
+        do_supervisor_external_interrupt,
+    );
+
+    /* トレイトに指定されてる機能 割込みを有効化 */
+    cpu().enable_int(
+        Interrupt::SupervisorTimerInterrupt | Interrupt::SupervisorExternalInterrupt,
+    );
+
+    /* トレイトに指定されていない機能(↓の機能はトレイトに入れてもいいかも) */
+    cpu().inst.fetch(addr);
+    Rv64::get_cpuid()
+    rv64::Instruction::fetch(addr);
+    Instruction::fetch(addr);
+    Rv64::Csr::stvec::set(addr);
+
+    /* CPUの拡張機能追加関連は、トレイトでまとめてもよい */
+    /* register(id: usize, obj: T) */
+    /* as_ref, as_mutみたいな感じで。hashmapとか使える？ */
+    /* 命令の追加 */
+    cpu().inst.insert(id, Instruction::new(format, opcode, funct));
+    cpu().inst.get(id); /* 命令の取得(Vecみたいにアクセスしたい) */
+    cpu().inst.analyse(inst); /* 命令の判定 */
+    cpu().inst[id].call();    /* 命令の呼び出し */
+
+    /* レジスタ(CSR)の追加 */
+    cpu().csr.register(id, Csr::new());
+    cpu().csr(stvec).read(); /* read/write */
+
+    /* 例外・割込みの追加 */
+    cpu().int.register(id);
+    cpu().exc.register(id);
+*/
+    /* MMU機能追加(難しい。後で) */    
+    Ok(())
 }

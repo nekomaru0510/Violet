@@ -39,7 +39,6 @@ impl VirtualMachine {
 
     pub fn setup(&self) {
         /* ゲスト起動前のデフォルトセットアップ */
-        //setup_boot();
         CPU.hyp.setup();
     }
 
@@ -204,6 +203,7 @@ fn test_vcpu() -> Result<(), &'static str> {
 
     Ok(())
 }
+
 
 #[test_case]
 fn test_vmem() -> Result<(), &'static str> {

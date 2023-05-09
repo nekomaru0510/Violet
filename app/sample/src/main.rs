@@ -154,7 +154,7 @@ pub fn boot_linux() {
     unsafe {
         VM.setup();
     }
-
+    
     /* 割込みを有効化 */
     CPU.int.enable_mask_s(
         Interrupt::SupervisorTimerInterrupt.mask() | Interrupt::SupervisorExternalInterrupt.mask(),

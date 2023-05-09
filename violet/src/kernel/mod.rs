@@ -99,6 +99,30 @@ fn idle_core() {
     CPU.inst.wfi();
 }
 
+extern crate alloc;
+use alloc::boxed::Box;
+use heap::{TraitHeap, HEAP};
+
+pub struct Kernel {
+    heap: Box<&'static mut (dyn TraitHeap + 'static)>,
+}
+
+impl Kernel {
+    pub fn new(heap: Box<&'static mut (dyn TraitHeap + 'static)>) -> Self {
+        Kernel{
+            heap,
+        }
+    }
+
+    pub fn create_custom_kernel(container_id: usize) -> Self {
+        Kernel::new(
+            Box::new(unsafe { &mut HEAP })
+        )
+    }
+}
+
+
+
 /* [todo fix] 本来はコアごと？にスケジューラ、ディスパッチャを指定したい */
 pub static mut SCHEDULER: [FifoScheduler<Task>; 2] = [FifoScheduler::new(), FifoScheduler::new()];
 

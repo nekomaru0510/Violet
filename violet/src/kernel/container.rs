@@ -10,9 +10,11 @@ use crate::driver::traits::cpu::TraitCpu;
 use crate::driver::traits::intc::TraitIntc;
 use crate::driver::traits::serial::TraitSerial;
 use crate::driver::traits::timer::TraitTimer;
+use crate::kernel::Kernel;
 
 pub struct Container {
     pub id: usize,
+    pub kernel: Kernel,
     pub cpu: Vec<Option<Box<dyn TraitCpu>>>,
     pub serial: Option<Box<dyn TraitSerial>>,
     pub intc: Option<Box<dyn TraitIntc>>,
@@ -23,6 +25,7 @@ impl Container {
     pub fn new(id: usize) -> Self {
         Container {
             id,
+            kernel: Kernel::create_custom_kernel(id),
             cpu: Vec::new(),
             intc: None,
             serial: None,
