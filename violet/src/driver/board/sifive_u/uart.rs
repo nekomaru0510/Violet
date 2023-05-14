@@ -71,7 +71,7 @@ impl Write for Uart {
 use crate::driver_init;
 use crate::kernel::container::*;
 
-driver_init!(init_uart);
+//driver_init!(init_uart);
 
 fn init_uart() {
     let uart = Uart::new(0x1000_0000); /* [todo fix]ベースアドレスは、設定ファイル等を参照して得る */

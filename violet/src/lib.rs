@@ -36,16 +36,4 @@ pub fn test_entry() {
     test_main();
 }
 
-/* 無いとコンパイルエラー(言語仕様) */
-use core::panic::PanicInfo;
-#[panic_handler]
-#[no_mangle]
-pub fn panic(_info: &PanicInfo) -> ! {
-    loop {}
-}
 
-/* 無いとコンパイルエラー */
-#[no_mangle]
-pub extern "C" fn abort(_info: &PanicInfo) -> ! {
-    loop {}
-}

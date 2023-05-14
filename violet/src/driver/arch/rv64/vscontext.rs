@@ -2,7 +2,7 @@
 
 use super::regs::Registers;
 use super::regs::*;
-use crate::driver::arch::rv64::{PrivilegeMode, TraitRisvCpu};
+use crate::driver::arch::rv64::PrivilegeMode;
 use crate::driver::traits::cpu::context::TraitContext;
 use crate::driver::traits::cpu::registers::TraitRegisters;
 use crate::CPU;

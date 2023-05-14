@@ -110,7 +110,7 @@ impl Plic {
 use crate::driver_init;
 use crate::kernel::container::*;
 
-driver_init!(init_plic);
+//driver_init!(init_plic);
 
 fn init_plic() {
     let plic = Plic::new(0x0C00_0000); /* [todo fix]ベースアドレスは、設定ファイル等を参照して得る */

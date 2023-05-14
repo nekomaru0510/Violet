@@ -10,7 +10,6 @@ pub mod regs;
 use regs::Registers;
 
 pub mod boot;
-use boot::_start_trap;
 
 pub mod mmu;
 use mmu::Rv64Mmu;
@@ -31,6 +30,10 @@ pub mod sbi;
 
 pub mod vscontext;
 
+pub mod trap;
+use trap::{TrapHandler, INTERRUPT_HANDLER, EXCEPTION_HANDLER};
+use trap::_start_trap;
+
 extern crate register;
 use register::cpu::RegisterReadWrite;
 
@@ -40,9 +43,9 @@ use core::intrinsics::transmute;
 
 pub mod csr;
 use csr::hstatus::*;
-use csr::scause::*;
 use csr::sepc::*;
 use csr::sstatus::*;
+use csr::scause::*;
 use csr::stval::*;
 use csr::vscause::*;
 use csr::vsepc::*;
@@ -52,7 +55,7 @@ use csr::vstval::*;
 use csr::vstvec::*;
 use csr::Csr;
 
-#[derive(Clone)]
+//#[derive(Clone)]
 pub struct Rv64 {
     pub scratch: Scratch, /* scratchレジスタが指す構造体 */
     pub id: u64,             /* CPUのid */
@@ -64,6 +67,7 @@ pub struct Rv64 {
     pub exc: Rv64Exc,
     pub mmu: Rv64Mmu,
     pub hyp: Rv64Hyp,
+    trap: TrapHandler,
     
 }
 
@@ -118,6 +122,7 @@ impl Rv64 {
             mmu: Rv64Mmu::new(),
             hyp: Rv64Hyp::new(),
             scratch: Scratch::new(id),
+            trap: TrapHandler::new(),
         }
     }
 
@@ -131,7 +136,7 @@ impl Rv64 {
         self.set_vector(_start_trap as usize);
     }
 
-    pub fn set_vector(&self, addr: usize) {
+    fn set_vector(&self, addr: usize) {
         match self.mode {
             PrivilegeMode::ModeM => {
                 self.csr.mtvec.set(addr as u64);
@@ -141,6 +146,46 @@ impl Rv64 {
             }
             _ => {}
         }
+    }
+
+    pub fn register_interrupt(&self, int_num: Interrupt, func: fn(regs: &mut Registers)) {
+        unsafe {
+            INTERRUPT_HANDLER[int_num as usize] = Some(func);
+        }
+        //self.trap.register_interrupt(int_num, func);
+    }
+
+    pub fn register_exception(&self, exc_num: Exception, func: fn(regs: &mut Registers)) {
+        unsafe {
+            EXCEPTION_HANDLER[exc_num as usize] = Some(func);
+        }
+        //self.trap.register_exception(exc_num, func);
+    }
+
+    pub fn switch_hs_mode(&self) {
+        /* 次の動作モードをHS-modeに */
+        self.set_next_mode(PrivilegeMode::ModeHS);
+        /* 次の動作モードへ切替え */
+        self.inst.jump_by_sret(0, 0, 0);
+    }
+
+    pub fn set_next_mode(&self, mode: PrivilegeMode) {
+        match mode {
+            PrivilegeMode::ModeS => {
+                self.csr.sstatus.modify(sstatus::SPP::SET);
+                self.csr.hstatus.modify(hstatus::SPV::CLEAR);
+            }
+            PrivilegeMode::ModeVS => {
+                self.csr.sstatus.modify(sstatus::SPP::SET);
+                self.csr.hstatus.modify(hstatus::SPV::SET);
+                self.csr.hstatus.modify(hstatus::SPVP::SET);
+            }
+            PrivilegeMode::ModeHS => {
+                self.csr.sstatus.modify(sstatus::SPP::SET);
+                self.csr.hstatus.modify(hstatus::SPV::CLEAR);
+            }
+            _ => (),
+        };
     }
 }
 
@@ -176,60 +221,6 @@ impl TraitCpu for Rv64 {
     }
 }
 
-const NUM_OF_INTERRUPTS: usize = 32;
-const NUM_OF_EXCEPTIONS: usize = 32;
-
-pub static mut INTERRUPT_HANDLER: [Option<fn(regs: &mut Registers)>; NUM_OF_INTERRUPTS] =
-    [None; NUM_OF_INTERRUPTS];
-pub static mut EXCEPTION_HANDLER: [Option<fn(regs: &mut Registers)>; NUM_OF_EXCEPTIONS] =
-    [None; NUM_OF_EXCEPTIONS];
-
-////////////////////////////////
-/* アーキテクチャ依存機能の実装 */
-///////////////////////////////
-impl TraitRisvCpu for Rv64 {
-    fn register_interrupt(&self, int_num: Interrupt, func: fn(regs: &mut Registers)) {
-        unsafe {
-            INTERRUPT_HANDLER[int_num as usize] = Some(func);
-        }
-    }
-
-    fn register_exception(&self, exc_num: Exception, func: fn(regs: &mut Registers)) {
-        unsafe {
-            EXCEPTION_HANDLER[exc_num as usize] = Some(func);
-        }
-    }
-
-    fn switch_hs_mode(&self) {
-        /* 次の動作モードをHS-modeに */
-        self.set_next_mode(PrivilegeMode::ModeHS);
-        /* 次の動作モードへ切替え */
-        self.inst.jump_by_sret(0, 0, 0);
-    }
-
-    fn set_next_mode(&self, mode: PrivilegeMode) {
-        match mode {
-            PrivilegeMode::ModeS => {
-                self.csr.sstatus.modify(sstatus::SPP::SET);
-                self.csr.hstatus.modify(hstatus::SPV::CLEAR);
-            }
-            PrivilegeMode::ModeVS => {
-                self.csr.sstatus.modify(sstatus::SPP::SET);
-                self.csr.hstatus.modify(hstatus::SPV::SET);
-                self.csr.hstatus.modify(hstatus::SPVP::SET);
-            }
-            PrivilegeMode::ModeHS => {
-                self.csr.sstatus.modify(sstatus::SPP::SET);
-                self.csr.hstatus.modify(hstatus::SPV::CLEAR);
-            }
-            _ => (),
-        };
-    }
-}
-
-////////////////////////////////
-/* 関数(アセンブリから飛んでくる関数) */
-////////////////////////////////
 
 /* カーネルの起動処理 */
 use crate::kernel::boot_init;
@@ -239,31 +230,6 @@ use crate::kernel::boot_init;
 #[no_mangle]
 pub extern "C" fn setup_cpu(cpu_id: usize) {
     boot_init(cpu_id);
-}
-
-// 割込み・例外ハンドラ
-#[cfg(target_arch = "riscv64")]
-#[no_mangle]
-pub extern "C" fn trap_handler(regs: &mut Registers) {
-    /* 割込み・例外要因 */
-    let scause = Scause {};
-    let e: usize = scause.read(scause::EXCEPTION) as usize;
-    let i: usize = scause.read(scause::INTERRUPT) as usize;
-
-    /* 割込み・例外ハンドラの呼出し */
-    unsafe {
-        match i {
-            0 => match EXCEPTION_HANDLER[e] {
-                Some(func) => func(regs),
-                None => (),
-            },
-            1 => match INTERRUPT_HANDLER[e] {
-                Some(func) => func(regs),
-                None => (),
-            },
-            _ => (),
-        };
-    }
 }
 
 use crate::CPU;
@@ -397,18 +363,6 @@ pub enum PagingMode {
     Sv39x4 = 8,
     Sv48x4 = 9,
     Sv57x4 = 10,
-}
-
-pub trait TraitRisvCpu {
-    /* 割込みの登録 */
-    fn register_interrupt(&self, int_num: Interrupt, func: fn(regs: &mut Registers));
-    /* 例外の登録 */
-    fn register_exception(&self, exc_num: Exception, func: fn(regs: &mut Registers));
-
-    /* HS-modeへの切替え */
-    fn switch_hs_mode(&self);
-    /* 次の特権モードの設定 */
-    fn set_next_mode(&self, mode: PrivilegeMode);
 }
 
 #[test_case]

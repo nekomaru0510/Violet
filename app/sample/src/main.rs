@@ -12,7 +12,7 @@ use violet::system::vm::VirtualMachine;
 use violet::driver::arch::rv64::inst::*;
 use violet::driver::arch::rv64::regs::*;
 use violet::driver::arch::rv64::sbi;
-use violet::driver::arch::rv64::{Exception, Interrupt, TraitRisvCpu};
+use violet::driver::arch::rv64::{Exception, Interrupt};
 
 use violet::driver::arch::rv64::vscontext::*;
 use violet::driver::traits::cpu::context::TraitContext;

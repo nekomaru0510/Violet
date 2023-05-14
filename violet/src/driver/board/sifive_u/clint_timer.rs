@@ -64,7 +64,7 @@ impl ClintTimer {
 use crate::driver_init;
 use crate::kernel::container::*;
 
-driver_init!(init_clinttimer);
+//driver_init!(init_clinttimer);
 
 fn init_clinttimer() {
     let timer = ClintTimer::new(0x0200_4000); /* [todo fix]ベースアドレスは、設定ファイル等を参照して得る */

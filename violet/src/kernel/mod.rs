@@ -8,6 +8,7 @@ pub mod sched;
 pub mod syscall;
 pub mod task;
 pub mod traits;
+mod panic;
 
 use crate::CPU;
 
@@ -46,9 +47,6 @@ pub extern "C" fn boot_init(cpu_id: usize) {
     unsafe {
         init_allocater(transmute(&__HEAP_BASE), transmute(&__HEAP_END));
     }
-
-    /* ルートコンテナの生成 */
-    create_container();
 
     init_environment();
     do_driver_calls();
