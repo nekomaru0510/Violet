@@ -5,7 +5,7 @@ use core::panic::PanicInfo;
 #[panic_handler]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
-    if let Some(s) = panic.payload().downcast_ref::<&str>() {
+    if let Some(s) = info.payload().downcast_ref::<&str>() {
         println!("[Violet] panic occurred: {:?}", s);
     } else {
         println!("[Violet] panic occurred");

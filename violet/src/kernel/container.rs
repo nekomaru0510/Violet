@@ -96,48 +96,13 @@ pub fn current_mut_container() -> Option<&'static mut Box<Container>> {
     get_mut_container(current_container_id())
 }
 
-extern crate core;
-use core::intrinsics::transmute;
-
-/* コンテナ隠ぺい用関数 */
-pub fn cpu_mut() -> &'static mut dyn TraitCpu {
-    let con = get_mut_container(current_container_id());
-    match con {
-        /* [todo fix]コンテナが複数あった際に、cpuのインデックス=cpuidとならない */
-        Some(c) => { 
-            match c.cpu[get_cpuid()].as_mut() {
-                None => {
-                    panic!("Nothing Cpu in Container");
-                },
-                Some(p) => {
-                    unsafe {transmute(p.as_mut()) }
-                }
-            }
-        }, 
-        None => {
-            panic!("Nothing Container");
-        },
-    }
-}
-
 #[cfg(test)]
 use crate::driver::board::sifive_u::uart::Uart;
-#[cfg(test)]
-use crate::driver::arch::rv64::Rv64;
 
 #[test_case]
 fn test_context() -> Result<(), &'static str> {
     create_container();
-    let con = get_mut_container(0);
-    match con {
-        Some(c) => c.register_cpu(Rv64::new(0)),
-        None => (),
-    }
-    //cpu_mut::<Rv64>().wakeup();
-    cpu_mut().wakeup();
-
-    unsafe{ transmute::<&'static mut dyn TraitCpu, &mut Rv64>(cpu_mut()).set_default_vector();}
-
+    
     let uart = Uart::new(0x1000_0000);
     let con = get_mut_container(0);
     match con {

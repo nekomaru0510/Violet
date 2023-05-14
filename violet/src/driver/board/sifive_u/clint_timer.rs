@@ -61,7 +61,7 @@ impl ClintTimer {
     }
 }
 
-use crate::driver_init;
+//use crate::driver_init;
 use crate::kernel::container::*;
 
 //driver_init!(init_clinttimer);
