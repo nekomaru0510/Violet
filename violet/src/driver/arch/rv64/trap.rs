@@ -4,15 +4,11 @@ use register::cpu::RegisterReadWrite;
 
 use super::csr::scause::*;
 use super::regs::Registers;
-use super::{Interrupt, Exception};
+use super::{Exception, Interrupt};
+use crate::environment::cpu;
 
 const NUM_OF_INTERRUPTS: usize = 32;
 const NUM_OF_EXCEPTIONS: usize = 32;
-
-pub static mut INTERRUPT_HANDLER: [Option<fn(regs: &mut Registers)>; NUM_OF_INTERRUPTS] =
-    [None; NUM_OF_INTERRUPTS];
-pub static mut EXCEPTION_HANDLER: [Option<fn(regs: &mut Registers)>; NUM_OF_EXCEPTIONS] =
-    [None; NUM_OF_EXCEPTIONS];
 
 pub struct TrapHandler {
     interrupt_handler: [Option<fn(regs: &mut Registers)>; NUM_OF_INTERRUPTS],
@@ -34,6 +30,20 @@ impl TrapHandler {
     pub fn register_exception(&mut self, exc_num: Exception, func: fn(regs: &mut Registers)) {
         self.exception_handler[exc_num as usize] = Some(func);
     }
+
+    pub fn call_interrupt_handler(&self, int_num: usize, regs: &mut Registers) {
+        match self.interrupt_handler[int_num] {
+            None => (),
+            Some(func) => func(regs),
+        }
+    }
+
+    pub fn call_exception_handler(&self, exc_num: usize, regs: &mut Registers) {
+        match self.exception_handler[exc_num] {
+            None => (),
+            Some(func) => func(regs),
+        }
+    }
 }
 
 // 割込み・例外ハンドラ
@@ -46,19 +56,11 @@ pub extern "C" fn trap_handler(regs: &mut Registers) {
     let i: usize = scause.read(scause::INTERRUPT) as usize;
 
     /* 割込み・例外ハンドラの呼出し */
-    unsafe {
-        match i {
-            0 => match EXCEPTION_HANDLER[e] {
-                Some(func) => func(regs),
-                None => (),
-            },
-            1 => match INTERRUPT_HANDLER[e] {
-                Some(func) => func(regs),
-                None => (),
-            },
-            _ => (),
-        };
-    }
+    match i {
+        0 => cpu().trap.call_exception_handler(e, regs),
+        1 => cpu().trap.call_interrupt_handler(e, regs),
+        _ => (),
+    };
 }
 
 #[cfg(target_arch = "riscv64")]
@@ -186,4 +188,3 @@ pub extern "C" fn _start_trap() {
         : "volatile");
     }
 }
-

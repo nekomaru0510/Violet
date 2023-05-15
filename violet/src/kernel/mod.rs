@@ -4,14 +4,15 @@ pub mod container;
 pub mod dispatcher;
 pub mod heap;
 pub mod init_calls;
+mod panic;
 pub mod sched;
 pub mod syscall;
 pub mod task;
 pub mod traits;
-mod panic;
 
 use crate::CPU;
 
+use crate::environment::get_mut_container; /* [todo delete] */
 use crate::environment::init_environment;
 use crate::environment::NUM_OF_CPUS;
 use crate::print;
@@ -19,7 +20,6 @@ use crate::println;
 #[cfg(test)]
 use crate::test_entry;
 
-use container::*;
 use dispatcher::minimal_dispatcher::MinimalDispatcher;
 use heap::init_allocater;
 use init_calls::*;
@@ -32,6 +32,7 @@ use traits::sched::TraitSched;
 
 use crate::driver::arch::rv64::boot::_start_ap; // [todo delete]
 use crate::driver::arch::rv64::sbi; // [todo delete]
+use crate::driver::traits::cpu::TraitCpu;
 
 extern crate core;
 use core::intrinsics::transmute;
@@ -107,19 +108,13 @@ pub struct Kernel {
 
 impl Kernel {
     pub fn new(heap: Box<&'static mut (dyn TraitHeap + 'static)>) -> Self {
-        Kernel{
-            heap,
-        }
+        Kernel { heap }
     }
 
     pub fn create_custom_kernel(container_id: usize) -> Self {
-        Kernel::new(
-            Box::new(unsafe { &mut HEAP })
-        )
+        Kernel::new(Box::new(unsafe { &mut HEAP }))
     }
 }
-
-
 
 /* [todo fix] 本来はコアごと？にスケジューラ、ディスパッチャを指定したい */
 pub static mut SCHEDULER: [FifoScheduler<Task>; 2] = [FifoScheduler::new(), FifoScheduler::new()];

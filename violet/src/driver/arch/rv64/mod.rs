@@ -31,7 +31,7 @@ pub mod sbi;
 pub mod vscontext;
 
 pub mod trap;
-use trap::{TrapHandler, INTERRUPT_HANDLER, EXCEPTION_HANDLER};
+use trap::TrapHandler;
 use trap::_start_trap;
 
 extern crate register;
@@ -43,9 +43,9 @@ use core::intrinsics::transmute;
 
 pub mod csr;
 use csr::hstatus::*;
+use csr::scause::*;
 use csr::sepc::*;
 use csr::sstatus::*;
-use csr::scause::*;
 use csr::stval::*;
 use csr::vscause::*;
 use csr::vsepc::*;
@@ -57,7 +57,7 @@ use csr::Csr;
 
 //#[derive(Clone)]
 pub struct Rv64 {
-    pub scratch: Scratch, /* scratchレジスタが指す構造体 */
+    pub scratch: Scratch,    /* scratchレジスタが指す構造体 */
     pub id: u64,             /* CPUのid */
     pub status: CpuStatus,   /* 状態 */
     pub mode: PrivilegeMode, /* 動作モード */
@@ -68,7 +68,6 @@ pub struct Rv64 {
     pub mmu: Rv64Mmu,
     pub hyp: Rv64Hyp,
     trap: TrapHandler,
-    
 }
 
 #[derive(Clone)]
@@ -148,18 +147,12 @@ impl Rv64 {
         }
     }
 
-    pub fn register_interrupt(&self, int_num: Interrupt, func: fn(regs: &mut Registers)) {
-        unsafe {
-            INTERRUPT_HANDLER[int_num as usize] = Some(func);
-        }
-        //self.trap.register_interrupt(int_num, func);
+    pub fn register_interrupt(&mut self, int_num: Interrupt, func: fn(regs: &mut Registers)) {
+        self.trap.register_interrupt(int_num, func);
     }
 
-    pub fn register_exception(&self, exc_num: Exception, func: fn(regs: &mut Registers)) {
-        unsafe {
-            EXCEPTION_HANDLER[exc_num as usize] = Some(func);
-        }
-        //self.trap.register_exception(exc_num, func);
+    pub fn register_exception(&mut self, exc_num: Exception, func: fn(regs: &mut Registers)) {
+        self.trap.register_exception(exc_num, func);
     }
 
     pub fn switch_hs_mode(&self) {
@@ -220,7 +213,6 @@ impl TraitCpu for Rv64 {
         sbi::sbi_send_ipi(&hart_mask);
     }
 }
-
 
 /* カーネルの起動処理 */
 use crate::kernel::boot_init;
@@ -367,46 +359,45 @@ pub enum PagingMode {
 
 #[test_case]
 fn test_rv64() -> Result<(), &'static str> {
-    
     /*
-    cpu!()
-    cpu().
+        cpu!()
+        cpu().
 
-    /*  */
-    cpu().register_interrupt(
-        Interrupt::SupervisorExternalInterrupt,
-        do_supervisor_external_interrupt,
-    );
+        /*  */
+        cpu().register_interrupt(
+            Interrupt::SupervisorExternalInterrupt,
+            do_supervisor_external_interrupt,
+        );
 
-    /* トレイトに指定されてる機能 割込みを有効化 */
-    cpu().enable_int(
-        Interrupt::SupervisorTimerInterrupt | Interrupt::SupervisorExternalInterrupt,
-    );
+        /* トレイトに指定されてる機能 割込みを有効化 */
+        cpu().enable_int(
+            Interrupt::SupervisorTimerInterrupt | Interrupt::SupervisorExternalInterrupt,
+        );
 
-    /* トレイトに指定されていない機能(↓の機能はトレイトに入れてもいいかも) */
-    cpu().inst.fetch(addr);
-    Rv64::get_cpuid()
-    rv64::Instruction::fetch(addr);
-    Instruction::fetch(addr);
-    Rv64::Csr::stvec::set(addr);
+        /* トレイトに指定されていない機能(↓の機能はトレイトに入れてもいいかも) */
+        cpu().inst.fetch(addr);
+        Rv64::get_cpuid()
+        rv64::Instruction::fetch(addr);
+        Instruction::fetch(addr);
+        Rv64::Csr::stvec::set(addr);
 
-    /* CPUの拡張機能追加関連は、トレイトでまとめてもよい */
-    /* register(id: usize, obj: T) */
-    /* as_ref, as_mutみたいな感じで。hashmapとか使える？ */
-    /* 命令の追加 */
-    cpu().inst.insert(id, Instruction::new(format, opcode, funct));
-    cpu().inst.get(id); /* 命令の取得(Vecみたいにアクセスしたい) */
-    cpu().inst.analyse(inst); /* 命令の判定 */
-    cpu().inst[id].call();    /* 命令の呼び出し */
+        /* CPUの拡張機能追加関連は、トレイトでまとめてもよい */
+        /* register(id: usize, obj: T) */
+        /* as_ref, as_mutみたいな感じで。hashmapとか使える？ */
+        /* 命令の追加 */
+        cpu().inst.insert(id, Instruction::new(format, opcode, funct));
+        cpu().inst.get(id); /* 命令の取得(Vecみたいにアクセスしたい) */
+        cpu().inst.analyse(inst); /* 命令の判定 */
+        cpu().inst[id].call();    /* 命令の呼び出し */
 
-    /* レジスタ(CSR)の追加 */
-    cpu().csr.register(id, Csr::new());
-    cpu().csr(stvec).read(); /* read/write */
+        /* レジスタ(CSR)の追加 */
+        cpu().csr.register(id, Csr::new());
+        cpu().csr(stvec).read(); /* read/write */
 
-    /* 例外・割込みの追加 */
-    cpu().int.register(id);
-    cpu().exc.register(id);
-*/
-    /* MMU機能追加(難しい。後で) */    
+        /* 例外・割込みの追加 */
+        cpu().int.register(id);
+        cpu().exc.register(id);
+    */
+    /* MMU機能追加(難しい。後で) */
     Ok(())
 }

@@ -125,7 +125,6 @@ impl TraitHeap for SlabAllocator {
             HeapAllocator::Slab4096Bytes => self.slab_4096_bytes.deallocate(ptr),
         }
     }
-
 }
 
 pub struct Slab {

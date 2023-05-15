@@ -1,6 +1,6 @@
 //! stdライブラリ
 
-use crate::kernel::container::*;
+use crate::environment::current_mut_container; /* [todo delete] */
 use core::fmt::{self};
 use core::ptr::{read_volatile, write_volatile};
 

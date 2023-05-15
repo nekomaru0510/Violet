@@ -1,5 +1,5 @@
 //! Panic Function
-use crate::{println, print};
+use crate::{print, println};
 use core::panic::PanicInfo;
 
 #[panic_handler]
@@ -12,11 +12,12 @@ pub fn panic(info: &PanicInfo) -> ! {
     }
 
     if let Some(location) = info.location() {
-        println!("[Violet] panic occurred in file '{}' at line {}",
+        println!(
+            "[Violet] panic occurred in file '{}' at line {}",
             location.file(),
             location.line(),
-        ); 
-    }    
+        );
+    }
 
     loop {}
 }

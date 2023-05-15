@@ -204,7 +204,6 @@ fn test_vcpu() -> Result<(), &'static str> {
     Ok(())
 }
 
-
 #[test_case]
 fn test_vmem() -> Result<(), &'static str> {
     //let mut vm: VirtualMachine = VirtualMachine::new();

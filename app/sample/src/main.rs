@@ -5,6 +5,7 @@
 extern crate violet;
 
 use violet::CPU;
+use violet::environment::cpu_mut;
 
 use violet::system::vm::vdev::vplic::VPlic;
 use violet::system::vm::VirtualMachine;
@@ -17,7 +18,7 @@ use violet::driver::arch::rv64::{Exception, Interrupt};
 use violet::driver::arch::rv64::vscontext::*;
 use violet::driver::traits::cpu::context::TraitContext;
 
-use violet::kernel::container::*; /* [todo delete] */
+use violet::environment::current_container; /* [todo delete] */
 use violet::kernel::syscall::vsi::create_task;
 
 use violet::app_init;
@@ -161,20 +162,20 @@ pub fn boot_linux() {
     );
 
     /* 割込みハンドラの登録 */
-    CPU.register_interrupt(
+    cpu_mut().register_interrupt(
         Interrupt::SupervisorTimerInterrupt,
         do_supervisor_timer_interrupt,
     );
-    CPU.register_interrupt(
+    cpu_mut().register_interrupt(
         Interrupt::SupervisorExternalInterrupt,
         do_supervisor_external_interrupt,
     );
 
     /* 例外ハンドラの登録 */
-    CPU.register_exception(Exception::EnvironmentCallFromVSmode, do_ecall_from_vsmode);
-    CPU.register_exception(Exception::LoadGuestPageFault, do_guest_load_page_fault);
-    CPU.register_exception(Exception::StoreAmoGuestPageFault, do_guest_store_page_fault);
-    CPU.register_exception(
+    cpu_mut().register_exception(Exception::EnvironmentCallFromVSmode, do_ecall_from_vsmode);
+    cpu_mut().register_exception(Exception::LoadGuestPageFault, do_guest_load_page_fault);
+    cpu_mut().register_exception(Exception::StoreAmoGuestPageFault, do_guest_store_page_fault);
+    cpu_mut().register_exception(
         Exception::InstructionGuestPageFault,
         do_guest_instruction_page_fault,
     );

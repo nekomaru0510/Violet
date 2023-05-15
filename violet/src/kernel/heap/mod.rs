@@ -3,8 +3,8 @@
 pub mod slab;
 
 extern crate alloc;
+use crate::environment::current_mut_container; /* [todo delete] */
 use alloc::alloc::{GlobalAlloc, Layout};
-use crate::kernel::container::current_mut_container;
 use slab::SlabAllocator;
 
 #[global_allocator]
@@ -32,20 +32,15 @@ unsafe impl GlobalAlloc for HeapOperator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         match current_mut_container() {
             None => HEAP.allocate(layout),
-            Some(c) => {
-                c.kernel.heap.as_mut().allocate(layout)
-            },
+            Some(c) => c.kernel.heap.as_mut().allocate(layout),
         }
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         match current_mut_container() {
             None => HEAP.deallocate(ptr, layout),
-            Some(c) => {
-                c.kernel.heap.as_mut().deallocate(ptr, layout)
-            },
+            Some(c) => c.kernel.heap.as_mut().deallocate(ptr, layout),
         }
-        
     }
 }
 
@@ -54,7 +49,6 @@ pub trait TraitHeap {
     fn allocate(&mut self, layout: Layout) -> *mut u8;
     unsafe fn deallocate(&mut self, ptr: *mut u8, layout: Layout);
 }
-
 
 #[alloc_error_handler]
 fn on_oom(_layout: Layout) -> ! {
