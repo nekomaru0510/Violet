@@ -4,13 +4,15 @@
 
 extern crate violet;
 
-use violet::CPU;
 use violet::environment::cpu_mut;
+use violet::CPU;
 
 use violet::system::vm::vdev::vplic::VPlic;
 use violet::system::vm::VirtualMachine;
 
-use violet::driver::arch::rv64::inst::*;
+use violet::driver::arch::rv64::instruction::load::Load;
+use violet::driver::arch::rv64::instruction::store::Store;
+use violet::driver::arch::rv64::instruction::*;
 use violet::driver::arch::rv64::regs::*;
 use violet::driver::arch::rv64::sbi;
 use violet::driver::arch::rv64::{Exception, Interrupt};
@@ -49,7 +51,7 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
         _ => {}
     }
 
-    let ret = CPU.inst.do_ecall(
+    let ret = Instruction::ecall(
         ext,
         fid,
         regs.reg[A0],
@@ -67,23 +69,22 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
 }
 
 /* [todo delete] */
-use violet::system::vm::vdev::read_raw;
-fn fetch_inst(epc: usize) -> usize {
-    read_raw((epc & 0x0_ffff_ffff) + 0x1000_0000 + 0x20_0000)
+fn topaddr(epc: usize) -> usize {
+    (epc & 0x0_ffff_ffff) + 0x1000_0000 + 0x20_0000
 }
 
 pub fn do_guest_store_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
 
-    let inst = fetch_inst(regs.epc);
-    let val = get_store_value(inst, regs);
+    let inst = Instruction::fetch(topaddr(regs.epc));
+    let val = Store::from_val(inst).store_value(regs);
 
     match unsafe { VM.write_dev(fault_paddr, val) } {
         None => unsafe {
             VM.map_guest_page(CPU.hyp.get_vs_fault_paddr() as usize);
         },
         Some(()) => {
-            regs.epc = regs.epc + inst_size(inst);
+            regs.epc = regs.epc + Instruction::len(inst);
             CPU.hyp
                 .flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
         }
@@ -92,15 +93,16 @@ pub fn do_guest_store_page_fault(regs: &mut Registers) {
 
 pub fn do_guest_load_page_fault(regs: &mut Registers) {
     let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
-    let inst = fetch_inst(regs.epc);
+    //let inst = fetch_inst(regs.epc);
+    let inst = Instruction::fetch(topaddr(regs.epc));
 
     match unsafe { VM.read_dev(fault_paddr) } {
         None => unsafe {
             VM.map_guest_page(CPU.hyp.get_vs_fault_paddr() as usize);
         },
         Some(x) => {
-            regs.reg[get_load_reg(inst)] = x;
-            regs.epc = regs.epc + inst_size(inst);
+            regs.reg[Load::from_val(inst).dst()/*get_load_reg(inst)*/] = x;
+            regs.epc = regs.epc + Instruction::len(inst);
         }
     }
 }
@@ -155,7 +157,7 @@ pub fn boot_linux() {
     unsafe {
         VM.setup();
     }
-    
+
     /* 割込みを有効化 */
     CPU.int.enable_mask_s(
         Interrupt::SupervisorTimerInterrupt.mask() | Interrupt::SupervisorExternalInterrupt.mask(),

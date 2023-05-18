@@ -1,7 +1,6 @@
 //! SBI
 
-use crate::CPU;
-
+use super::instruction::Instruction;
 use core::intrinsics::transmute;
 
 pub enum Extension {
@@ -51,7 +50,7 @@ pub fn sbi_set_timer(stime_value: u64) -> (usize, usize) {
     let fid = 0 as i32;
     let a0 = stime_value as usize;
 
-    CPU.inst.do_ecall(ext, fid, a0, 0, 0, 0, 0, 0)
+    Instruction::ecall(ext, fid, a0, 0, 0, 0, 0, 0)
 }
 
 pub fn sbi_send_ipi(hart_mask: &u64) -> (usize, usize) {
@@ -59,7 +58,7 @@ pub fn sbi_send_ipi(hart_mask: &u64) -> (usize, usize) {
     let fid = 0 as i32;
     let a0: usize = unsafe { transmute(hart_mask) };
 
-    CPU.inst.do_ecall(ext, fid, a0, 0, 0, 0, 0, 0)
+    Instruction::ecall(ext, fid, a0, 0, 0, 0, 0, 0)
 }
 
 pub fn sbi_hart_start(hartid: u64, start_addr: u64, opaque: u64) -> (usize, usize) {
@@ -69,14 +68,14 @@ pub fn sbi_hart_start(hartid: u64, start_addr: u64, opaque: u64) -> (usize, usiz
     let a1 = start_addr as usize;
     let a2 = opaque as usize;
 
-    CPU.inst.do_ecall(ext, fid, a0, a1, a2, 0, 0, 0)
+    Instruction::ecall(ext, fid, a0, a1, a2, 0, 0, 0)
 }
 
 pub fn sbi_hart_stop() -> (usize, usize) {
     let ext = Extension::HartStateManagement as i32;
     let fid = 1 as i32;
 
-    CPU.inst.do_ecall(ext, fid, 0, 0, 0, 0, 0, 0)
+    Instruction::ecall(ext, fid, 0, 0, 0, 0, 0, 0)
 }
 
 pub fn sbi_hart_getstatus(hartid: u64) -> (usize, usize) {
@@ -84,7 +83,7 @@ pub fn sbi_hart_getstatus(hartid: u64) -> (usize, usize) {
     let fid = 2 as i32;
     let a0 = hartid as usize;
 
-    CPU.inst.do_ecall(ext, fid, a0, 0, 0, 0, 0, 0)
+    Instruction::ecall(ext, fid, a0, 0, 0, 0, 0, 0)
 }
 
 pub fn sbi_hart_suspend(suspend_type: u32, resume_addr: u64, opaque: u64) -> (usize, usize) {
@@ -94,5 +93,5 @@ pub fn sbi_hart_suspend(suspend_type: u32, resume_addr: u64, opaque: u64) -> (us
     let a1 = resume_addr as usize;
     let a2 = opaque as usize;
 
-    CPU.inst.do_ecall(ext, fid, a0, a1, a2, 0, 0, 0)
+    Instruction::ecall(ext, fid, a0, a1, a2, 0, 0, 0)
 }

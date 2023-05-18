@@ -14,8 +14,8 @@ pub mod boot;
 pub mod mmu;
 use mmu::Rv64Mmu;
 
-pub mod inst;
-use inst::Rv64Inst;
+pub mod instruction;
+use instruction::Instruction;
 
 pub mod int;
 use int::Rv64Int;
@@ -23,8 +23,8 @@ use int::Rv64Int;
 pub mod exc;
 use exc::Rv64Exc;
 
-pub mod hyp;
-use hyp::Rv64Hyp;
+pub mod extension;
+use extension::hypervisor::Rv64Hyp;
 
 pub mod sbi;
 
@@ -62,7 +62,7 @@ pub struct Rv64 {
     pub status: CpuStatus,   /* 状態 */
     pub mode: PrivilegeMode, /* 動作モード */
     pub csr: Csr,            /* CSR [todo delete]*/
-    pub inst: Rv64Inst,
+    //pub inst: Instruction,
     pub int: Rv64Int,
     pub exc: Rv64Exc,
     pub mmu: Rv64Mmu,
@@ -115,7 +115,7 @@ impl Rv64 {
             status: CpuStatus::STARTED,
             mode: PrivilegeMode::ModeS,
             csr: Csr::new(),
-            inst: Rv64Inst::new(),
+            //inst: Instruction::new(),
             int: Rv64Int::new(),
             exc: Rv64Exc::new(),
             mmu: Rv64Mmu::new(),
@@ -159,7 +159,7 @@ impl Rv64 {
         /* 次の動作モードをHS-modeに */
         self.set_next_mode(PrivilegeMode::ModeHS);
         /* 次の動作モードへ切替え */
-        self.inst.jump_by_sret(0, 0, 0);
+        Instruction::sret(0, 0, 0);
     }
 
     pub fn set_next_mode(&self, mode: PrivilegeMode) {

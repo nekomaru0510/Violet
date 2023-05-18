@@ -10,7 +10,7 @@ pub mod vmem;
 
 use crate::CPU;
 
-use crate::driver::arch::rv64::hyp::*;
+use crate::driver::arch::rv64::extension::hypervisor::*;
 use crate::driver::arch::rv64::mmu::sv48::PageTableSv48;
 
 use vcpu::VirtualCpu;

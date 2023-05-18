@@ -10,8 +10,6 @@ pub mod syscall;
 pub mod task;
 pub mod traits;
 
-use crate::CPU;
-
 use crate::environment::get_mut_container; /* [todo delete] */
 use crate::environment::init_environment;
 use crate::environment::NUM_OF_CPUS;
@@ -31,6 +29,7 @@ use traits::dispatcher::TraitDispatcher;
 use traits::sched::TraitSched;
 
 use crate::driver::arch::rv64::boot::_start_ap; // [todo delete]
+use crate::driver::arch::rv64::instruction::Instruction; // [todo delete]
 use crate::driver::arch::rv64::sbi; // [todo delete]
 use crate::driver::traits::cpu::TraitCpu;
 
@@ -95,7 +94,7 @@ fn wakeup_all_cpus(cpu_id: usize) {
 }
 
 fn idle_core() {
-    CPU.inst.wfi();
+    Instruction::wfi();
 }
 
 extern crate alloc;

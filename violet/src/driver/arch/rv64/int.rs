@@ -26,27 +26,25 @@ impl Rv64Int {
 
     /* supervisorモードの割込みを有効化 */
     pub fn enable_s(&self) {
-        //self.sstatus.modify(sstatus::SIE::SET);
         Sstatus.modify(sstatus::SIE::SET);
     }
 
     /* supervisorモードの割込みを無効化 */
     pub fn disable_s(&self) {
-        //self.sstatus.modify(sstatus::SIE::CLEAR);
         Sstatus.modify(sstatus::SIE::CLEAR);
     }
 
     /* supervisorモードの指定割込みを有効化 */
     pub fn enable_mask_s(&self, int_mask: usize) {
         let sint_mask = 0x222 & int_mask; // sieの有効ビットでマスク
-        self.sie.set(self.sie.get() | sint_mask as u64);
+        Sie.set(Sie.get() | sint_mask as u64);
     }
 
     /* supervisorモードの指定割込みを無効化 */
     pub fn disable_mask_s(&self, int_mask: usize) {
         let sint_mask = 0x222 & int_mask; // sieの有効ビットでマスク
                                           //self.sie.set(self.sie.get() & !(sint_mask as u64));
-        Sie.set(self.sie.get() & !(sint_mask as u64));
+        Sie.set(Sie.get() & !(sint_mask as u64));
     }
 }
 
@@ -138,10 +136,12 @@ fn test_interrupt() -> Result<(), &'static str> {
         int_id: 33,
         event_id: 8,
     };
-    table.register(int);
 
-    // イベントID取得
-    table.current_event();
-
-    Ok(())
+    if table.register(int) == Err(()) {
+        Err("Failed to register interrupt")
+    } else {
+        // イベントID取得
+        table.current_event();
+        Ok(())
+    }
 }

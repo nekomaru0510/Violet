@@ -112,7 +112,8 @@ pub fn current_mut_container() -> Option<&'static mut Box<Container<Arch>>> {
     get_mut_container(current_container_id())
 }
 
-//#[cfg(test)]
+#[cfg(test)]
+use crate::driver::traits::cpu::TraitCpu;
 //use crate::driver::arch::rv64::Rv64;
 #[test_case]
 fn test_cpuget() -> Result<(), &'static str> {

@@ -11,6 +11,7 @@
 #![reexport_test_harness_main = "test_main"]
 /* warning抑制 */
 #![allow(dead_code)]
+#![allow(unused_macros)]
 #![allow(unused_variables)]
 #![no_std]
 

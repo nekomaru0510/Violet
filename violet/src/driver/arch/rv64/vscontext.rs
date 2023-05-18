@@ -1,5 +1,6 @@
 //! RISC-V用 ゲストOS用コンテキスト
 
+use super::instruction::Instruction;
 use super::regs::Registers;
 use super::regs::*;
 use crate::driver::arch::rv64::PrivilegeMode;
@@ -60,8 +61,7 @@ impl TraitContext for VsContext {
 
     fn jump(&self) {
         CPU.set_next_mode(PrivilegeMode::ModeVS);
-        CPU.inst
-            .jump_by_sret(self.get(JUMP_ADDR), self.get(ARG0), self.get(ARG1));
+        Instruction::sret(self.get(JUMP_ADDR), self.get(ARG0), self.get(ARG1));
     }
 }
 
