@@ -1,6 +1,4 @@
 //! 動作環境
-//pub mod qemu;
-
 use crate::kernel::container::*;
 
 /* デバイスドライバ */

@@ -1,2 +1,0 @@
-//! QEMU(RISCV virt)
-
