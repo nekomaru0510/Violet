@@ -12,9 +12,9 @@ BUSYBOX_OUTPUT_FILE=`bash -c "source ${THISFILE_PATH}/busybox.sh && echo '${OUTP
 # インストール
 function install () {
     cd ${RISCV_PATH}
-    git clone https://github.com/torvalds/linux
+    git clone https://github.com/torvalds/linux -b v5.17 --depth 1
 	cd ${TARGET_PATH}
-	git checkout v5.17
+	#git checkout v5.17
 }
 
 # ビルド
@@ -27,9 +27,6 @@ function build () {
     riscv64-unknown-elf-objcopy -O binary \
         ${TARGET_PATH}/vmlinux \
         ${TARGET_PATH}/vmlinux.bin
-    
-    # シンボリックリンクの生成
-    ln -s ${TARGET_PATH}/vmlinux.bin ${OUTPUT_FILE}
 }
 
 # 単体実行

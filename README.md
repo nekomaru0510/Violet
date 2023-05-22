@@ -18,10 +18,10 @@ VSCode拡張のRemote-Containersを利用することを想定しています。
 
 Dockerを利用しない場合は、Dockerfileを見て環境構築をしてください。
 下記がインストールされていれば、動作します。
-* riscv-gnu-toolchain
 * QEMU(8.0.0)
 * Rust
 * cargo-make
+* riscv-gnu-toolchain (OpenSBIやLinux等をビルドする場合に必要)
 
 ### ビルド方法
 OpenSBI、Linux、Busyboxのインストール・ビルド
