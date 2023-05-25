@@ -5,20 +5,22 @@
 extern crate violet;
 
 use violet::environment::cpu_mut;
-use violet::CPU;
 
 use violet::system::vm::vdev::vplic::VPlic;
 use violet::system::vm::VirtualMachine;
 
+use violet::driver::arch::rv64::extension::hypervisor::Hext;
 use violet::driver::arch::rv64::instruction::load::Load;
 use violet::driver::arch::rv64::instruction::store::Store;
 use violet::driver::arch::rv64::instruction::*;
 use violet::driver::arch::rv64::regs::*;
 use violet::driver::arch::rv64::sbi;
-use violet::driver::arch::rv64::{Exception, Interrupt};
-
+use violet::driver::arch::rv64::trap::int::Interrupt;
+use violet::driver::arch::rv64::trap::TrapVector;
 use violet::driver::arch::rv64::vscontext::*;
+
 use violet::driver::traits::cpu::context::TraitContext;
+use violet::driver::traits::cpu::TraitCpu;
 
 use violet::environment::current_container; /* [todo delete] */
 use violet::kernel::syscall::vsi::create_task;
@@ -35,8 +37,9 @@ pub fn do_ecall_from_vsmode(regs: &mut Registers) {
     match sbi::Extension::from_ext(ext) {
         /* タイマセット */
         sbi::Extension::SetTimer | sbi::Extension::Timer => {
-            CPU.hyp
-                .flush_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
+            Hext::flush_vsmode_interrupt(Interrupt::bit(
+                Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
+            ));
         }
         sbi::Extension::HartStateManagement => {
             if fid == 0 {
@@ -74,34 +77,34 @@ fn topaddr(epc: usize) -> usize {
 }
 
 pub fn do_guest_store_page_fault(regs: &mut Registers) {
-    let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
+    let fault_paddr = Hext::get_vs_fault_paddr() as usize;
 
     let inst = Instruction::fetch(topaddr(regs.epc));
     let val = Store::from_val(inst).store_value(regs);
 
     match unsafe { VM.write_dev(fault_paddr, val) } {
         None => unsafe {
-            VM.map_guest_page(CPU.hyp.get_vs_fault_paddr() as usize);
+            VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
         },
         Some(()) => {
             regs.epc = regs.epc + Instruction::len(inst);
-            CPU.hyp
-                .flush_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
+            Hext::flush_vsmode_interrupt(Interrupt::bit(
+                Interrupt::VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT,
+            ));
         }
     }
 }
 
 pub fn do_guest_load_page_fault(regs: &mut Registers) {
-    let fault_paddr = CPU.hyp.get_vs_fault_paddr() as usize;
-    //let inst = fetch_inst(regs.epc);
+    let fault_paddr = Hext::get_vs_fault_paddr() as usize;
     let inst = Instruction::fetch(topaddr(regs.epc));
 
     match unsafe { VM.read_dev(fault_paddr) } {
         None => unsafe {
-            VM.map_guest_page(CPU.hyp.get_vs_fault_paddr() as usize);
+            VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
         },
         Some(x) => {
-            regs.reg[Load::from_val(inst).dst()/*get_load_reg(inst)*/] = x;
+            regs.reg[Load::from_val(inst).dst()] = x;
             regs.epc = regs.epc + Instruction::len(inst);
         }
     }
@@ -109,7 +112,7 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
 
 pub fn do_guest_instruction_page_fault(_regs: &mut Registers) {
     unsafe {
-        VM.map_guest_page(CPU.hyp.get_vs_fault_paddr() as usize);
+        VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
     }
 }
 
@@ -134,8 +137,9 @@ pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
     }
 
     // 仮想外部割込みを発生させる
-    CPU.hyp
-        .assert_vsmode_interrupt(Interrupt::VirtualSupervisorExternalInterrupt.mask());
+    Hext::assert_vsmode_interrupt(Interrupt::bit(
+        Interrupt::VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT,
+    ));
 
     // PLICでペンディングビットをクリア
     match &con.unwrap().intc {
@@ -149,8 +153,9 @@ pub fn do_supervisor_timer_interrupt(_regs: &mut Registers) {
     sbi::sbi_set_timer(0xffff_ffff_ffff_ffff);
 
     /* ゲストにタイマ割込みをあげる */
-    CPU.hyp
-        .assert_vsmode_interrupt(Interrupt::VirtualSupervisorTimerInterrupt.mask());
+    Hext::assert_vsmode_interrupt(Interrupt::bit(
+        Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
+    ));
 }
 
 pub fn boot_linux() {
@@ -159,26 +164,33 @@ pub fn boot_linux() {
     }
 
     /* 割込みを有効化 */
-    CPU.int.enable_mask_s(
-        Interrupt::SupervisorTimerInterrupt.mask() | Interrupt::SupervisorExternalInterrupt.mask(),
+    Interrupt::enable_mask_s(
+        Interrupt::bit(Interrupt::SUPERVISOR_TIMER_INTERRUPT)
+            | Interrupt::bit(Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT),
     );
 
     /* 割込みハンドラの登録 */
-    cpu_mut().register_interrupt(
-        Interrupt::SupervisorTimerInterrupt,
+    cpu_mut().register_vector(
+        TrapVector::SUPERVISOR_TIMER_INTERRUPT,
         do_supervisor_timer_interrupt,
     );
-    cpu_mut().register_interrupt(
-        Interrupt::SupervisorExternalInterrupt,
+    cpu_mut().register_vector(
+        TrapVector::SUPERVISOR_EXTERNAL_INTERRUPT,
         do_supervisor_external_interrupt,
     );
 
     /* 例外ハンドラの登録 */
-    cpu_mut().register_exception(Exception::EnvironmentCallFromVSmode, do_ecall_from_vsmode);
-    cpu_mut().register_exception(Exception::LoadGuestPageFault, do_guest_load_page_fault);
-    cpu_mut().register_exception(Exception::StoreAmoGuestPageFault, do_guest_store_page_fault);
-    cpu_mut().register_exception(
-        Exception::InstructionGuestPageFault,
+    cpu_mut().register_vector(
+        TrapVector::ENVIRONMENT_CALL_FROM_VSMODE,
+        do_ecall_from_vsmode,
+    );
+    cpu_mut().register_vector(TrapVector::LOAD_GUEST_PAGE_FAULT, do_guest_load_page_fault);
+    cpu_mut().register_vector(
+        TrapVector::STORE_AMO_GUEST_PAGE_FAULT,
+        do_guest_store_page_fault,
+    );
+    cpu_mut().register_vector(
+        TrapVector::INSTRUCTION_GUEST_PAGE_FAULT,
         do_guest_instruction_page_fault,
     );
 

@@ -1,76 +1,55 @@
 //! RV64I CPU ドライバ
 
-/*  */
-use crate::environment::STACK_SIZE;
-
-/* ドライバ用トレイト */
-use crate::driver::traits::cpu::TraitCpu;
-
-pub mod regs;
-use regs::Registers;
-
 pub mod boot;
-
-pub mod mmu;
-use mmu::Rv64Mmu;
-
-pub mod instruction;
-use instruction::Instruction;
-
-pub mod int;
-use int::Rv64Int;
-
-pub mod exc;
-use exc::Rv64Exc;
-
+pub mod csr;
 pub mod extension;
-use extension::hypervisor::Rv64Hyp;
-
+pub mod instruction;
+pub mod mmu;
+pub mod regs;
 pub mod sbi;
-
+pub mod trap;
 pub mod vscontext;
 
-pub mod trap;
-use trap::TrapHandler;
-use trap::_start_trap;
-
+/*  */
+use crate::environment::STACK_SIZE;
+/* ドライバ用トレイト */
+use crate::driver::traits::cpu::TraitCpu;
 extern crate register;
 use register::cpu::RegisterReadWrite;
 
-extern crate alloc;
+use instruction::Instruction;
+use mmu::Rv64Mmu;
+use regs::Registers;
+use trap::TrapVector;
+use trap::_start_trap;
+use trap::int::Interrupt;
+
 extern crate core;
 use core::intrinsics::transmute;
 
-pub mod csr;
 use csr::hstatus::*;
-use csr::scause::*;
-use csr::sepc::*;
+use csr::mtvec::Mtvec;
+use csr::scause::Scause;
+use csr::sepc::Sepc;
+use csr::sscratch::Sscratch;
 use csr::sstatus::*;
-use csr::stval::*;
-use csr::vscause::*;
-use csr::vsepc::*;
-use csr::vsie::*;
+use csr::stval::Stval;
+use csr::stvec::Stvec;
+use csr::vscause::Vscause;
+use csr::vsepc::Vsepc;
+use csr::vsie::Vsie;
 use csr::vsstatus::*;
-use csr::vstval::*;
-use csr::vstvec::*;
-use csr::Csr;
+use csr::vstval::Vstval;
+use csr::vstvec::Vstvec;
 
-//#[derive(Clone)]
 pub struct Rv64 {
     pub scratch: Scratch,    /* scratchレジスタが指す構造体 */
-    pub id: u64,             /* CPUのid */
-    pub status: CpuStatus,   /* 状態 */
     pub mode: PrivilegeMode, /* 動作モード */
-    pub csr: Csr,            /* CSR [todo delete]*/
-    //pub inst: Instruction,
-    pub int: Rv64Int,
-    pub exc: Rv64Exc,
     pub mmu: Rv64Mmu,
-    pub hyp: Rv64Hyp,
-    trap: TrapHandler,
+    trap: TrapVector,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub enum CpuStatus {
     STOPPED = 0x00, /* 停止中(Violetとしても管理できてない) */
     STARTED,        /* 起動中 */
@@ -84,6 +63,7 @@ pub struct Scratch {
     sp: usize,
     tmp0: usize,
     stack_size: usize,
+    status: CpuStatus,
 }
 
 impl Scratch {
@@ -93,6 +73,7 @@ impl Scratch {
             sp: 0x0,
             tmp0: 0x0,
             stack_size: STACK_SIZE,
+            status: CpuStatus::STARTED,
         }
     }
 
@@ -105,30 +86,56 @@ impl Scratch {
     }
 }
 
+impl TraitCpu for Rv64 {
+    type Registers = Registers;
+
+    fn core_init(&self) {
+        self.set_sscratch();
+        self.set_default_vector();
+        self.enable_interrupt();
+    }
+
+    fn wakeup(&self) {
+        sbi::sbi_hart_start(self.scratch.cpu_id, boot::_start_ap as u64, 0xabcd);
+    }
+
+    fn sleep(&self) {
+        sbi::sbi_hart_stop();
+    }
+
+    fn register_vector(&mut self, vecid: usize, func: fn(regs: &mut Self::Registers)) {
+        self.trap.register_vector(vecid, func);
+    }
+
+    fn enable_interrupt(&self) {
+        Interrupt::enable_s();
+    }
+
+    fn disable_interrupt(&self) {
+        Interrupt::disable_s();
+    }
+
+    fn ipi(&self, core_id: usize) {
+        let hart_mask: u64 = 0x01 << core_id;
+        sbi::sbi_send_ipi(&hart_mask);
+    }
+}
+
 ////////////////////////////////
 /* ハードウェア依存の機能の実装 */
 ///////////////////////////////
 impl Rv64 {
     pub const fn new(id: u64) -> Self {
         Rv64 {
-            id,
-            status: CpuStatus::STARTED,
             mode: PrivilegeMode::ModeS,
-            csr: Csr::new(),
-            //inst: Instruction::new(),
-            int: Rv64Int::new(),
-            exc: Rv64Exc::new(),
             mmu: Rv64Mmu::new(),
-            hyp: Rv64Hyp::new(),
             scratch: Scratch::new(id),
-            trap: TrapHandler::new(),
+            trap: TrapVector::new(),
         }
     }
 
     pub fn set_sscratch(&self) {
-        unsafe {
-            self.csr.sscratch.set(transmute(&self.scratch));
-        }
+        Sscratch.set(unsafe { transmute(&self.scratch) });
     }
 
     pub fn set_default_vector(&self) {
@@ -138,79 +145,39 @@ impl Rv64 {
     fn set_vector(&self, addr: usize) {
         match self.mode {
             PrivilegeMode::ModeM => {
-                self.csr.mtvec.set(addr as u64);
+                Mtvec.set(addr as u64);
             }
             PrivilegeMode::ModeS => {
-                self.csr.stvec.set(addr as u64);
+                Stvec.set(addr as u64);
             }
             _ => {}
         }
     }
 
-    pub fn register_interrupt(&mut self, int_num: Interrupt, func: fn(regs: &mut Registers)) {
-        self.trap.register_interrupt(int_num, func);
-    }
-
-    pub fn register_exception(&mut self, exc_num: Exception, func: fn(regs: &mut Registers)) {
-        self.trap.register_exception(exc_num, func);
-    }
-
-    pub fn switch_hs_mode(&self) {
+    pub fn switch_hs_mode() {
         /* 次の動作モードをHS-modeに */
-        self.set_next_mode(PrivilegeMode::ModeHS);
+        Self::set_next_mode(PrivilegeMode::ModeHS);
         /* 次の動作モードへ切替え */
         Instruction::sret(0, 0, 0);
     }
 
-    pub fn set_next_mode(&self, mode: PrivilegeMode) {
+    pub fn set_next_mode(mode: PrivilegeMode) {
         match mode {
             PrivilegeMode::ModeS => {
-                self.csr.sstatus.modify(sstatus::SPP::SET);
-                self.csr.hstatus.modify(hstatus::SPV::CLEAR);
+                Sstatus.modify(sstatus::SPP::SET);
+                Hstatus.modify(hstatus::SPV::CLEAR);
             }
             PrivilegeMode::ModeVS => {
-                self.csr.sstatus.modify(sstatus::SPP::SET);
-                self.csr.hstatus.modify(hstatus::SPV::SET);
-                self.csr.hstatus.modify(hstatus::SPVP::SET);
+                Sstatus.modify(sstatus::SPP::SET);
+                Hstatus.modify(hstatus::SPV::SET);
+                Hstatus.modify(hstatus::SPVP::SET);
             }
             PrivilegeMode::ModeHS => {
-                self.csr.sstatus.modify(sstatus::SPP::SET);
-                self.csr.hstatus.modify(hstatus::SPV::CLEAR);
+                Sstatus.modify(sstatus::SPP::SET);
+                Hstatus.modify(hstatus::SPV::CLEAR);
             }
             _ => (),
         };
-    }
-}
-
-//////////////////////////////////////
-/* (一般的な)CPUとして必要な機能の実装 */
-//////////////////////////////////////
-impl TraitCpu for Rv64 {
-    fn core_init(&self) {
-        self.set_sscratch();
-        self.set_default_vector();
-        self.enable_interrupt();
-    }
-
-    fn wakeup(&self) {
-        sbi::sbi_hart_start(self.id, boot::_start_ap as u64, 0xabcd);
-    }
-
-    fn sleep(&self) {
-        sbi::sbi_hart_stop();
-    }
-
-    fn enable_interrupt(&self) {
-        self.int.enable_s();
-    }
-
-    fn disable_interrupt(&self) {
-        self.int.disable_s();
-    }
-
-    fn ipi(&self, core_id: usize) {
-        let hart_mask: u64 = 0x01 << core_id;
-        sbi::sbi_send_ipi(&hart_mask);
     }
 }
 
@@ -224,12 +191,11 @@ pub extern "C" fn setup_cpu(cpu_id: usize) {
     boot_init(cpu_id);
 }
 
-use crate::CPU;
 #[no_mangle]
 pub extern "C" fn get_cpuid() -> usize {
     unsafe {
-        let scratch: &Scratch = transmute(CPU.csr.sscratch.get());
-        if CPU.csr.sscratch.get() == 0 {
+        let scratch: &Scratch = transmute(Sscratch.get());
+        if Sscratch.get() == 0 {
             0
         } else {
             scratch.cpu_id as usize
@@ -295,59 +261,6 @@ pub enum PrivilegeMode {
     ModeU,
     ModeVS,
     ModeVU,
-}
-
-/* 割込み */
-#[derive(Clone, Copy)]
-pub enum Interrupt {
-    SupervisorSoftwareInterrupt = 1,
-    VirtualSupervisorSoftwareInterrupt,
-    MachineSoftwareInterrupt,
-    SupervisorTimerInterrupt = 5,
-    VirtualSupervisorTimerInterrupt,
-    MachineTimerInterrupt,
-    SupervisorExternalInterrupt = 9,
-    VirtualSupervisorExternalInterrupt,
-    MachineExternalInterrupt,
-    SupervisorGuestExternalInterrupt = 12,
-    //CustomInterrupt(usize),
-}
-
-impl Interrupt {
-    pub fn mask(&self) -> usize {
-        1 << *self as usize
-    }
-}
-
-/* 例外 */
-#[derive(Clone, Copy)]
-pub enum Exception {
-    InstructionAddressMisaligned = 0,
-    InstructionAccessFault,
-    IllegalInstruction,
-    Breakpoint,
-    LoadAddressMisaligned,
-    LoadAccessFault,
-    StoreAmoAddressMisaligned,
-    StoreAmoAccessFault,
-    EnvironmentCallFromUmodeOrVUmode,
-    EnvironmentCallFromHSmode,
-    EnvironmentCallFromVSmode,
-    EnvironmentCallFromMmode,
-    InstructionPageFault,
-    LoadPageFault = 13,
-    StoreAmoPageFault = 15,
-    InstructionGuestPageFault = 20,
-    LoadGuestPageFault,
-    VirtualInstruction,
-    StoreAmoGuestPageFault,
-    //CustomException(usize),
-}
-
-impl Exception {
-    pub fn mask(&self) -> usize {
-        1 << *self as usize
-    }
 }
 
 pub enum PagingMode {

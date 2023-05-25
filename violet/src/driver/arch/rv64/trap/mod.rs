@@ -1,11 +1,96 @@
 //! 例外・割込みのトラップ
+pub mod exc;
+pub mod int;
+
 extern crate register;
 use register::cpu::RegisterReadWrite;
 
 use super::csr::scause::*;
 use super::regs::Registers;
-use super::{Exception, Interrupt};
+use super::trap::exc::Exception;
+use super::trap::int::Interrupt;
 use crate::environment::cpu;
+
+/* 割込み・例外ベクタ */
+pub struct TrapVector {
+    handler: TrapHandler,
+}
+
+impl TrapVector {
+    pub const INTERRUPT_OFFSET: usize = 0x8000_0000_0000_0000;
+
+    pub const SUPERVISOR_SOFTWARE_INTERRUPT: usize =
+        Interrupt::SUPERVISOR_SOFTWARE_INTERRUPT + Self::INTERRUPT_OFFSET;
+    pub const VIRTUAL_SUPERVISOR_SOFTWARE_INTERRUPT: usize =
+        Interrupt::VIRTUAL_SUPERVISOR_SOFTWARE_INTERRUPT + Self::INTERRUPT_OFFSET;
+    pub const MACHINE_SOFTWARE_INTERRUPT: usize =
+        Interrupt::MACHINE_SOFTWARE_INTERRUPT + Self::INTERRUPT_OFFSET;
+    pub const SUPERVISOR_TIMER_INTERRUPT: usize =
+        Interrupt::SUPERVISOR_TIMER_INTERRUPT + Self::INTERRUPT_OFFSET;
+    pub const VIRTUAL_SUPERVISOR_TIMER_INTERRUPT: usize =
+        Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT + Self::INTERRUPT_OFFSET;
+    pub const MACHINE_TIMER_INTERRUPT: usize =
+        Interrupt::MACHINE_TIMER_INTERRUPT + Self::INTERRUPT_OFFSET;
+    pub const SUPERVISOR_EXTERNAL_INTERRUPT: usize =
+        Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT + Self::INTERRUPT_OFFSET;
+    pub const VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT: usize =
+        Interrupt::VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT + Self::INTERRUPT_OFFSET;
+    pub const MACHINE_EXTERNAL_INTERRUPT: usize =
+        Interrupt::MACHINE_EXTERNAL_INTERRUPT + Self::INTERRUPT_OFFSET;
+    pub const SUPERVISOR_GUEST_EXTERNAL_INTERRUPT: usize =
+        Interrupt::SUPERVISOR_GUEST_EXTERNAL_INTERRUPT + Self::INTERRUPT_OFFSET;
+
+    pub const INSTRUCTION_ADDRESS_MISALIGNED: usize = Exception::INSTRUCTION_ADDRESS_MISALIGNED;
+    pub const INSTRUCTION_ACCESS_FAULT: usize = Exception::INSTRUCTION_ACCESS_FAULT;
+    pub const ILLEGAL_INSTRUCTION: usize = Exception::ILLEGAL_INSTRUCTION;
+    pub const BREAKPOINT: usize = Exception::BREAKPOINT;
+    pub const LOAD_ADDRESS_MISALIGNED: usize = Exception::LOAD_ADDRESS_MISALIGNED;
+    pub const LOAD_ACCESS_FAULT: usize = Exception::LOAD_ACCESS_FAULT;
+    pub const STORE_AMO_ADDRESS_MISALIGNED: usize = Exception::STORE_AMO_ADDRESS_MISALIGNED;
+    pub const STORE_AMO_ACCESS_FAULT: usize = Exception::STORE_AMO_ACCESS_FAULT;
+    pub const ENVIRONMENT_CALL_FROM_UMODE_OR_VUMODE: usize =
+        Exception::ENVIRONMENT_CALL_FROM_UMODE_OR_VUMODE;
+    pub const ENVIRONMENT_CALL_FROM_HSMODE: usize = Exception::ENVIRONMENT_CALL_FROM_HSMODE;
+    pub const ENVIRONMENT_CALL_FROM_VSMODE: usize = Exception::ENVIRONMENT_CALL_FROM_VSMODE;
+    pub const ENVIRONMENT_CALL_FROM_MMODE: usize = Exception::ENVIRONMENT_CALL_FROM_MMODE;
+    pub const INSTRUCTION_PAGE_FAULT: usize = Exception::INSTRUCTION_PAGE_FAULT;
+    pub const LOAD_PAGE_FAULT: usize = Exception::LOAD_PAGE_FAULT;
+    pub const STORE_AMO_PAGE_FAULT: usize = Exception::STORE_AMO_PAGE_FAULT;
+    pub const INSTRUCTION_GUEST_PAGE_FAULT: usize = Exception::INSTRUCTION_GUEST_PAGE_FAULT;
+    pub const LOAD_GUEST_PAGE_FAULT: usize = Exception::LOAD_GUEST_PAGE_FAULT;
+    pub const VIRTUAL_INSTRUCTION: usize = Exception::VIRTUAL_INSTRUCTION;
+    pub const STORE_AMO_GUEST_PAGE_FAULT: usize = Exception::STORE_AMO_GUEST_PAGE_FAULT;
+
+    pub const fn new() -> Self {
+        TrapVector {
+            handler: TrapHandler::new(),
+        }
+    }
+
+    pub fn register_vector(&mut self, vecid: usize, func: fn(regs: &mut Registers)) {
+        /* Interrupt */
+        if vecid > Self::INTERRUPT_OFFSET {
+            self.handler
+                .register_interrupt(vecid - Self::INTERRUPT_OFFSET, func);
+        }
+        /* Exception */
+        else {
+            self.handler.register_exception(vecid, func);
+        }
+    }
+
+    pub fn call_vector(&self, vecid: usize, regs: &mut Registers) {
+        /* Interrupt */
+        if vecid > Self::INTERRUPT_OFFSET {
+            self.handler
+                .call_interrupt_handler(vecid - Self::INTERRUPT_OFFSET, regs);
+        }
+        /* Exception */
+        else {
+            self.handler.call_exception_handler(vecid, regs);
+        }
+    }
+}
 
 const NUM_OF_INTERRUPTS: usize = 32;
 const NUM_OF_EXCEPTIONS: usize = 32;
@@ -23,12 +108,12 @@ impl TrapHandler {
         }
     }
 
-    pub fn register_interrupt(&mut self, int_num: Interrupt, func: fn(regs: &mut Registers)) {
-        self.interrupt_handler[int_num as usize] = Some(func);
+    pub fn register_interrupt(&mut self, int_num: usize, func: fn(regs: &mut Registers)) {
+        self.interrupt_handler[int_num] = Some(func);
     }
 
-    pub fn register_exception(&mut self, exc_num: Exception, func: fn(regs: &mut Registers)) {
-        self.exception_handler[exc_num as usize] = Some(func);
+    pub fn register_exception(&mut self, exc_num: usize, func: fn(regs: &mut Registers)) {
+        self.exception_handler[exc_num] = Some(func);
     }
 
     pub fn call_interrupt_handler(&self, int_num: usize, regs: &mut Registers) {
@@ -52,15 +137,7 @@ impl TrapHandler {
 pub extern "C" fn trap_handler(regs: &mut Registers) {
     /* 割込み・例外要因 */
     let scause = Scause {};
-    let e: usize = scause.read(scause::EXCEPTION) as usize;
-    let i: usize = scause.read(scause::INTERRUPT) as usize;
-
-    /* 割込み・例外ハンドラの呼出し */
-    match i {
-        0 => cpu().trap.call_exception_handler(e, regs),
-        1 => cpu().trap.call_interrupt_handler(e, regs),
-        _ => (),
-    };
+    cpu().trap.call_vector(scause.get() as usize, regs);
 }
 
 #[cfg(target_arch = "riscv64")]

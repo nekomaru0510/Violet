@@ -3,10 +3,12 @@
 use super::instruction::Instruction;
 use super::regs::Registers;
 use super::regs::*;
+use crate::driver::arch::rv64::csr::sepc::Sepc;
 use crate::driver::arch::rv64::PrivilegeMode;
+use crate::driver::arch::rv64::Rv64;
 use crate::driver::traits::cpu::context::TraitContext;
 use crate::driver::traits::cpu::registers::TraitRegisters;
-use crate::CPU;
+//use crate::CPU;
 
 extern crate register;
 use register::cpu::RegisterReadWrite;
@@ -29,9 +31,9 @@ impl TraitContext for VsContext {
     fn switch(&mut self, regs: &mut Self::Registers) {
         self.regs.switch(regs);
 
-        /* [todo fix] switchする機械語命令があるので、それを使いたい */
-        let tmp_epc: usize = CPU.csr.sepc.get() as usize;
-        CPU.csr.sepc.set(self.sepc as u64);
+        /* [todo fix] switchする機械語命令(csrrw)があるので、それを使いたい */
+        let tmp_epc: usize = Sepc.get() as usize;
+        Sepc.set(self.sepc as u64);
         self.sepc = tmp_epc;
     }
 
@@ -60,7 +62,7 @@ impl TraitContext for VsContext {
     }
 
     fn jump(&self) {
-        CPU.set_next_mode(PrivilegeMode::ModeVS);
+        Rv64::set_next_mode(PrivilegeMode::ModeVS);
         Instruction::sret(self.get(JUMP_ADDR), self.get(ARG0), self.get(ARG1));
     }
 }

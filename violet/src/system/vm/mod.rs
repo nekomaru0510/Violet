@@ -8,8 +8,6 @@ pub mod vcpu;
 pub mod vdev;
 pub mod vmem;
 
-use crate::CPU;
-
 use crate::driver::arch::rv64::extension::hypervisor::*;
 use crate::driver::arch::rv64::mmu::sv48::PageTableSv48;
 
@@ -39,7 +37,7 @@ impl VirtualMachine {
 
     pub fn setup(&self) {
         /* ゲスト起動前のデフォルトセットアップ */
-        CPU.hyp.setup();
+        Hext::setup();
     }
 
     pub fn run(&mut self) {
@@ -83,7 +81,7 @@ impl VirtualMachine {
                 /* アクセス禁止にしたい場合、少なくとも、アクセス時の動作を設定する必要があるはず */
                 /* [todo fix] CPUトレイトから呼び出す */
                 map_vaddr::<PageTableSv48>(
-                    unsafe { transmute(CPU.hyp.get_hs_pagetable()) },
+                    unsafe { transmute(Hext::get_hs_pagetable()) },
                     guest_paddr,
                     guest_paddr,
                 );
@@ -94,7 +92,7 @@ impl VirtualMachine {
                     Some(r) => {
                         /* [todo fix] CPUトレイトから呼び出す */
                         map_vaddr::<PageTableSv48>(
-                            unsafe { transmute(CPU.hyp.get_hs_pagetable()) },
+                            unsafe { transmute(Hext::get_hs_pagetable()) },
                             r,
                             guest_paddr,
                         );

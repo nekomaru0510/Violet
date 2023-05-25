@@ -112,7 +112,7 @@ impl Csr {
 #[test_case]
 fn test_csr() -> Result<(), &'static str> {
     let inst = 0x10561073; /* csrw    stvec,a2 */
- /* csrrw x0, #0x105, a2 */
+    /* csrrw x0, #0x105, a2 */
     if Csr::from_val(inst).src() == regs::A2 {
         if Csr::from_val(inst).csr() == 0x105 {
             Ok(())

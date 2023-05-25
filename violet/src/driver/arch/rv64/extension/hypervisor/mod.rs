@@ -1,10 +1,12 @@
-//! ハイパーバイザ拡張
+//! Hypervisor Extension
 
 extern crate register;
 use register::cpu::RegisterReadWrite;
 
 use crate::driver::arch::rv64;
-use rv64::{Exception, Interrupt, PagingMode};
+use rv64::trap::exc::Exception;
+use rv64::trap::int::Interrupt;
+use rv64::PagingMode;
 
 use rv64::csr::hcounteren::*;
 use rv64::csr::hedeleg::*;
@@ -12,107 +14,102 @@ use rv64::csr::hgatp::*;
 use rv64::csr::hgeie::*;
 use rv64::csr::hideleg::*;
 use rv64::csr::hie::*;
-//use rv64::csr::hstatus::*;
 use rv64::csr::htval::*;
 use rv64::csr::hvip::*;
 use rv64::csr::vsatp::*;
 use rv64::csr::vstval::*;
 
 #[derive(Clone)]
-pub struct Rv64Hyp {}
+pub struct Hext {}
 
-impl Rv64Hyp {
-    pub const fn new() -> Self {
-        Rv64Hyp {}
-    }
-
-    pub fn setup(&self) {
+impl Hext {
+    pub fn setup() {
         enable_paging();
 
-        self.set_delegation_exc(
-            Exception::InstructionAddressMisaligned.mask()
-                | Exception::Breakpoint.mask()
-                | Exception::EnvironmentCallFromUmodeOrVUmode.mask()
-                | Exception::InstructionPageFault.mask()
-                | Exception::LoadPageFault.mask()
-                | Exception::StoreAmoPageFault.mask(),
+        Self::set_delegation_exc(
+            Exception::bit(Exception::INSTRUCTION_ADDRESS_MISALIGNED)
+                | Exception::bit(Exception::BREAKPOINT)
+                | Exception::bit(Exception::ENVIRONMENT_CALL_FROM_UMODE_OR_VUMODE)
+                | Exception::bit(Exception::INSTRUCTION_PAGE_FAULT)
+                | Exception::bit(Exception::LOAD_PAGE_FAULT)
+                | Exception::bit(Exception::STORE_AMO_PAGE_FAULT),
         );
 
-        self.set_delegation_int(
-            Interrupt::VirtualSupervisorSoftwareInterrupt.mask()
-                | Interrupt::VirtualSupervisorTimerInterrupt.mask()
-                | Interrupt::VirtualSupervisorExternalInterrupt.mask(),
+        Self::set_delegation_int(
+            Interrupt::bit(Interrupt::VIRTUAL_SUPERVISOR_SOFTWARE_INTERRUPT)
+                | Interrupt::bit(Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT)
+                | Interrupt::bit(Interrupt::VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT),
         );
 
-        self.flush_vsmode_interrupt(0xffff_ffff_ffff_ffff);
-        self.enable_vsmode_counter_access(0xffff_ffff);
+        Self::flush_vsmode_interrupt(0xffff_ffff_ffff_ffff);
+        Self::enable_vsmode_counter_access(0xffff_ffff);
     }
 
     /* hypervisorモードの指定割込みを有効化 */
-    pub fn enable_mask_h(&self, int_mask: usize) {
+    pub fn enable_mask_h(int_mask: usize) {
         let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
         Hie.set(Hie.get() | hint_mask as u64);
     }
 
     /* hypervisorモードの指定割込みを無効化 */
-    pub fn disable_mask_h(&self, int_mask: usize) {
+    pub fn disable_mask_h(int_mask: usize) {
         let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
         Hie.set(Hie.get() & !(hint_mask as u64));
     }
 
     /* VS-modeへの割込み移譲を設定 */
-    pub fn set_delegation_int(&self, int_mask: usize) {
+    pub fn set_delegation_int(int_mask: usize) {
         Hideleg.set(Hideleg.get() | int_mask as u64);
     }
 
     /* VS-modeへの割込み移譲を解除 */
-    pub fn clear_delegation_int(&self, int_mask: usize) {
+    pub fn clear_delegation_int(int_mask: usize) {
         Hideleg.set(Hideleg.get() & !(int_mask as u64));
     }
 
     /* VS-modeへの例外移譲を設定 */
-    pub fn set_delegation_exc(&self, exc_mask: usize) {
+    pub fn set_delegation_exc(exc_mask: usize) {
         Hedeleg.set(Hedeleg.get() | exc_mask as u64);
     }
 
     /* VS-modeへの例外移譲を解除 */
-    pub fn clear_delegation_exc(&self, exc_mask: usize) {
+    pub fn clear_delegation_exc(exc_mask: usize) {
         Hedeleg.set(Hedeleg.get() & !(exc_mask as u64));
     }
 
     /* VS-modeに仮想割込みを発生させる */
-    pub fn assert_vsmode_interrupt(&self, int_mask: usize) {
+    pub fn assert_vsmode_interrupt(int_mask: usize) {
         Hvip.set(int_mask as u64);
     }
 
     /* VS-modeの割込みをクリアする */
-    pub fn flush_vsmode_interrupt(&self, int_mask: usize) {
+    pub fn flush_vsmode_interrupt(int_mask: usize) {
         let mask = !(int_mask) & Hvip.get() as usize;
         Hvip.set(mask as u64);
     }
 
     /* 指定外部割込みの有効化  */
-    pub fn enable_exint_mask_h(&self, int_mask: usize) {
+    pub fn enable_exint_mask_h(int_mask: usize) {
         Hgeie.set(Hgeie.get() | int_mask as u64);
     }
 
     /* 指定外部割込みの無効化 */
-    pub fn disable_exint_mask_h(&self, int_mask: usize) {
+    pub fn disable_exint_mask_h(int_mask: usize) {
         Hgeie.set(Hgeie.get() & !(int_mask as u64));
     }
 
     /* VS-modeのcounterenレジスタを設定 */
-    pub fn enable_vsmode_counter_access(&self, counter_mask: usize) {
+    pub fn enable_vsmode_counter_access(counter_mask: usize) {
         Hcounteren.set(Hcounteren.get() | counter_mask as u32);
     }
 
     /* VS-modeのcounterenレジスタをクリア */
-    pub fn disable_vsmode_counter_access(&self, counter_mask: usize) {
+    pub fn disable_vsmode_counter_access(counter_mask: usize) {
         Hcounteren.set(Hcounteren.get() & !(counter_mask as u32));
     }
 
     /* HS-modeが用意するページテーブルのモードを設定 */
-    pub fn set_paging_mode_hv(&self, mode: PagingMode) {
+    pub fn set_paging_mode_hv(mode: PagingMode) {
         match mode {
             PagingMode::Bare => {
                 Hgatp.modify(hgatp::MODE::BARE);
@@ -130,44 +127,42 @@ impl Rv64Hyp {
     }
 
     /* HS-modeが用意するページテーブルのアドレスを設定 */
-    pub fn set_table_addr_hv(&self, table_addr: usize) {
+    pub fn set_table_addr_hv(table_addr: usize) {
         Hgatp.modify(hgatp::PPN::CLEAR);
         let current = Hgatp.get();
         Hgatp.set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 
     /* ページテーブルのアドレスを取得する */
-    pub fn get_hs_pagetable(&self) -> u64 {
+    pub fn get_hs_pagetable() -> u64 {
         (Hgatp.get() & 0x0fff_ffff_ffff) << 12
     }
 
     /* ページテーブルのアドレスを取得する */
-    pub fn set_vs_pagetable(&self, table_addr: usize) {
+    pub fn set_vs_pagetable(table_addr: usize) {
         Vsatp.modify(vsatp::PPN::CLEAR);
         let current = Vsatp.get();
         Vsatp.set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 
     /* ページテーブルのアドレスを取得する */
-    pub fn get_vs_pagetable(&self) -> u64 {
+    pub fn get_vs_pagetable() -> u64 {
         (Vsatp.get() & 0x0fff_ffff_ffff) << 12
     }
 
     /* ページフォルト時のアドレスを取得する */
-    pub fn get_vs_fault_address(&self) -> u64 {
+    pub fn get_vs_fault_address() -> u64 {
         Vstval.get()
     }
 
     /* ページテーブルのアドレスを取得する */
-    pub fn get_vs_fault_paddr(&self) -> u64 {
+    pub fn get_vs_fault_paddr() -> u64 {
         Htval.get() << 2
     }
 }
 
 extern crate core;
 use core::intrinsics::transmute;
-
-use crate::CPU;
 
 use crate::driver::arch::rv64::mmu::sv48::PageTableSv48;
 use crate::driver::traits::cpu::mmu::{PageEntry, PageTable};
@@ -178,10 +173,9 @@ const MAX_PAGE_TABLE: usize = 32; //16;
 static mut PAGE_TABLE_IDX: usize = 0;
 
 pub fn enable_paging() {
-    CPU.hyp.set_vs_pagetable(0);
-    CPU.hyp
-        .set_table_addr_hv(unsafe { transmute(&PAGE_TABLE_ARRAY[0]) });
-    CPU.hyp.set_paging_mode_hv(PagingMode::Sv48x4);
+    Hext::set_vs_pagetable(0);
+    Hext::set_table_addr_hv(unsafe { transmute(&PAGE_TABLE_ARRAY[0]) });
+    Hext::set_paging_mode_hv(PagingMode::Sv48x4);
 }
 
 pub fn create_page_table() {

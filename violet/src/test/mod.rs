@@ -1,4 +1,4 @@
-//! Test関連
+//! Test Runner
 extern crate core;
 use crate::{print, println};
 use core::intrinsics::transmute;

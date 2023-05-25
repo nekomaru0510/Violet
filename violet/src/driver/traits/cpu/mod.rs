@@ -5,6 +5,8 @@ pub mod mmu;
 pub mod registers;
 
 pub trait TraitCpu {
+    type Registers;
+
     /* コアごとの初期化 */
     fn core_init(&self);
 
@@ -12,6 +14,9 @@ pub trait TraitCpu {
     fn wakeup(&self);
     /* CPUの停止 */
     fn sleep(&self);
+    /* ベクタの登録 */
+    //fn register_vector<T>(&mut self, vecid: usize, func: fn(regs: &mut T));
+    fn register_vector(&mut self, vecid: usize, func: fn(regs: &mut Self::Registers));
     /* 割込みの有効化 */
     fn enable_interrupt(&self);
     /* 割込みの無効化 */
