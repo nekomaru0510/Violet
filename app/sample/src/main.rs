@@ -6,8 +6,8 @@ extern crate violet;
 
 use violet::environment::cpu_mut;
 
-use violet::system::vm::vdev::vplic::VPlic;
-use violet::system::vm::VirtualMachine;
+use violet::library::vm::vdev::vplic::VPlic;
+use violet::library::vm::VirtualMachine;
 
 use violet::driver::arch::rv64::extension::hypervisor::Hext;
 use violet::driver::arch::rv64::instruction::load::Load;

@@ -20,7 +20,6 @@ pub mod driver;
 pub mod environment;
 pub mod kernel;
 pub mod library;
-pub mod system;
 #[cfg(test)]
 pub mod test;
 
