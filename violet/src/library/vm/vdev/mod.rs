@@ -119,7 +119,7 @@ pub fn write_raw<T>(addr: usize, val: T) {
 }
 
 #[cfg(test)]
-use crate::system::vm::vdev::vplic::VPlic;
+use crate::library::vm::vdev::vplic::VPlic;
 
 #[test_case]
 fn test_get() -> Result<(), &'static str> {

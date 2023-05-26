@@ -1,6 +1,8 @@
 //! stdライブラリ
 
+use crate::driver::traits::serial::TraitSerial; /* [todo fix] デバイスのトレイトではなく、共通IFのトレイトを参照できるように */
 use crate::environment::current_mut_container; /* [todo delete] */
+use core::fmt::Write;
 use core::fmt::{self};
 use core::ptr::{read_volatile, write_volatile};
 

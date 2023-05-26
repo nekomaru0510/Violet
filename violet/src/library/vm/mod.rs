@@ -149,7 +149,7 @@ impl VirtualMachine {
 }
 
 #[cfg(test)]
-use crate::system::vm::vdev::vplic::VPlic;
+use crate::library::vm::vdev::vplic::VPlic;
 
 #[test_case]
 fn test_read_write_dev() -> Result<(), &'static str> {

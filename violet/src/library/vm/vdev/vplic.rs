@@ -3,6 +3,7 @@
 use super::VirtualDevice;
 use super::{read_raw, write_raw};
 use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
+use crate::driver::traits::intc::TraitIntc;
 use crate::environment::current_mut_container;
 use crate::environment::NUM_OF_CPUS; /* [todo delete] */
 
