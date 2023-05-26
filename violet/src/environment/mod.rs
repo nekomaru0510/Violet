@@ -1,4 +1,4 @@
-//! 動作環境
+//! env.rs template
 use crate::kernel::container::*;
 
 /* デバイスドライバ */
@@ -16,11 +16,13 @@ static UART_BASE: usize = 0x1000_0000;
 static CLINT_TIMER_BASE: usize = 0x0200_0000;
 static PLIC_BASE: usize = 0x0C00_0000;
 
-/* CPUの型 */
-type Arch = Rv64;
+type Arch = Rv64; /* CPUの型 */
+type Intc = Plic;
+type Timer = ClintTimer;
+type Serial = Uart;
 
 /* Container Table */
-static mut CONTAINER_TABLE: ContainerTable<Arch> = ContainerTable::new();
+static mut CONTAINER_TABLE: ContainerTable<Arch, Intc, Timer, Serial> = ContainerTable::new();
 
 pub fn init_environment() {
     setup_root_container();
@@ -90,11 +92,13 @@ pub fn create_container() -> usize {
     unsafe { CONTAINER_TABLE.add() }
 }
 
-pub fn get_mut_container(id: usize) -> Option<&'static mut Box<Container<Arch>>> {
+pub fn get_mut_container(
+    id: usize,
+) -> Option<&'static mut Box<Container<Arch, Intc, Timer, Serial>>> {
     unsafe { CONTAINER_TABLE.get_mut(id) }
 }
 
-pub fn get_container(id: usize) -> Option<&'static Box<Container<Arch>>> {
+pub fn get_container(id: usize) -> Option<&'static Box<Container<Arch, Intc, Timer, Serial>>> {
     unsafe { CONTAINER_TABLE.get(id) }
 }
 
@@ -102,11 +106,11 @@ pub fn current_container_id() -> usize {
     unsafe { CONTAINER_TABLE.current_id() }
 }
 
-pub fn current_container() -> Option<&'static Box<Container<Arch>>> {
+pub fn current_container() -> Option<&'static Box<Container<Arch, Intc, Timer, Serial>>> {
     get_container(current_container_id())
 }
 
-pub fn current_mut_container() -> Option<&'static mut Box<Container<Arch>>> {
+pub fn current_mut_container() -> Option<&'static mut Box<Container<Arch, Intc, Timer, Serial>>> {
     get_mut_container(current_container_id())
 }
 

@@ -21,6 +21,7 @@ use violet::driver::arch::rv64::vscontext::*;
 
 use violet::driver::traits::cpu::context::TraitContext;
 use violet::driver::traits::cpu::TraitCpu;
+use violet::driver::traits::intc::TraitIntc;
 
 use violet::environment::current_container; /* [todo delete] */
 use violet::kernel::syscall::vsi::create_task;

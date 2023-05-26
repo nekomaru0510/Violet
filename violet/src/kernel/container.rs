@@ -13,16 +13,28 @@ use crate::driver::traits::serial::TraitSerial;
 use crate::driver::traits::timer::TraitTimer;
 use crate::kernel::Kernel;
 
-pub struct Container<C: TraitCpu> {
+pub struct Container<C, I, T, S>
+where
+    C: TraitCpu,
+    I: TraitIntc,
+    T: TraitTimer,
+    S: TraitSerial,
+{
     pub id: usize,
     pub kernel: Kernel,
     pub cpu: Vec<Option<Box<C>>>,
-    pub serial: Option<Box<dyn TraitSerial>>,
-    pub intc: Option<Box<dyn TraitIntc>>,
-    pub timer: Option<Box<dyn TraitTimer>>,
+    pub intc: Option<Box<I>>,
+    pub timer: Option<Box<T>>,
+    pub serial: Option<Box<S>>,
 }
 
-impl<C: TraitCpu> Container<C> {
+impl<C, I, T, S> Container<C, I, T, S>
+where
+    C: TraitCpu,
+    I: TraitIntc,
+    T: TraitTimer,
+    S: TraitSerial,
+{
     pub fn new(id: usize) -> Self {
         Container {
             id,
@@ -34,50 +46,41 @@ impl<C: TraitCpu> Container<C> {
         }
     }
 
-    //pub fn register_cpu<T: TraitCpu + 'static>(&mut self, cpu: T) {
     pub fn register_cpu(&mut self, cpu: C) {
         self.cpu.push(Some(Box::new(cpu)));
     }
 
-    pub fn register_intc<T: TraitIntc + 'static>(&mut self, intc: T) {
+    pub fn register_intc(&mut self, intc: I) {
         self.intc = Some(Box::new(intc));
     }
 
-    pub fn register_serial<T: TraitSerial + 'static>(&mut self, serial: T) {
-        self.serial = Some(Box::new(serial));
-    }
-
-    pub fn register_timer<T: TraitTimer + 'static>(&mut self, timer: T) {
+    pub fn register_timer(&mut self, timer: T) {
         self.timer = Some(Box::new(timer));
     }
 
-    /*
-    pub fn get_intc<>
-
-    pub fn get_device<T>(&self, p: Peripheral) -> Option<Box<dyn T>> {
-        match p {
-            InterruptController => self.intc,
-            Serial => self.serial,
-            Timer => self.timer,
-            _ => None
-        }
+    pub fn register_serial(&mut self, serial: S) {
+        self.serial = Some(Box::new(serial));
     }
-    */
 }
 
-pub enum Peripheral {
-    InterruptController = 1,
-    Serial,
-    Timer,
-    CustomPeripheral = 128,
-}
-
-pub struct ContainerTable<T: TraitCpu> {
-    containers: Vec<Option<Box<Container<T>>>>,
+pub struct ContainerTable<C, I, T, S>
+where
+    C: TraitCpu,
+    I: TraitIntc,
+    T: TraitTimer,
+    S: TraitSerial,
+{
+    containers: Vec<Option<Box<Container<C, I, T, S>>>>,
     cpu2container: [usize; NUM_OF_CPUS],
 }
 
-impl<T: TraitCpu> ContainerTable<T> {
+impl<C, I, T, S> ContainerTable<C, I, T, S>
+where
+    C: TraitCpu,
+    I: TraitIntc,
+    T: TraitTimer,
+    S: TraitSerial,
+{
     pub const fn new() -> Self {
         ContainerTable {
             containers: Vec::new(),
@@ -91,7 +94,7 @@ impl<T: TraitCpu> ContainerTable<T> {
         id
     }
 
-    pub fn get(&self, id: usize) -> Option<&Box<Container<T>>> {
+    pub fn get(&self, id: usize) -> Option<&Box<Container<C, I, T, S>>> {
         if id < self.containers.len() {
             self.containers[id].as_ref()
         } else {
@@ -99,7 +102,7 @@ impl<T: TraitCpu> ContainerTable<T> {
         }
     }
 
-    pub fn get_mut(&mut self, id: usize) -> Option<&mut Box<Container<T>>> {
+    pub fn get_mut(&mut self, id: usize) -> Option<&mut Box<Container<C, I, T, S>>> {
         if id < self.containers.len() {
             self.containers[id].as_mut()
         } else {

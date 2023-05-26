@@ -12,16 +12,16 @@ use register::cpu::RegisterReadWrite;
 pub struct Interrupt();
 
 impl Interrupt {
-    pub const SUPERVISOR_SOFTWARE_INTERRUPT: usize          = 1;
-    pub const VIRTUAL_SUPERVISOR_SOFTWARE_INTERRUPT: usize  = 2;
-    pub const MACHINE_SOFTWARE_INTERRUPT: usize             = 3;
-    pub const SUPERVISOR_TIMER_INTERRUPT: usize             = 5;
-    pub const VIRTUAL_SUPERVISOR_TIMER_INTERRUPT: usize     = 6;
-    pub const MACHINE_TIMER_INTERRUPT: usize                = 7;
-    pub const SUPERVISOR_EXTERNAL_INTERRUPT: usize          = 9;
-    pub const VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT: usize  = 10;
-    pub const MACHINE_EXTERNAL_INTERRUPT: usize             = 11;
-    pub const SUPERVISOR_GUEST_EXTERNAL_INTERRUPT: usize    = 12;
+    pub const SUPERVISOR_SOFTWARE_INTERRUPT: usize = 1;
+    pub const VIRTUAL_SUPERVISOR_SOFTWARE_INTERRUPT: usize = 2;
+    pub const MACHINE_SOFTWARE_INTERRUPT: usize = 3;
+    pub const SUPERVISOR_TIMER_INTERRUPT: usize = 5;
+    pub const VIRTUAL_SUPERVISOR_TIMER_INTERRUPT: usize = 6;
+    pub const MACHINE_TIMER_INTERRUPT: usize = 7;
+    pub const SUPERVISOR_EXTERNAL_INTERRUPT: usize = 9;
+    pub const VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT: usize = 10;
+    pub const MACHINE_EXTERNAL_INTERRUPT: usize = 11;
+    pub const SUPERVISOR_GUEST_EXTERNAL_INTERRUPT: usize = 12;
 
     pub fn bit(val: usize) -> usize {
         1 << val
@@ -49,5 +49,3 @@ impl Interrupt {
         Sie.set(Sie.get() & !(sint_mask as u64));
     }
 }
-
-
