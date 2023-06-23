@@ -3,9 +3,14 @@
 extern crate register;
 use register::cpu::RegisterReadWrite;
 
+use crate::environment::cpu_mut; /* [todo delete] */
+
 use crate::driver::arch::rv64;
+use crate::driver::traits::cpu::hypervisor::HypervisorT;
 use rv64::trap::exc::Exception;
 use rv64::trap::int::Interrupt;
+use rv64::trap::TrapVector;
+use rv64::vscontext::VsContext;
 use rv64::PagingMode;
 
 use rv64::csr::hcounteren::*;
@@ -21,6 +26,22 @@ use rv64::csr::vstval::*;
 
 #[derive(Clone)]
 pub struct Hext {}
+
+impl HypervisorT for Hext {
+    type Context = VsContext;
+    fn init() {
+        Hext::setup();
+    }
+
+    fn hook(vecid: usize, func: fn(regs: *mut usize)) {
+        if vecid > TrapVector::INTERRUPT_OFFSET {
+            Self::clear_delegation_int(Interrupt::bit(vecid));
+        } else {
+            Self::clear_delegation_exc(Exception::bit(vecid));
+        }
+        cpu_mut().register_vector(vecid, func);
+    }
+}
 
 impl Hext {
     pub fn setup() {

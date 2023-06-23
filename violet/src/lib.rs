@@ -16,10 +16,12 @@
 #![allow(unused_variables)]
 #![no_std]
 
+pub mod container;
 pub mod driver;
 pub mod environment;
 pub mod kernel;
 pub mod library;
+pub mod resource;
 #[cfg(test)]
 pub mod test;
 

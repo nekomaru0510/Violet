@@ -87,7 +87,7 @@ impl Scratch {
 }
 
 impl TraitCpu for Rv64 {
-    type Registers = Registers;
+    //type Registers = Registers;
 
     fn core_init(&self) {
         self.set_sscratch();
@@ -103,8 +103,12 @@ impl TraitCpu for Rv64 {
         sbi::sbi_hart_stop();
     }
 
-    fn register_vector(&mut self, vecid: usize, func: fn(regs: &mut Self::Registers)) {
+    fn register_vector(&mut self, vecid: usize, func: fn(regs: *mut usize)) {
         self.trap.register_vector(vecid, func);
+    }
+
+    fn call_vector(&self, vecid: usize, regs: *mut usize) {
+        self.trap.call_vector(vecid, regs);
     }
 
     fn enable_interrupt(&self) {

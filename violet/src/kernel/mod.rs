@@ -1,6 +1,5 @@
 //! Kernel
 
-pub mod container;
 pub mod dispatcher;
 pub mod heap;
 pub mod init_calls;
@@ -10,11 +9,12 @@ pub mod syscall;
 pub mod task;
 pub mod traits;
 
-use crate::environment::get_mut_container; /* [todo delete] */
+use crate::container::{get_container, get_mut_container};
 use crate::environment::init_environment;
 use crate::environment::NUM_OF_CPUS;
 use crate::print;
 use crate::println;
+use crate::resource::{get_resources, BorrowResource, ResourceType};
 #[cfg(test)]
 use crate::test_entry;
 
@@ -31,7 +31,7 @@ use traits::sched::TraitSched;
 use crate::driver::arch::rv64::boot::_start_ap; // [todo delete]
 use crate::driver::arch::rv64::instruction::Instruction; // [todo delete]
 use crate::driver::arch::rv64::sbi; // [todo delete]
-use crate::driver::traits::cpu::TraitCpu;
+                                    //use crate::driver::traits::cpu::TraitCpu;
 
 extern crate core;
 use core::intrinsics::transmute;
@@ -68,18 +68,14 @@ pub extern "C" fn boot_init(cpu_id: usize) {
 }
 
 fn init_bsp(cpu_id: usize) {
-    let con = get_mut_container(0); // RootContainerの取得
-    match &con.unwrap().cpu[cpu_id] {
-        None => (),
-        Some(c) => c.core_init(),
+    if let BorrowResource::Cpu(c) = get_resources().get(ResourceType::Cpu, cpu_id) {
+        c.core_init()
     }
 }
 
 fn init_ap(cpu_id: usize) {
-    let con = get_mut_container(0); // RootContainerの取得
-    match &con.unwrap().cpu[cpu_id] {
-        None => (),
-        Some(c) => c.core_init(),
+    if let BorrowResource::Cpu(c) = get_resources().get(ResourceType::Cpu, cpu_id) {
+        c.core_init()
     }
 
     main_loop(cpu_id);
@@ -113,6 +109,14 @@ impl Kernel {
     pub fn create_custom_kernel(container_id: usize) -> Self {
         Kernel::new(Box::new(unsafe { &mut HEAP }))
     }
+}
+
+pub fn get_kernel() -> &'static Kernel {
+    &get_container().kernel
+}
+
+pub fn get_mut_kernel() -> &'static mut Kernel {
+    &mut get_mut_container().kernel
 }
 
 /* [todo fix] 本来はコアごと？にスケジューラ、ディスパッチャを指定したい */

@@ -18,20 +18,18 @@ use violet::driver::arch::rv64::sbi;
 use violet::driver::arch::rv64::trap::int::Interrupt;
 use violet::driver::arch::rv64::trap::TrapVector;
 use violet::driver::arch::rv64::vscontext::*;
-
 use violet::driver::traits::cpu::context::TraitContext;
-use violet::driver::traits::cpu::TraitCpu;
-use violet::driver::traits::intc::TraitIntc;
 
-use violet::environment::current_container; /* [todo delete] */
 use violet::kernel::syscall::vsi::create_task;
+use violet::resource::{get_resources, BorrowResource, ResourceType};
 
 use violet::app_init;
 app_init!(sample_main);
 
-static mut VM: VirtualMachine = VirtualMachine::new();
+static mut VM: VirtualMachine<Hext> = VirtualMachine::new();
 
-pub fn do_ecall_from_vsmode(regs: &mut Registers) {
+pub fn do_ecall_from_vsmode(sp: *mut usize /*regs: &mut Registers*/) {
+    let regs = Registers::from(sp);
     let ext: i32 = regs.reg[A7] as i32;
     let fid: i32 = regs.reg[A6] as i32;
 
@@ -77,13 +75,14 @@ fn topaddr(epc: usize) -> usize {
     (epc & 0x0_ffff_ffff) + 0x1000_0000 + 0x20_0000
 }
 
-pub fn do_guest_store_page_fault(regs: &mut Registers) {
+pub fn do_guest_store_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
+    let regs = Registers::from(sp);
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
 
     let inst = Instruction::fetch(topaddr(regs.epc));
     let val = Store::from_val(inst).store_value(regs);
 
-    match unsafe { VM.write_dev(fault_paddr, val) } {
+    match unsafe { VM.dev.write(fault_paddr, val) } {
         None => unsafe {
             VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
         },
@@ -96,11 +95,12 @@ pub fn do_guest_store_page_fault(regs: &mut Registers) {
     }
 }
 
-pub fn do_guest_load_page_fault(regs: &mut Registers) {
+pub fn do_guest_load_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
+    let regs = Registers::from(sp);
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
     let inst = Instruction::fetch(topaddr(regs.epc));
 
-    match unsafe { VM.read_dev(fault_paddr) } {
+    match unsafe { VM.dev.read(fault_paddr) } {
         None => unsafe {
             VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
         },
@@ -111,24 +111,23 @@ pub fn do_guest_load_page_fault(regs: &mut Registers) {
     }
 }
 
-pub fn do_guest_instruction_page_fault(_regs: &mut Registers) {
+pub fn do_guest_instruction_page_fault(_sp: *mut usize /*_regs: &mut Registers*/) {
     unsafe {
         VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
     }
 }
 
-pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
-    let con = current_container(); /* [todo delete] アプリがコンテナを意識するのはおかしい */
-
+pub fn do_supervisor_external_interrupt(_sp: *mut usize /*_regs: &mut Registers*/) {
     // 物理PLICからペンディングビットを読み、クリアする
-    let int_id = match &con.unwrap().intc {
-        None => 0,
-        Some(i) => i.get_pend_int(),
+    let int_id = if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
+        i.get_pend_int()
+    } else {
+        0
     };
 
     // 仮想PLICへ書込み
     unsafe {
-        match VM.get_dev_mut(0x0c20_1000) {
+        match VM.dev.get_mut(0x0c20_1000) {
             // [todo fix] 割込み番号で検索できるようにする
             None => (),
             Some(d) => {
@@ -143,13 +142,12 @@ pub fn do_supervisor_external_interrupt(_regs: &mut Registers) {
     ));
 
     // PLICでペンディングビットをクリア
-    match &con.unwrap().intc {
-        None => (),
-        Some(i) => i.set_comp_int(int_id),
+    if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
+        i.set_comp_int(int_id);
     }
 }
 
-pub fn do_supervisor_timer_interrupt(_regs: &mut Registers) {
+pub fn do_supervisor_timer_interrupt(_sp: *mut usize /*_regs: &mut Registers*/) {
     /* タイマの無効化 */
     sbi::sbi_set_timer(0xffff_ffff_ffff_ffff);
 
@@ -206,8 +204,8 @@ pub fn sample_main() {
     vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
     unsafe {
         /* CPU */
-        VM.register_cpu(0, boot_core); /* vcpu0 ... pcpu1 */
-        match VM.vcpu_mut(0) {
+        VM.cpu.register(0, boot_core); /* vcpu0 ... pcpu1 */
+        match VM.cpu.get_mut(0) {
             None => (),
             Some(v) => {
                 v.context.set(JUMP_ADDR, 0x8020_0000);
@@ -216,11 +214,12 @@ pub fn sample_main() {
             }
         }
         /* RAM */
-        VM.register_mem(0x8020_0000, 0x9020_0000, 0x1000_0000);
-        VM.register_mem(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
-        VM.register_mem(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
-                                                             /* MMIO */
-        VM.register_dev(0x0c00_0000, 0x0400_0000, vplic);
+        VM.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
+        VM.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
+        VM.mem.register(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
+
+        /* MMIO */
+        VM.dev.register(0x0c00_0000, 0x0400_0000, vplic);
     }
 
     /* コア1でLinuxを起動させる */

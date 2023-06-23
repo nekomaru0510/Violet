@@ -1,11 +1,12 @@
 //! CPU用のトレイト
 
 pub mod context;
+pub mod hypervisor;
 pub mod mmu;
 pub mod registers;
 
 pub trait TraitCpu {
-    type Registers;
+    //type Registers;
 
     /* コアごとの初期化 */
     fn core_init(&self);
@@ -15,8 +16,11 @@ pub trait TraitCpu {
     /* CPUの停止 */
     fn sleep(&self);
     /* ベクタの登録 */
-    //fn register_vector<T>(&mut self, vecid: usize, func: fn(regs: &mut T));
-    fn register_vector(&mut self, vecid: usize, func: fn(regs: &mut Self::Registers));
+    //fn register_vector(&mut self, vecid: usize, func: fn(regs: &mut Self::Registers));
+    fn register_vector(&mut self, vecid: usize, func: fn(regs: *mut usize));
+    /* ベクタハンドラの呼出し */
+    //fn call_vector(&self, vecid: usize, regs: &mut Self::Registers);
+    fn call_vector(&self, vecid: usize, regs: *mut usize);
     /* 割込みの有効化 */
     fn enable_interrupt(&self);
     /* 割込みの無効化 */

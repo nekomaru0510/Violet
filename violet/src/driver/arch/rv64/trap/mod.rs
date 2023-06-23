@@ -6,7 +6,6 @@ extern crate register;
 use register::cpu::RegisterReadWrite;
 
 use super::csr::scause::*;
-use super::regs::Registers;
 use super::trap::exc::Exception;
 use super::trap::int::Interrupt;
 use crate::environment::cpu;
@@ -67,7 +66,7 @@ impl TrapVector {
         }
     }
 
-    pub fn register_vector(&mut self, vecid: usize, func: fn(regs: &mut Registers)) {
+    pub fn register_vector(&mut self, vecid: usize, func: fn(regs: *mut usize)) {
         /* Interrupt */
         if vecid > Self::INTERRUPT_OFFSET {
             self.handler
@@ -79,7 +78,7 @@ impl TrapVector {
         }
     }
 
-    pub fn call_vector(&self, vecid: usize, regs: &mut Registers) {
+    pub fn call_vector(&self, vecid: usize, regs: *mut usize) {
         /* Interrupt */
         if vecid > Self::INTERRUPT_OFFSET {
             self.handler
@@ -96,8 +95,8 @@ const NUM_OF_INTERRUPTS: usize = 32;
 const NUM_OF_EXCEPTIONS: usize = 32;
 
 pub struct TrapHandler {
-    interrupt_handler: [Option<fn(regs: &mut Registers)>; NUM_OF_INTERRUPTS],
-    exception_handler: [Option<fn(regs: &mut Registers)>; NUM_OF_EXCEPTIONS],
+    interrupt_handler: [Option<fn(regs: *mut usize)>; NUM_OF_INTERRUPTS],
+    exception_handler: [Option<fn(regs: *mut usize)>; NUM_OF_EXCEPTIONS],
 }
 
 impl TrapHandler {
@@ -108,22 +107,22 @@ impl TrapHandler {
         }
     }
 
-    pub fn register_interrupt(&mut self, int_num: usize, func: fn(regs: &mut Registers)) {
+    pub fn register_interrupt(&mut self, int_num: usize, func: fn(regs: *mut usize)) {
         self.interrupt_handler[int_num] = Some(func);
     }
 
-    pub fn register_exception(&mut self, exc_num: usize, func: fn(regs: &mut Registers)) {
+    pub fn register_exception(&mut self, exc_num: usize, func: fn(regs: *mut usize)) {
         self.exception_handler[exc_num] = Some(func);
     }
 
-    pub fn call_interrupt_handler(&self, int_num: usize, regs: &mut Registers) {
+    pub fn call_interrupt_handler(&self, int_num: usize, regs: *mut usize) {
         match self.interrupt_handler[int_num] {
             None => (),
             Some(func) => func(regs),
         }
     }
 
-    pub fn call_exception_handler(&self, exc_num: usize, regs: &mut Registers) {
+    pub fn call_exception_handler(&self, exc_num: usize, regs: *mut usize) {
         match self.exception_handler[exc_num] {
             None => (),
             Some(func) => func(regs),
@@ -134,10 +133,11 @@ impl TrapHandler {
 // 割込み・例外ハンドラ
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
-pub extern "C" fn trap_handler(regs: &mut Registers) {
+pub extern "C" fn trap_handler(regs: *mut usize) {
     /* 割込み・例外要因 */
     let scause = Scause {};
-    cpu().trap.call_vector(scause.get() as usize, regs);
+    //cpu().trap.call_vector(scause.get() as usize, regs);
+    cpu().call_vector(scause.get() as usize, regs)
 }
 
 #[cfg(target_arch = "riscv64")]

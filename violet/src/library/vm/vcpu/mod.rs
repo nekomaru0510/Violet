@@ -6,17 +6,18 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use crate::driver::traits::cpu::context::TraitContext;
+use crate::driver::traits::cpu::hypervisor::HypervisorT;
 use crate::environment::NUM_OF_CPUS;
 //use crate::driver::traits::cpu::registers::TraitRegisters;
 use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
 use vreg::{VirtualRegisterMap, VirtualRegisterT};
 
-pub struct VirtualCpuMap<T: TraitContext> {
+pub struct VirtualCpuMap<T: HypervisorT> {
     vcpus: Vec<VirtualCpu<T>>,
     p2v_cpu: [usize; NUM_OF_CPUS],
 }
 
-impl<T: TraitContext> VirtualCpuMap<T> {
+impl<T: HypervisorT> VirtualCpuMap<T> {
     pub const fn new() -> Self {
         VirtualCpuMap {
             vcpus: Vec::new(),
@@ -24,7 +25,7 @@ impl<T: TraitContext> VirtualCpuMap<T> {
         }
     }
 
-    pub fn create_vcpu(&mut self, vcpuid: usize, pcpuid: usize) {
+    pub fn register(&mut self, vcpuid: usize, pcpuid: usize) {
         self.p2v_cpu[pcpuid] = vcpuid;
         self.vcpus.push(VirtualCpu::new(vcpuid));
     }
@@ -32,6 +33,14 @@ impl<T: TraitContext> VirtualCpuMap<T> {
     /* 現在動作している(本メソッドを呼び出したCPUに対応する)仮想CPUのIDを返す */
     pub fn get_vcpuid(&self) -> usize {
         self.p2v_cpu[get_cpuid()]
+    }
+
+    pub fn get(&self, vcpuid: usize) -> Option<&VirtualCpu<T>> {
+        self.find(vcpuid)
+    }
+
+    pub fn get_mut(&mut self, vcpuid: usize) -> Option<&mut VirtualCpu<T>> {
+        self.find_mut(vcpuid)
     }
 
     pub fn find(&self, vcpuid: usize) -> Option<&VirtualCpu<T>> {
@@ -49,45 +58,49 @@ pub enum VcpuStatus {
     SUSPENDED,
 }
 
-pub struct VirtualCpu<T: TraitContext> {
+pub struct VirtualCpu<T: HypervisorT> {
     vcpuid: usize, /* 仮想CPU番号 */
-    pub context: T,
+    pub context: T::Context,
     status: VcpuStatus,
     vregs: VirtualRegisterMap,
 }
 
-impl<T: TraitContext> VirtualCpu<T> {
+impl<T: HypervisorT> VirtualCpu<T> {
     pub fn new(vcpuid: usize) -> Self {
         VirtualCpu {
             vcpuid,
-            context: T::new(),
+            context: T::Context::new(),
             status: VcpuStatus::STOPPED,
             vregs: VirtualRegisterMap::new(),
         }
     }
 
-    pub fn run(&mut self, regs: &mut T::Registers) {
+    pub fn run(&mut self, regs: &mut <T::Context as TraitContext>::Registers) {
         // レジスタの復帰
         //self.regs.restore_to(sp);
         self.context.switch(regs);
     }
 
-    pub fn register_vreg<U: VirtualRegisterT + 'static>(&mut self, id: usize, vreg: U) {
+    pub fn register<U: VirtualRegisterT + 'static>(&mut self, id: usize, vreg: U) {
         self.vregs.register(id, vreg);
     }
 
-    pub fn read_vreg(&mut self, id: usize) -> Option<u64> {
+    pub fn read(&mut self, id: usize) -> Option<u64> {
         match self.vregs.get_mut(id) {
             None => None,
             Some(r) => Some(r.read()),
         }
     }
 
-    pub fn write_vreg(&mut self, id: usize, val: u64) {
+    pub fn write(&mut self, id: usize, val: u64) {
         match self.vregs.get_mut(id) {
             None => (),
             Some(r) => r.write(val),
         }
+    }
+
+    pub fn hook(&self, vecid: usize, func: fn(regs: *mut usize)) {
+        T::hook(vecid, func);
     }
 
     /*
@@ -97,13 +110,13 @@ impl<T: TraitContext> VirtualCpu<T> {
 }
 
 #[cfg(test)]
-use crate::driver::arch::rv64::vscontext::VsContext;
+use crate::driver::arch::rv64::extension::hypervisor::Hext;
 
 #[test_case]
 fn test_vcpumap() -> Result<(), &'static str> {
-    let mut map = VirtualCpuMap::<VsContext>::new();
+    let mut map = VirtualCpuMap::<Hext>::new();
 
-    map.create_vcpu(1, 0);
+    map.register(1, 0);
 
     let result = match map.find(1) {
         None => Err("Fail to find vcpu"),
@@ -125,11 +138,11 @@ use vreg::vmhartid::Vmhartid;
 
 #[test_case]
 fn test_vcpu() -> Result<(), &'static str> {
-    let mut vcpu = VirtualCpu::<VsContext>::new(0);
+    let mut vcpu = VirtualCpu::<Hext>::new(0);
     let vmhartid = Vmhartid::new(0x128);
 
-    vcpu.register_vreg(1, vmhartid);
-    if vcpu.read_vreg(1) == Some(0x128) {
+    vcpu.register(1, vmhartid);
+    if vcpu.read(1) == Some(0x128) {
         return Ok(());
     } else {
         return Err("Failed to read virtual register");

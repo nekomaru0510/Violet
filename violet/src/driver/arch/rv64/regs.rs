@@ -52,6 +52,10 @@ impl Registers {
             epc: 0,
         }
     }
+
+    pub fn from(sp: *mut usize) -> &'static mut Self {
+        unsafe { &mut *(sp as *mut Self) }
+    }
 }
 
 impl TraitRegisters for Registers {

@@ -1,11 +1,11 @@
 //! 仮想PLIC
 
-use super::VirtualDevice;
+use super::VirtualDeviceT;
 use super::{read_raw, write_raw};
 use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
-use crate::driver::traits::intc::TraitIntc;
-use crate::environment::current_mut_container;
-use crate::environment::NUM_OF_CPUS; /* [todo delete] */
+                                          //use crate::driver::traits::intc::TraitIntc;
+use crate::environment::NUM_OF_CPUS;
+use crate::resource::{get_resources, BorrowResource, ResourceType}; /* [todo delete] */
 
 #[repr(C)]
 #[repr(align(4096))]
@@ -99,11 +99,13 @@ impl VPlic {
 
         let result = self.claim_comp[vcpuid];
 
-        let con = current_mut_container();
-        self.claim_comp[vcpuid] = match &mut con.unwrap().intc {
-            None => 0,
-            Some(i) => i.get_pend_int(),
-        };
+        self.claim_comp[vcpuid] =
+            if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
+                i.get_pend_int()
+            } else {
+                0
+            };
+
         result
     }
 
@@ -113,7 +115,7 @@ impl VPlic {
     }
 }
 
-impl VirtualDevice for VPlic {
+impl VirtualDeviceT for VPlic {
     fn write(&mut self, addr: usize, val: usize) {
         /* [todo fix] レジスタ取得を関数にまとめたい */
         match addr & MASK {
@@ -156,7 +158,7 @@ impl VirtualRegister for PriorityThresholdReg {
     type Register = u32;
 
     fn write(&mut self, addr: usize, val: u32) {
-        let con = current_mut_container();
+        let con = get_mut_container();
         self.reg = val & 0x7;
         match &mut con.unwrap().intc {
             None => (),

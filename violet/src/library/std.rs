@@ -1,8 +1,8 @@
 //! stdライブラリ
 
-use crate::driver::traits::serial::TraitSerial; /* [todo fix] デバイスのトレイトではなく、共通IFのトレイトを参照できるように */
-use crate::environment::current_mut_container; /* [todo delete] */
-use core::fmt::Write;
+use crate::resource::{
+    get_mut_resources, get_resources, BorrowMutResource, BorrowResource, ResourceType,
+};
 use core::fmt::{self};
 use core::ptr::{read_volatile, write_volatile};
 
@@ -18,18 +18,16 @@ macro_rules! println {
 }
 
 pub fn print(args: fmt::Arguments) {
-    let con = current_mut_container();
-    match &mut con.unwrap().serial {
-        None => (),
-        Some(s) => s.write_fmt(args).unwrap(),
+    if let BorrowMutResource::Serial(s) = get_mut_resources().get_mut(ResourceType::Serial, 0) {
+        s.write_fmt(args).unwrap();
     }
 }
 
 pub fn getc() -> u8 {
-    let con = current_mut_container();
-    match &mut con.unwrap().serial {
-        None => 0,
-        Some(s) => s.read(),
+    if let BorrowResource::Serial(s) = get_resources().get(ResourceType::Serial, 0) {
+        s.read()
+    } else {
+        0
     }
 }
 
