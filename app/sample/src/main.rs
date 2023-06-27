@@ -3,6 +3,7 @@
 #![no_std]
 
 extern crate violet;
+extern crate vmmode;
 
 use violet::environment::cpu_mut;
 

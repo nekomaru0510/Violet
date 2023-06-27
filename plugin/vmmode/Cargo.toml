@@ -1,6 +1,6 @@
 [package]
-name = "sample"
-version = "0.2.0"
+name = "vmmode"
+version = "0.1.0"
 authors = ["nekomaru0510 <yama05rymy@gmail.com>"]
 edition = "2018"
 
@@ -8,4 +8,3 @@ edition = "2018"
 
 [dependencies]
 violet = { path = "../../violet" }
-vmmode = { path = "../../plugin/vmmode" }

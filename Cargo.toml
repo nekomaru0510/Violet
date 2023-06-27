@@ -2,5 +2,6 @@
 members = [
     "violet",
     "app/sample",
+    "plugin/vmmode",
 ]
 #default-members = ["kernel"]
