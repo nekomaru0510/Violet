@@ -74,10 +74,10 @@ run_task = [
 #######################
 
 [tasks.run]
-script = "cd tools/script && ./command.sh -r"
+script = "cd tools/script && ./command.sh -r ${VIOLET_BIN_PATH}/${APP_NAME}"
 
 [tasks.debug]
-script = "cd tools/script && ./command.sh -d"
+script = "cd tools/script && ./command.sh -d ${VIOLET_BIN_PATH}/${APP_NAME}"
 
 [tasks.monitor]
 script = "cd tools/script && ./command.sh -m"

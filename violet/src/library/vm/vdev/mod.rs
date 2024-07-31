@@ -1,6 +1,7 @@
 //! 仮想デバイス
 
 pub mod vplic;
+pub mod vclint;
 
 extern crate alloc;
 use alloc::boxed::Box;

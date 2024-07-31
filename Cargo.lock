@@ -25,7 +25,7 @@ checksum = "f521a79accce68c417c9c77ce22108056b626126da1932f7e2e9b5bbffee0cea"
 
 [[package]]
 name = "violet"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "register",
 ]
@@ -34,5 +34,6 @@ dependencies = [
 name = "vmmode"
 version = "0.1.0"
 dependencies = [
+ "register",
  "violet",
 ]

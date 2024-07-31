@@ -95,8 +95,8 @@ impl Csr {
         }
     }
 
-    /* 書き込む値を取得する set/clearにおいてはset/clearする値を取得 */
-    pub fn write_val(&self, regs: &mut Registers) -> usize {
+    /* 演算に使用する即値を取得する */
+    pub fn imm(&self, regs: &mut Registers) -> usize {
         match self {
             Csr::Csrrw(csrrw) => regs.reg[csrrw.rs1()],
             Csr::Csrrs(csrrs) => regs.reg[csrrs.rs1()],
@@ -104,6 +104,19 @@ impl Csr {
             Csr::Csrrwi(csrrwi) => csrrwi.zimm(),
             Csr::Csrrsi(csrrsi) => csrrsi.zimm(),
             Csr::Csrrci(csrrci) => csrrci.zimm(),
+            _ => 0,
+        }
+    }
+
+    /* CSRに書き込む値を取得する */
+    pub fn write_val(&self, csr: usize, imm:usize) -> usize {
+        match self {
+            Csr::Csrrw(csrrw) => imm,
+            Csr::Csrrs(csrrs) => csr | imm,
+            Csr::Csrrc(csrrc) => csr & !imm,
+            Csr::Csrrwi(csrrwi) => imm,
+            Csr::Csrrsi(csrrsi) => csr | imm,
+            Csr::Csrrci(csrrci) => csr & !imm,
             _ => 0,
         }
     }

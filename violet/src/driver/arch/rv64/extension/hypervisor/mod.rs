@@ -23,6 +23,7 @@ use rv64::csr::htval::*;
 use rv64::csr::hvip::*;
 use rv64::csr::vsatp::*;
 use rv64::csr::vstval::*;
+use rv64::csr::vstvec::*;
 
 #[derive(Clone)]
 pub struct Hext {}
@@ -179,6 +180,16 @@ impl Hext {
     /* ページテーブルのアドレスを取得する */
     pub fn get_vs_fault_paddr() -> u64 {
         Htval.get() << 2
+    }
+
+    /* VS-modeのstvecを取得 */
+    pub fn set_vs_vector(val: u64) {
+        Vstvec.set(val);
+    }
+
+    /* VS-modeのstvecを取得 */
+    pub fn get_vs_vector() -> u64 {
+        Vstvec.get()
     }
 }
 

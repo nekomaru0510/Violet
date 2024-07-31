@@ -1,4 +1,4 @@
-//! Violetアプリケーションのサンプル(Linuxカーネルを動作させる)
+//! Violetアプリケーションのサンプル(FreeRTOSを動作させる)
 #![no_main]
 #![no_std]
 
@@ -22,7 +22,6 @@ use violet::driver::arch::rv64::trap::TrapVector;
 use violet::driver::arch::rv64::vscontext::*;
 use violet::driver::traits::cpu::context::TraitContext;
 
-use violet::kernel::syscall::vsi::create_task;
 use violet::resource::{get_resources, BorrowResource, ResourceType};
 
 use violet::app_init;
@@ -74,7 +73,8 @@ pub fn do_ecall_from_vsmode(sp: *mut usize /*regs: &mut Registers*/) {
 
 /* [todo delete] */
 fn topaddr(epc: usize) -> usize {
-    (epc & 0x0_ffff_ffff) + 0x1000_0000 + 0x20_0000 //linux
+    //(epc & 0x0_ffff_ffff) + 0x4000_0000 // FreeRTOS
+    epc // デバッグ用
 }
 
 pub fn do_guest_store_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
@@ -159,8 +159,29 @@ pub fn do_supervisor_timer_interrupt(_sp: *mut usize /*_regs: &mut Registers*/) 
     ));
 }
 
-pub fn boot_linux() {
-    
+fn boot_freertos() {
+    /* M-mode起動 */
+    let vclint = VClint::new();
+    /* VS-mode起動 */
+    unsafe {
+        /* CPU */
+        VM.cpu.register(0, 0); /* vcpu0 ... pcpu0 */
+        match VM.cpu.get_mut(0) {
+            None => (),
+            Some(v) => {
+                //v.context.set(JUMP_ADDR, 0x8000_0000);
+                v.context.set(JUMP_ADDR, 0xC000_0000); //デバッグ用
+            }
+        }
+        
+        /* RAM */
+        //VM.mem.register(0x8000_0000, 0xc000_0000, 0x1000_0000);
+        VM.mem.register(0xc000_0000, 0xc000_0000, 0x1000_0000); //デバッグ用
+
+        /* MMIO */
+        VM.dev.register(0x0200_0000, 0x0001_0000, vclint);
+    }
+
     unsafe {
         VM.setup();
     }
@@ -168,23 +189,12 @@ pub fn boot_linux() {
     /* 割込みを有効化 */
     Interrupt::enable_mask_s(
         Interrupt::bit(Interrupt::SUPERVISOR_TIMER_INTERRUPT)
-            | Interrupt::bit(Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT),
+        | Interrupt::bit(Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT),
     );
-
-    /* 割込みハンドラの登録 */
+    /* 割込みハンドラの登録 [todo fix]本当はタイマ割込みをパススルーしたい */
     cpu_mut().register_vector(
         TrapVector::SUPERVISOR_TIMER_INTERRUPT,
         do_supervisor_timer_interrupt,
-    );
-    cpu_mut().register_vector(
-        TrapVector::SUPERVISOR_EXTERNAL_INTERRUPT,
-        do_supervisor_external_interrupt,
-    );
-
-    /* 例外ハンドラの登録 */
-    cpu_mut().register_vector(
-        TrapVector::ENVIRONMENT_CALL_FROM_VSMODE,
-        do_ecall_from_vsmode,
     );
     cpu_mut().register_vector(TrapVector::LOAD_GUEST_PAGE_FAULT, do_guest_load_page_fault);
     cpu_mut().register_vector(
@@ -195,6 +205,8 @@ pub fn boot_linux() {
         TrapVector::INSTRUCTION_GUEST_PAGE_FAULT,
         do_guest_instruction_page_fault,
     );
+    
+    unsafe {vmmode::init(&mut VM);}
 
     unsafe {
         VM.run();
@@ -202,28 +214,5 @@ pub fn boot_linux() {
 }
 
 pub fn sample_main() {
-    let boot_core = 1;
-    let mut vplic = VPlic::new();
-    vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
-    unsafe {
-        /* CPU */
-        VM.cpu.register(0, boot_core); /* vcpu0 ... pcpu1 */
-        match VM.cpu.get_mut(0) {
-            None => (),
-            Some(v) => {
-                v.context.set(JUMP_ADDR, 0x8020_0000);
-                v.context.set(ARG0, 0);
-                v.context.set(ARG1, 0x8220_0000);
-            }
-        }
-        /* RAM */
-        VM.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
-        VM.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
-        VM.mem.register(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
-
-        /* MMIO */
-        VM.dev.register(0x0c00_0000, 0x0400_0000, vplic);
-    }
-    /* コア1でLinuxを起動させる */
-    create_task(2, boot_linux, boot_core);
+    boot_freertos();
 }

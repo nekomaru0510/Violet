@@ -7,11 +7,12 @@ source ${THISFILE_PATH}/header.sh
 OPENSBI_OUTPUT_FILE=`cd ${THISFILE_PATH} && bash -c 'source ./opensbi.sh && echo ${OUTPUT_FILE}'`
 BUSYBOX_OUTPUT_FILE=`cd ${THISFILE_PATH} && bash -c 'source ./busybox.sh && echo ${OUTPUT_FILE}'`
 LINUX_OUTPUT_FILE=`cd ${THISFILE_PATH} && bash -c 'source ./linux.sh && echo ${OUTPUT_FILE}'`
+FREERTOS_OUTPUT_FILE=`cd ${THISFILE_PATH} && bash -c 'source ./freertos.sh && echo ${OUTPUT_FILE}'`
 
 VIOLET_RLS_BIN_PATH="${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/release"
 VIOLET_DBG_BIN_PATH="${VIOLET_PATH}/target/riscv64imac-unknown-none-elf/debug"
 VIOLET_BIN_PATH="${VIOLET_DBG_BIN_PATH}"
-VIOLET_OUTPUT_FILE="${VIOLET_BIN_PATH}/sample"
+VIOLET_OUTPUT_FILE=""
 
 NUM_OF_CPUS="2"
 MEMORY_SIZE="2G"
@@ -28,6 +29,7 @@ function generate_qemu_option () {
         -initrd ${BUSYBOX_OUTPUT_FILE} \
         -append \"root=/dev/ram rdinit=/sbin/init console=ttyS0 mem=0x10000000\" \
         -device loader,file=${LINUX_OUTPUT_FILE},addr=0x90200000,force-raw=true \
+        -device loader,file=${FREERTOS_OUTPUT_FILE},addr=0xc0000000,force-raw=true \
         ${DEBUG_OPTION} "    
 }
 
@@ -67,7 +69,7 @@ function help () {
     echo "    This command means 'build linux and opensbi' "
 }
 
-while getopts i:b:rdm:t:h OPT
+while getopts i:b:r:d:m:t:h OPT
 do
     case $OPT in
         i)  
@@ -85,14 +87,28 @@ do
             done
             ;;
         r)  
+            VIOLET_OUTPUT_FILE="${OPTARG}"
+            if [ ! -e "$VIOLET_OUTPUT_FILE" ]; then
+                echo $VIOLET_OUTPUT_FILE" :No such file or directory:" 
+                exit
+            fi
             run_linux_with_violet
             ;;
         d)  
+            VIOLET_OUTPUT_FILE="${OPTARG}"
+            if [ ! -e "$VIOLET_OUTPUT_FILE" ]; then
+                echo $VIOLET_OUTPUT_FILE" :No such file or directory:" 
+                exit
+            fi
             DEBUG_OPTION=${QEMU_DEBUG_OPTION}
             run_linux_with_violet
             ;;
         t)  
             VIOLET_OUTPUT_FILE="${OPTARG}"
+            if [ ! -e "$VIOLET_OUTPUT_FILE" ]; then
+                echo $VIOLET_OUTPUT_FILE" :No such file or directory:" 
+                exit
+            fi
             run_linux_with_violet
             ;;
         m)  
