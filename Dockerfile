@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:24.04
 
 ENV RISCV=/opt/riscv
 ENV PATH=$RISCV/bin:/root/.cargo/bin:$PATH
@@ -8,14 +8,7 @@ WORKDIR $RISCV
 
 # 基本ツールのインストール
 RUN apt update && \
-	apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev pkg-config git libusb-1.0-0-dev device-tree-compiler default-jdk gnupg vim python3 cpio
-
-# riscv-gnu-toolchainのビルド
-RUN git clone https://github.com/riscv/riscv-gnu-toolchain.git && \
-	cd riscv-gnu-toolchain && git checkout 2023.03.14 && \
-	git submodule update --init --recursive
-RUN cd riscv-gnu-toolchain && mkdir build && cd build && ../configure --prefix=${RISCV} --with-cmodel=medany --enable-multilib && make
-RUN cd riscv-gnu-toolchain && mkdir build2 && cd build2 && ../configure --prefix=${RISCV} --enable-multilib && make linux
+	apt install -y autoconf automake autotools-dev curl bc git device-tree-compiler vim python3 cpio
 
 # QEMUのビルド
 RUN apt update && \

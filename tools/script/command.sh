@@ -29,7 +29,6 @@ function generate_qemu_option () {
         -initrd ${BUSYBOX_OUTPUT_FILE} \
         -append \"root=/dev/ram rdinit=/sbin/init console=ttyS0 mem=0x10000000\" \
         -device loader,file=${LINUX_OUTPUT_FILE},addr=0x90200000,force-raw=true \
-        -device loader,file=${FREERTOS_OUTPUT_FILE},addr=0xc0000000,force-raw=true \
         ${DEBUG_OPTION} "    
 }
 

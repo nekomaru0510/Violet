@@ -12,6 +12,8 @@ BUSYBOX_OUTPUT_FILE=`bash -c "source ${THISFILE_PATH}/busybox.sh && echo '${OUTP
 # インストール
 function install () {
     cd ${RISCV_PATH}
+    apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev pkg-config libusb-1.0-0-dev device-tree-compiler default-jdk gnupg
+    apt install -y gcc-riscv64-linux-gnu
     git clone https://github.com/torvalds/linux -b v5.17 --depth 1
 	cd ${TARGET_PATH}
 	#git checkout v5.17
@@ -22,9 +24,9 @@ function build () {
     cd ${TARGET_PATH}
     
     # Linuxのビルド
-    make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- defconfig
-	make ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu- -j 2
-    riscv64-unknown-elf-objcopy -O binary \
+    make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- defconfig
+	make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- -j 2
+    riscv64-linux-gnu-objcopy -O binary \
         ${TARGET_PATH}/vmlinux \
         ${TARGET_PATH}/vmlinux.bin
 }
@@ -56,5 +58,5 @@ function debug () {
 
 # モニタ
 function monitor () {
-    riscv64-unknown-elf-gdb ${TARGET_PATH}/vmlinux -x ${GDB_SCRIPTS_PATH}/connect
+    riscv64-linux-gnu-gdb ${TARGET_PATH}/vmlinux -x ${GDB_SCRIPTS_PATH}/connect
 }
