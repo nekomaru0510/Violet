@@ -20,7 +20,6 @@ Dockerを利用しない場合は、Dockerfileを見て環境構築をしてく�
 下記がインストールされていれば、動作します。
 * QEMU(8.0.0)
 * Rust
-* cargo-make
 * riscv-gnu-toolchain (OpenSBIやLinux等をビルドする場合に必要)
 
 rustupにより、riscv64bitのツールチェインを追加
