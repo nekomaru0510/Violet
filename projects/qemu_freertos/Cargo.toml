@@ -1,5 +1,5 @@
 [package]
-name = "freertos_sample"
+name = "qemu_freertos"
 version = "0.1.0"
 authors = ["ryamamoto"]
 edition = "2018"
