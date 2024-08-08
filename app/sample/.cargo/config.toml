@@ -2,7 +2,7 @@
 opt-level = 0
 
 [target.riscv64imac-unknown-none-elf]
-runner = "../../tools/script/command.sh -t "
+runner = "./run.sh "
 
 [build]
 target = "riscv64imac-unknown-none-elf"

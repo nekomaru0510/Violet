@@ -1,7 +1,7 @@
-# Violet
+# Single Linux
 
 ## 概要
-Violetは、RISC-Vアーキテクチャ向けのハイパーバイザである。
+単体のLinuxが動作するプロジェクト
 
 ## 動作環境
 QEMU8.0.0 (virt)
@@ -9,7 +9,7 @@ QEMU8.0.0 (virt)
 ## 対応OS
 Linux5.17(単体)
 
-## 対応アーキテクチャ
+## アーキテクチャ
 RISC-V (64bit, H-extension)
 
 ## 環境構築
@@ -23,15 +23,13 @@ Dockerを利用しない場合は、Dockerfileを見て環境構築をしてく�
 * cargo-make
 * riscv-gnu-toolchain (OpenSBIやLinux等をビルドする場合に必要)
 
-rustupにより、riscv64bitのツールチェインを追加
-```
-% rustup target add riscv64imac-unknown-none-elf
-```
-
 ### ビルド方法
-app以下のプロジェクトのREADME.mdを参照してください
+本プロジェクトのビルド
+```
+% cargo build
+```
 
-## License
-This software is released under the MIT License, see LICENSE.txt.
-
-
+## 実行方法
+```
+% cargo run
+```
