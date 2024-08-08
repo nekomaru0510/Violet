@@ -6,4 +6,5 @@ MEMORY
   RAM (rwx) : ORIGIN = 0x80100000, LENGTH = 1M
 }
 
-INCLUDE base.ld
+INCLUDE ../../config/ld/base.ld
+
