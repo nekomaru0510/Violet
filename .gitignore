@@ -1,5 +1,5 @@
 target/
 !.cargo/*
 /doc
-/tmp/*
 .vscode
+.devcontainer
