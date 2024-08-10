@@ -47,6 +47,13 @@ impl VirtualMemoryMap {
             .iter_mut()
             .rfind(|e| e.vaddr <= addr && addr < e.vaddr + e.size)
     }
+
+    pub fn get_paddr(&self, vaddr: usize) -> Option<usize> {
+        match self.find(vaddr) {
+            None => None,
+            Some(m) => m.get_paddr(vaddr),
+        }
+    }
 }
 
 pub struct VirtualMemoryArea {

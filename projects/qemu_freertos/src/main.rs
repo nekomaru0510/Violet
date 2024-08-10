@@ -1,4 +1,5 @@
 //! Violetアプリケーションのサンプル(FreeRTOSを動作させる)
+
 #![no_main]
 #![no_std]
 
@@ -29,13 +30,12 @@ app_init!(sample_main);
 
 static mut VM: VirtualMachine<Hext> = VirtualMachine::new();
 
-pub fn do_ecall_from_vsmode(sp: *mut usize /*regs: &mut Registers*/) {
+pub fn do_ecall_from_vsmode(sp: *mut usize) {
     let regs = Registers::from(sp);
     let ext: i32 = regs.reg[A7] as i32;
     let fid: i32 = regs.reg[A6] as i32;
 
     match sbi::Extension::from_ext(ext) {
-        /* タイマセット */
         sbi::Extension::SetTimer | sbi::Extension::Timer => {
             Hext::flush_vsmode_interrupt(Interrupt::bit(
                 Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
@@ -68,20 +68,15 @@ pub fn do_ecall_from_vsmode(sp: *mut usize /*regs: &mut Registers*/) {
     regs.reg[A0] = ret.0;
     regs.reg[A1] = ret.1;
 
-    regs.epc = regs.epc + 4; /* todo fix */
+    /* size of ecall instruction is always 4byte */
+    regs.epc = regs.epc + 4;
 }
 
-/* [todo delete] */
-fn topaddr(epc: usize) -> usize {
-    //(epc & 0x0_ffff_ffff) + 0x4000_0000 // FreeRTOS
-    epc // デバッグ用
-}
-
-pub fn do_guest_store_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
+pub fn do_guest_store_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
 
-    let inst = Instruction::fetch(topaddr(regs.epc));
+    let inst = Instruction::fetch(unsafe {VM.mem.get_paddr(regs.epc).unwrap()});
     let val = Store::from_val(inst).store_value(regs);
 
     match unsafe { VM.dev.write(fault_paddr, val) } {
@@ -97,10 +92,10 @@ pub fn do_guest_store_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
     }
 }
 
-pub fn do_guest_load_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
+pub fn do_guest_load_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
-    let inst = Instruction::fetch(topaddr(regs.epc));
+    let inst = Instruction::fetch(unsafe {VM.mem.get_paddr(regs.epc).unwrap()});
 
     match unsafe { VM.dev.read(fault_paddr) } {
         None => unsafe {
@@ -113,13 +108,13 @@ pub fn do_guest_load_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
     }
 }
 
-pub fn do_guest_instruction_page_fault(_sp: *mut usize /*_regs: &mut Registers*/) {
+pub fn do_guest_instruction_page_fault(_sp: *mut usize) {
     unsafe {
         VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
     }
 }
 
-pub fn do_supervisor_external_interrupt(_sp: *mut usize /*_regs: &mut Registers*/) {
+pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
     // 物理PLICからペンディングビットを読み、クリアする
     let int_id = if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
         i.get_pend_int()
@@ -169,14 +164,12 @@ fn boot_freertos() {
         match VM.cpu.get_mut(0) {
             None => (),
             Some(v) => {
-                //v.context.set(JUMP_ADDR, 0x8000_0000);
-                v.context.set(JUMP_ADDR, 0xC000_0000); //デバッグ用
+                v.context.set(JUMP_ADDR, 0x8000_0000);
             }
         }
         
         /* RAM */
-        //VM.mem.register(0x8000_0000, 0xc000_0000, 0x1000_0000);
-        VM.mem.register(0xc000_0000, 0xc000_0000, 0x1000_0000); //デバッグ用
+        VM.mem.register(0x8000_0000, 0xc000_0000, 0x1000_0000);
 
         /* MMIO */
         VM.dev.register(0x0200_0000, 0x0001_0000, vclint);

@@ -11,5 +11,5 @@ qemu-system-riscv64 \
     -smp 2 \
     -bios ${OPENSBI_PATH} \
     -append 'root=/dev/ram rdinit=/sbin/init console=ttyS0 mem=0x10000000' \
-    -device loader,file=${FREERTOS_PATH},addr=0xc0000000,force-raw=true \
+    -device loader,file=${FREERTOS_PATH},addr=0x80000000,force-raw=true \
     -kernel $1 \
