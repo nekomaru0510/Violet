@@ -1,4 +1,4 @@
-//! Violetアプリケーションのサンプル(FreeRTOSを動作させる)
+//! Running FreeRTOS on virtual machine with violet
 
 #![no_main]
 #![no_std]
@@ -8,7 +8,6 @@ extern crate vmmode;
 
 use violet::environment::cpu_mut;
 
-use violet::library::vm::vdev::vplic::VPlic;
 use violet::library::vm::vdev::vclint::VClint;
 use violet::library::vm::VirtualMachine;
 
@@ -26,37 +25,14 @@ use violet::driver::traits::cpu::context::TraitContext;
 use violet::resource::{get_resources, BorrowResource, ResourceType};
 
 use violet::app_init;
-app_init!(sample_main);
+app_init!(main);
 
 static mut VM: VirtualMachine<Hext> = VirtualMachine::new();
 
-pub fn do_ecall_from_vsmode(sp: *mut usize) {
-    let regs = Registers::from(sp);
-    let ext: i32 = regs.reg[A7] as i32;
-    let fid: i32 = regs.reg[A6] as i32;
-
-    match sbi::Extension::from_ext(ext) {
-        sbi::Extension::SetTimer | sbi::Extension::Timer => {
-            Hext::flush_vsmode_interrupt(Interrupt::bit(
-                Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
-            ));
-        }
-        sbi::Extension::HartStateManagement => {
-            if fid == 0 {
-                regs.reg[A0] = 0;
-                regs.reg[A1] = 0;
-                regs.epc = regs.epc + 4;
-
-                return;
-            }
-        }
-        sbi::Extension::SystemReset => loop {},
-        _ => {}
-    }
-
+fn do_ecall(regs: &mut Registers) {
     let ret = Instruction::ecall(
-        ext,
-        fid,
+        regs.reg[A7] as i32, /* ext */
+        regs.reg[A6] as i32, /* fid */
         regs.reg[A0],
         regs.reg[A1],
         regs.reg[A2],
@@ -67,6 +43,36 @@ pub fn do_ecall_from_vsmode(sp: *mut usize) {
 
     regs.reg[A0] = ret.0;
     regs.reg[A1] = ret.1;
+}
+
+fn handle_set_timer(regs: &mut Registers) {
+    Hext::flush_vsmode_interrupt(Interrupt::bit(
+        Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
+    ));
+    do_ecall(regs);
+}
+
+fn handle_hart_state_management(regs: &mut Registers, fid: i32) {
+    match fid {
+        0 => {
+            regs.reg[A0] = 0;
+            regs.reg[A1] = 0;
+        },
+        _ => do_ecall(regs),
+    }
+}
+
+pub fn do_ecall_from_vsmode(sp: *mut usize) {
+    let regs = Registers::from(sp);
+    let ext: i32 = regs.reg[A7] as i32;
+    let fid: i32 = regs.reg[A6] as i32;
+
+    match sbi::Extension::from_ext(ext) {
+        sbi::Extension::SetTimer | sbi::Extension::Timer => handle_set_timer(regs),
+        sbi::Extension::HartStateManagement => handle_hart_state_management(regs, fid),
+        sbi::Extension::SystemReset => loop {},
+        _ => do_ecall(regs),
+    }
 
     /* size of ecall instruction is always 4byte */
     regs.epc = regs.epc + 4;
@@ -115,14 +121,14 @@ pub fn do_guest_instruction_page_fault(_sp: *mut usize) {
 }
 
 pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
-    // 物理PLICからペンディングビットを読み、クリアする
+    // Read and clear the pending bit from the physical PLIC
     let int_id = if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
         i.get_pend_int()
     } else {
         0
     };
 
-    // 仮想PLICへ書込み
+    // write to virtual plic
     unsafe {
         match VM.dev.get_mut(0x0c20_1000) {
             // [todo fix] 割込み番号で検索できるようにする
@@ -133,19 +139,19 @@ pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
         }
     }
 
-    // 仮想外部割込みを発生させる
+    // Raise a virtual external interrupt 
     Hext::assert_vsmode_interrupt(Interrupt::bit(
         Interrupt::VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT,
     ));
 
-    // PLICでペンディングビットをクリア
+    // Clear the pending bit in the PLIC 
     if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
         i.set_comp_int(int_id);
     }
 }
 
-pub fn do_supervisor_timer_interrupt(_sp: *mut usize /*_regs: &mut Registers*/) {
-    /* タイマの無効化 */
+pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
+    // Disable the timer
     sbi::sbi_set_timer(0xffff_ffff_ffff_ffff);
 
     /* ゲストにタイマ割込みをあげる */
@@ -155,9 +161,7 @@ pub fn do_supervisor_timer_interrupt(_sp: *mut usize /*_regs: &mut Registers*/) 
 }
 
 fn boot_freertos() {
-    /* M-mode起動 */
     let vclint = VClint::new();
-    /* VS-mode起動 */
     unsafe {
         /* CPU */
         VM.cpu.register(0, 0); /* vcpu0 ... pcpu0 */
@@ -206,6 +210,6 @@ fn boot_freertos() {
     }
 }
 
-pub fn sample_main() {
+pub fn main() {
     boot_freertos();
 }
