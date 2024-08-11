@@ -1,15 +1,17 @@
 //! env.rs template
 
-//use crate::kernel::container::*;
 use crate::container::*;
 use crate::resource::*;
 
-/* デバイスドライバ */
 use crate::arch::rv64::Rv64;
+use crate::arch::rv64::extension::hypervisor::Hext;
+use crate::arch::traits::TraitCpu;
+
+/* Device Driver */
 use crate::driver::board::sifive_u::clint_timer::ClintTimer;
 use crate::driver::board::sifive_u::plic::Plic;
 use crate::driver::board::sifive_u::uart::Uart;
-use crate::arch::traits::TraitCpu;
+
 
 /* CPUコア数 */
 pub const NUM_OF_CPUS: usize = 2;
@@ -33,8 +35,14 @@ pub fn setup_container() {
     create_container();
 
     let resources = get_mut_resources();
-    let result = resources.register(Resource::Cpu(Box::new(Rv64::new(0))));
-    let result = resources.register(Resource::Cpu(Box::new(Rv64::new(1))));
+
+    let mut cpu0 = Rv64::new(0);
+    let mut cpu1 = Rv64::new(1);
+    cpu0.add_hext(Hext{});
+    cpu1.add_hext(Hext{});
+    let result = resources.register(Resource::Cpu(Box::new(cpu0)));
+    let result = resources.register(Resource::Cpu(Box::new(cpu1)));
+
     let result = resources.register(Resource::Serial(Box::new(Uart::new(UART_BASE))));
     let result = resources.register(Resource::Intc(Box::new(Plic::new(PLIC_BASE))));
     let result = resources.register(Resource::Timer(Box::new(ClintTimer::new(CLINT_TIMER_BASE))));

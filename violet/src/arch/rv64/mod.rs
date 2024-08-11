@@ -23,6 +23,7 @@ use regs::Registers;
 use trap::TrapVector;
 use trap::_start_trap;
 use trap::int::Interrupt;
+use extension::hypervisor::Hext;
 
 extern crate core;
 use core::intrinsics::transmute;
@@ -46,6 +47,7 @@ pub struct Rv64 {
     pub scratch: Scratch,    /* scratchレジスタが指す構造体 */
     pub mode: PrivilegeMode, /* 動作モード */
     pub mmu: Rv64Mmu,
+    pub hext: Option<Hext>,  /* Hypervisor Extension */
     trap: TrapVector,
 }
 
@@ -134,8 +136,13 @@ impl Rv64 {
             mode: PrivilegeMode::ModeS,
             mmu: Rv64Mmu::new(),
             scratch: Scratch::new(id),
+            hext: None,
             trap: TrapVector::new(),
         }
+    }
+
+    pub fn add_hext(&mut self, hext: Hext) {
+        self.hext = Some(hext);
     }
 
     pub fn set_sscratch(&self) {
