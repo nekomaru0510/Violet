@@ -5,7 +5,7 @@ use core::ptr::{read_volatile, write_volatile};
 /* ドライバ用トレイト */
 use crate::driver::traits::intc::TraitIntc;
 
-use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
+use crate::arch::rv64::get_cpuid; // [todo delete] //test
 
 #[derive(Clone)]
 pub struct Plic {

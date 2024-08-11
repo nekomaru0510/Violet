@@ -12,17 +12,17 @@ use regs::vmepc::Vmepc;
 extern crate violet;
 use violet::library::vm::VirtualMachine;
 use violet::library::vm::vcpu::vreg::VirtualRegisterT;
-use violet::driver::arch::rv64::instruction::csr::Csr;
-use violet::driver::arch::rv64::instruction::csr::csrnumber::CsrNumber;
-use violet::driver::arch::rv64::extension::hypervisor::Hext;
-use violet::driver::arch::rv64::trap::TrapVector;
-use violet::driver::arch::rv64::instruction::Instruction;
-use violet::driver::arch::rv64::regs::*;
-use violet::driver::arch::rv64::redirect_to_guest;
+use violet::arch::rv64::instruction::csr::Csr;
+use violet::arch::rv64::instruction::csr::csrnumber::CsrNumber;
+use violet::arch::rv64::extension::hypervisor::Hext;
+use violet::arch::rv64::trap::TrapVector;
+use violet::arch::rv64::instruction::Instruction;
+use violet::arch::rv64::regs::*;
+use violet::arch::rv64::redirect_to_guest;
 use violet::driver::traits::cpu::hypervisor::HypervisorT;
 use violet::environment::cpu_mut;
 
-use violet::driver::arch::rv64::instruction::ret::Ret;
+use violet::arch::rv64::instruction::ret::Ret;
 use core::ptr::write_volatile;
 
 pub fn init<H: HypervisorT>(vm: &mut VirtualMachine<H>) {

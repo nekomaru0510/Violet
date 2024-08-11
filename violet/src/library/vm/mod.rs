@@ -6,8 +6,8 @@ pub mod vcpu;
 pub mod vdev;
 pub mod vmem;
 
-use crate::driver::arch::rv64::extension::hypervisor::*; //[todo delete]
-use crate::driver::arch::rv64::mmu::sv48::PageTableSv48;
+use crate::arch::rv64::extension::hypervisor::*; //[todo delete]
+use crate::arch::rv64::mmu::sv48::PageTableSv48;
 use crate::driver::traits::cpu::hypervisor::HypervisorT;
 
 use vcpu::VirtualCpuMap;

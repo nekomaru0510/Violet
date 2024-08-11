@@ -3,9 +3,9 @@
 use super::VirtualDeviceT;
 use super::read_raw;
 
-use crate::driver::arch::rv64::sbi;
-use crate::driver::arch::rv64::extension::hypervisor::Hext;
-use crate::driver::arch::rv64::trap::int::Interrupt;
+use crate::arch::rv64::sbi;
+use crate::arch::rv64::extension::hypervisor::Hext;
+use crate::arch::rv64::trap::int::Interrupt;
 
 #[repr(C)]
 #[repr(align(4096))]

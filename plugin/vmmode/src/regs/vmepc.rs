@@ -2,7 +2,7 @@
 
 extern crate violet;
 use violet::library::vm::vcpu::vreg::VirtualRegisterT;
-use violet::driver::arch::rv64::csr::vsepc::Vsepc;
+use violet::arch::rv64::csr::vsepc::Vsepc;
 extern crate register;
 use register::cpu::RegisterReadWrite;
 

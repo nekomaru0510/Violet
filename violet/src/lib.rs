@@ -16,6 +16,7 @@
 #![allow(unused_variables)]
 #![no_std]
 
+pub mod arch;
 pub mod container;
 pub mod driver;
 pub mod environment;

@@ -3,7 +3,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::driver::arch::rv64::get_cpuid;
+use crate::arch::rv64::get_cpuid;
 use crate::kernel::Kernel;
 use crate::resource::{Resource, ResourceManager}; // [todo delete] //test
 

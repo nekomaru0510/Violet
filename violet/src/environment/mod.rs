@@ -5,7 +5,7 @@ use crate::container::*;
 use crate::resource::*;
 
 /* デバイスドライバ */
-use crate::driver::arch::rv64::Rv64;
+use crate::arch::rv64::Rv64;
 use crate::driver::board::sifive_u::clint_timer::ClintTimer;
 use crate::driver::board::sifive_u::plic::Plic;
 use crate::driver::board::sifive_u::uart::Uart;
@@ -40,7 +40,7 @@ pub fn setup_container() {
     let result = resources.register(Resource::Timer(Box::new(ClintTimer::new(CLINT_TIMER_BASE))));
 }
 
-use crate::driver::arch::rv64::get_cpuid;
+use crate::arch::rv64::get_cpuid;
 
 pub fn cpu() -> &'static dyn TraitCpu {
     if let BorrowResource::Cpu(x) = get_resources().get(ResourceType::Cpu, get_cpuid()) {

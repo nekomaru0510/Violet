@@ -28,9 +28,9 @@ use task::Task;
 use traits::dispatcher::TraitDispatcher;
 use traits::sched::TraitSched;
 
-use crate::driver::arch::rv64::boot::_start_ap; // [todo delete]
-use crate::driver::arch::rv64::instruction::Instruction; // [todo delete]
-use crate::driver::arch::rv64::sbi; // [todo delete]
+use crate::arch::rv64::boot::_start_ap; // [todo delete]
+use crate::arch::rv64::instruction::Instruction; // [todo delete]
+use crate::arch::rv64::sbi; // [todo delete]
                                     //use crate::driver::traits::cpu::TraitCpu;
 
 extern crate core;

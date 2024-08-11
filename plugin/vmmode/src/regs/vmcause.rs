@@ -2,8 +2,8 @@
 
 extern crate violet;
 use violet::library::vm::vcpu::vreg::VirtualRegisterT;
-use violet::driver::arch::rv64::csr::vscause::Vscause;
-use violet::driver::arch::rv64::trap::TrapVector;
+use violet::arch::rv64::csr::vscause::Vscause;
+use violet::arch::rv64::trap::TrapVector;
 extern crate register;
 use register::cpu::RegisterReadWrite;
 

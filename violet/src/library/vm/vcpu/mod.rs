@@ -9,7 +9,7 @@ use crate::driver::traits::cpu::context::TraitContext;
 use crate::driver::traits::cpu::hypervisor::HypervisorT;
 use crate::environment::NUM_OF_CPUS;
 //use crate::driver::traits::cpu::registers::TraitRegisters;
-use crate::driver::arch::rv64::get_cpuid; // [todo delete] //test
+use crate::arch::rv64::get_cpuid; // [todo delete] //test
 use vreg::{VirtualRegisterMap, VirtualRegisterT};
 
 pub struct VirtualCpuMap<T: HypervisorT> {

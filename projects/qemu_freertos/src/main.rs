@@ -11,15 +11,15 @@ use violet::environment::cpu_mut;
 use violet::library::vm::vdev::vclint::VClint;
 use violet::library::vm::VirtualMachine;
 
-use violet::driver::arch::rv64::extension::hypervisor::Hext;
-use violet::driver::arch::rv64::instruction::load::Load;
-use violet::driver::arch::rv64::instruction::store::Store;
-use violet::driver::arch::rv64::instruction::*;
-use violet::driver::arch::rv64::regs::*;
-use violet::driver::arch::rv64::sbi;
-use violet::driver::arch::rv64::trap::int::Interrupt;
-use violet::driver::arch::rv64::trap::TrapVector;
-use violet::driver::arch::rv64::vscontext::*;
+use violet::arch::rv64::extension::hypervisor::Hext;
+use violet::arch::rv64::instruction::load::Load;
+use violet::arch::rv64::instruction::store::Store;
+use violet::arch::rv64::instruction::*;
+use violet::arch::rv64::regs::*;
+use violet::arch::rv64::sbi;
+use violet::arch::rv64::trap::int::Interrupt;
+use violet::arch::rv64::trap::TrapVector;
+use violet::arch::rv64::vscontext::*;
 use violet::driver::traits::cpu::context::TraitContext;
 
 use violet::resource::{get_resources, BorrowResource, ResourceType};

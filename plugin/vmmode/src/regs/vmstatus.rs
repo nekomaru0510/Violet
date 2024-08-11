@@ -3,7 +3,7 @@
 extern crate violet;
 use violet::{bit_extract, bit_fill, bitfield, bit_set, bit_clear};
 use violet::library::vm::vcpu::vreg::VirtualRegisterT;
-use violet::driver::arch::rv64::csr::vsstatus::Vsstatus;
+use violet::arch::rv64::csr::vsstatus::Vsstatus;
 extern crate register;
 use register::cpu::RegisterReadWrite;
 
