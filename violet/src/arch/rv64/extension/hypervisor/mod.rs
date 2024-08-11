@@ -6,7 +6,7 @@ use register::cpu::RegisterReadWrite;
 use crate::environment::cpu_mut; /* [todo delete] */
 
 use crate::arch::rv64;
-use crate::driver::traits::cpu::hypervisor::HypervisorT;
+use crate::arch::traits::hypervisor::HypervisorT;
 use rv64::trap::exc::Exception;
 use rv64::trap::int::Interrupt;
 use rv64::trap::TrapVector;
@@ -197,7 +197,7 @@ extern crate core;
 use core::intrinsics::transmute;
 
 use crate::arch::rv64::mmu::sv48::PageTableSv48;
-use crate::driver::traits::cpu::mmu::{PageEntry, PageTable};
+use crate::arch::traits::mmu::{PageEntry, PageTable};
 
 static mut PAGE_TABLE_ARRAY: [PageTableSv48; MAX_PAGE_TABLE] =
     [PageTableSv48::empty(); MAX_PAGE_TABLE];

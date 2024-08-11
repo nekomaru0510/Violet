@@ -5,10 +5,10 @@ pub mod vreg;
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::driver::traits::cpu::context::TraitContext;
-use crate::driver::traits::cpu::hypervisor::HypervisorT;
+use crate::arch::traits::context::TraitContext;
+use crate::arch::traits::hypervisor::HypervisorT;
 use crate::environment::NUM_OF_CPUS;
-//use crate::driver::traits::cpu::registers::TraitRegisters;
+//use crate::arch::traits::registers::TraitRegisters;
 use crate::arch::rv64::get_cpuid; // [todo delete] //test
 use vreg::{VirtualRegisterMap, VirtualRegisterT};
 

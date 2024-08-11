@@ -8,13 +8,13 @@ pub mod vmem;
 
 use crate::arch::rv64::extension::hypervisor::*; //[todo delete]
 use crate::arch::rv64::mmu::sv48::PageTableSv48;
-use crate::driver::traits::cpu::hypervisor::HypervisorT;
+use crate::arch::traits::hypervisor::HypervisorT;
 
 use vcpu::VirtualCpuMap;
 use vdev::VirtualDevMap;
 use vmem::VirtualMemoryMap;
 
-use crate::driver::traits::cpu::context::TraitContext; //[todo delete]
+use crate::arch::traits::context::TraitContext; //[todo delete]
 
 pub struct VirtualMachine<H: HypervisorT> {
     pub cpu: VirtualCpuMap<H>,

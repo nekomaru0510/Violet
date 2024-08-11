@@ -1,6 +1,6 @@
 //! RISC-V 汎用レジスタ
 
-use crate::driver::traits::cpu::registers::TraitRegisters;
+use crate::arch::traits::registers::TraitRegisters;
 
 /* 割込み・例外元のコンテキストを示す */
 #[derive(Clone, Copy)]

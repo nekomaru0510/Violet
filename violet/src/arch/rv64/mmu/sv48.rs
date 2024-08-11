@@ -5,7 +5,7 @@ use core::intrinsics::transmute;
 
 use super::BitField;
 //use crate::driver::traits::arch::riscv::{PageEntry, PageTable};
-use crate::driver::traits::cpu::mmu::{PageEntry, PageTable};
+use crate::arch::traits::mmu::{PageEntry, PageTable};
 
 const PAGE_TABLE_LEVEL: usize = 4; /* ページテーブルの段数 */
 const NUM_OF_PAGE_ENTRY: usize = 512; /* 1テーブルあたりのページエントリ数 */

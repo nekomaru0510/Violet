@@ -1,6 +1,6 @@
 //! Hypervisor(Virtualization) Extension Trait
 
-use crate::driver::traits::cpu::context::TraitContext;
+use crate::arch::traits::context::TraitContext;
 
 pub trait HypervisorT {
     type Context: TraitContext;

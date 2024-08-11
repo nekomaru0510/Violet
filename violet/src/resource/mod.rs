@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 
 use crate::container::{get_container, get_mut_container};
 
-use crate::driver::traits::cpu::TraitCpu;
+use crate::arch::traits::TraitCpu;
 use crate::driver::traits::intc::TraitIntc;
 use crate::driver::traits::serial::TraitSerial;
 use crate::driver::traits::timer::TraitTimer;

@@ -20,7 +20,7 @@ use violet::arch::rv64::sbi;
 use violet::arch::rv64::trap::int::Interrupt;
 use violet::arch::rv64::trap::TrapVector;
 use violet::arch::rv64::vscontext::*;
-use violet::driver::traits::cpu::context::TraitContext;
+use violet::arch::traits::context::TraitContext;
 
 use violet::resource::{get_resources, BorrowResource, ResourceType};
 

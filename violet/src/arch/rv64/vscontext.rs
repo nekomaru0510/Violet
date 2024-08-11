@@ -6,8 +6,8 @@ use super::regs::*;
 use crate::arch::rv64::csr::sepc::Sepc;
 use crate::arch::rv64::PrivilegeMode;
 use crate::arch::rv64::Rv64;
-use crate::driver::traits::cpu::context::TraitContext;
-use crate::driver::traits::cpu::registers::TraitRegisters;
+use crate::arch::traits::context::TraitContext;
+use crate::arch::traits::registers::TraitRegisters;
 //use crate::CPU;
 
 extern crate register;

@@ -13,7 +13,7 @@ pub mod vscontext;
 /*  */
 use crate::environment::STACK_SIZE;
 /* ドライバ用トレイト */
-use crate::driver::traits::cpu::TraitCpu;
+use crate::arch::traits::TraitCpu;
 extern crate register;
 use register::cpu::RegisterReadWrite;
 

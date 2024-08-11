@@ -19,7 +19,7 @@ use violet::arch::rv64::trap::TrapVector;
 use violet::arch::rv64::instruction::Instruction;
 use violet::arch::rv64::regs::*;
 use violet::arch::rv64::redirect_to_guest;
-use violet::driver::traits::cpu::hypervisor::HypervisorT;
+use violet::arch::traits::hypervisor::HypervisorT;
 use violet::environment::cpu_mut;
 
 use violet::arch::rv64::instruction::ret::Ret;

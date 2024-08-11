@@ -9,7 +9,7 @@ use crate::arch::rv64::Rv64;
 use crate::driver::board::sifive_u::clint_timer::ClintTimer;
 use crate::driver::board::sifive_u::plic::Plic;
 use crate::driver::board::sifive_u::uart::Uart;
-use crate::driver::traits::cpu::TraitCpu;
+use crate::arch::traits::TraitCpu;
 
 /* CPUコア数 */
 pub const NUM_OF_CPUS: usize = 2;
