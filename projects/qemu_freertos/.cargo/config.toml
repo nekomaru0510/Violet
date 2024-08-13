@@ -6,6 +6,7 @@ runner = "./run.sh "
 
 [build]
 target = "riscv64imac-unknown-none-elf"
+#target = "../../env/qemu_virt/target.json"
 rustflags = [
     "-C", "link-arg=-Tqemu_virt.ld", 
 ]

@@ -1,17 +1,10 @@
 [package]
-name = "violet"
-version = "0.3.0"
+name = "qemu_virt"
+version = "0.1.0"
 authors = ["nekomaru0510 <yama05rymy@gmail.com>"]
 edition = "2018"
-build = "src/build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-#[build-dependencies]
-#cc = "1.0.25"
-
 [dependencies]
-register = "1.0.2"
-
-#[target.qemu_virt.dependencies]
-#env = { path = "../../" }
+violet = { path = "../../violet" }
