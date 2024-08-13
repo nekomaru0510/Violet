@@ -168,12 +168,13 @@ fn boot_freertos() {
         match VM.cpu.get_mut(0) {
             None => (),
             Some(v) => {
-                v.context.set(JUMP_ADDR, 0x8000_0000);
+                v.context.set(JUMP_ADDR, 0xC000_0000);
             }
         }
         
         /* RAM */
-        VM.mem.register(0x8000_0000, 0xc000_0000, 0x1000_0000);
+        //VM.mem.register(0x8000_0000, 0xc000_0000, 0x1000_0000);
+        VM.mem.register(0xc000_0000, 0xc000_0000, 0x1000_0000);
 
         /* MMIO */
         VM.dev.register(0x0200_0000, 0x0001_0000, vclint);
@@ -209,7 +210,8 @@ fn boot_freertos() {
         VM.run();
     }
 }
-
+use violet::library::register::test_register;
 pub fn main() {
+    //test_register();
     boot_freertos();
 }
