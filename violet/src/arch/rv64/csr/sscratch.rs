@@ -1,33 +1,13 @@
 //! Supervisor Scratch Register(sscratch)
 
-extern crate register;
-use register::{cpu::RegisterReadWrite, register_bitfields};
+use crate::register;
 
-register_bitfields! {u64,
-    pub sscratch [
+register!(
+    Sscratch,           /* Register Name */
+    u64,                /* Register Size */
+    "csrr $0, 0x140",   /* Read Instruction */
+    "csrw 0x140, $0",   /* Write Instruction */
+    {                   /* Register Field */
         SSCRATCH       OFFSET(0)  NUMBITS(64) []
-    ]
-}
-
-#[derive(Clone)]
-pub struct Sscratch;
-
-impl RegisterReadWrite<u64, sscratch::Register> for Sscratch {
-    /// Reads the raw bits of the CPU register.
-    #[inline(always)]
-    fn get(&self) -> u64 {
-        let reg;
-        unsafe {
-            asm!("csrr $0, sscratch" : "=r"(reg) ::: "volatile");
-        }
-        reg
     }
-
-    /// Writes raw bits to the CPU register.
-    #[inline(always)]
-    fn set(&self, value: u64) {
-        unsafe {
-            asm!("csrw sscratch, $0" :: "r"(value) :: "volatile");
-        }
-    }
-}
+);

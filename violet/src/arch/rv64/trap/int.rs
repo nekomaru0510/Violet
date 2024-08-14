@@ -4,9 +4,6 @@ use crate::arch::rv64;
 use rv64::csr::sie::*;
 use rv64::csr::sstatus::*;
 
-extern crate register;
-use register::cpu::RegisterReadWrite;
-
 /* 割込み */
 #[derive(Clone, Copy)]
 pub struct Interrupt();
@@ -29,23 +26,23 @@ impl Interrupt {
 
     /* supervisorモードの割込みを有効化 */
     pub fn enable_s() {
-        Sstatus.modify(sstatus::SIE::SET);
+        Sstatus::write(SIE, SIE::SET);
     }
 
     /* supervisorモードの割込みを無効化 */
     pub fn disable_s() {
-        Sstatus.modify(sstatus::SIE::CLEAR);
+        Sstatus::write(SIE, SIE::CLEAR);
     }
 
     /* supervisorモードの指定割込みを有効化 */
     pub fn enable_mask_s(int_mask: usize) {
         let sint_mask = 0x222 & int_mask; // sieの有効ビットでマスク
-        Sie.set(Sie.get() | sint_mask as u64); // [todo fix]csrrs系命令を用いる
+        Sie::set(Sie::get() | sint_mask as u64); // [todo fix]csrrs系命令を用いる
     }
 
     /* supervisorモードの指定割込みを無効化 */
     pub fn disable_mask_s(int_mask: usize) {
         let sint_mask = 0x222 & int_mask; // sieの有効ビットでマスク
-        Sie.set(Sie.get() & !(sint_mask as u64));
+        Sie::set(Sie::get() & !(sint_mask as u64));
     }
 }

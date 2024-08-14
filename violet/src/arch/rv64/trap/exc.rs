@@ -3,9 +3,6 @@
 use crate::arch::rv64;
 use rv64::csr::stval::*;
 
-extern crate register;
-use register::cpu::RegisterReadWrite;
-
 /* 例外 */
 #[derive(Clone, Copy)]
 pub struct Exception();
@@ -36,6 +33,6 @@ impl Exception {
     }
 
     pub fn get_fault_address() -> u64 {
-        Stval.get()
+        Stval::get()
     }
 }

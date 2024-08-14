@@ -1,7 +1,4 @@
 //! メモリ管理
-extern crate register;
-use register::cpu::RegisterReadWrite;
-
 use crate::arch::rv64::PagingMode;
 
 use super::csr::satp::*;
@@ -10,13 +7,11 @@ pub mod sv39;
 pub mod sv48;
 
 #[derive(Clone)]
-pub struct Rv64Mmu {
-    pub satp: Satp,
-}
+pub struct Rv64Mmu {}
 
 impl Rv64Mmu {
     pub const fn new() -> Self {
-        Rv64Mmu { satp: Satp {} }
+        Rv64Mmu {}
     }
 
     //MMU 関連
@@ -24,26 +19,25 @@ impl Rv64Mmu {
     pub fn set_paging_mode(&self, mode: PagingMode) {
         match mode {
             PagingMode::Bare => {
-                self.satp.modify(satp::MODE::BARE);
+                Satp::write(MODE, MODE::BARE);
             }
             PagingMode::Sv39x4 => {
-                self.satp.modify(satp::MODE::SV39X4);
+                Satp::write(MODE, MODE::SV39X4);
             }
             PagingMode::Sv48x4 => {
-                self.satp.modify(satp::MODE::SV48X4);
+                Satp::write(MODE, MODE::SV48X4);
             }
             PagingMode::Sv57x4 => {
-                self.satp.modify(satp::MODE::SV57X4);
+                Satp::write(MODE, MODE::SV57X4);
             }
         };
     }
 
     // ページテーブルのアドレスを設定
     pub fn set_table_addr(&self, table_addr: usize) {
-        self.satp.modify(satp::PPN::CLEAR);
-        let current = self.satp.get();
-        self.satp
-            .set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
+        Satp::write(PPN, PPN::CLEAR);
+        let current = Satp::get();
+        Satp::set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 }
 

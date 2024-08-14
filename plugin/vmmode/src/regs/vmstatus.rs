@@ -4,8 +4,6 @@ extern crate violet;
 use violet::{bit_extract, bit_fill, bitfield, bit_set, bit_clear};
 use violet::library::vm::vcpu::vreg::VirtualRegisterT;
 use violet::arch::rv64::csr::vsstatus::Vsstatus;
-extern crate register;
-use register::cpu::RegisterReadWrite;
 
 pub struct Vmstatus {
     val: u64,
@@ -49,7 +47,7 @@ impl VirtualRegisterT for Vmstatus {
         self.val = bit_set!(self.val, SPP, mpp);
         self.val = bit_set!(self.val, MPP, 0);
 
-        Vsstatus.set(self.val);
+        Vsstatus::set(self.val);
     }
 
     fn read(&mut self) -> u64 {
@@ -60,7 +58,7 @@ impl VirtualRegisterT for Vmstatus {
         bitfield!(MPP:[12,11]);
 
         /* vsstatusのSIEをMIEに設定 */
-        self.val = Vsstatus.get();
+        self.val = Vsstatus::get();
         let sie = bit_extract!(self.val, SIE);//vsstatus.read(vsstatus::SIE);
         self.val = bit_set!(self.val, MIE, sie);
         self.val = bit_set!(self.val, SIE, 0); /* SIEをクリア */

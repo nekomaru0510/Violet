@@ -4,8 +4,6 @@ extern crate violet;
 use violet::{bit_extract, bit_fill, bitfield, bit_set, bit_clear};
 use violet::library::vm::vcpu::vreg::VirtualRegisterT;
 use violet::arch::rv64::csr::vsie::Vsie;
-extern crate register;
-use register::cpu::RegisterReadWrite;
 
 pub struct Vmie {
     val: u64,
@@ -37,7 +35,7 @@ impl VirtualRegisterT for Vmie {
         let meie = bit_extract!(val, MEIE);
         self.val = bit_set!(self.val, SEIE, meie);
 
-        Vsie.set(self.val);
+        Vsie::set(self.val);
     }
 
     fn read(&mut self) -> u64 {
@@ -48,7 +46,7 @@ impl VirtualRegisterT for Vmie {
         bitfield!(SEIE:[9,9]);
         bitfield!(MEIE:[11,11]);
         
-        self.val = Vsie.get();
+        self.val = Vsie::get();
         /* vsieのSSIEをMSIEに設定 */
         let ssie = bit_extract!(self.val, SSIE);
         self.val = bit_set!(self.val, MSIE, ssie);

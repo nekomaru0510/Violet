@@ -52,7 +52,7 @@ pub mod mie;
 pub mod mip;
 pub mod mstatus;
 pub mod mtvec;
-
+/*
 use satp::*;
 use scause::*;
 use sepc::*;
@@ -175,3 +175,4 @@ impl Csr {
         }
     }
 }
+*/

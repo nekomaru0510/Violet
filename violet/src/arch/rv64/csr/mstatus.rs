@@ -1,16 +1,19 @@
 //! Machine Status Register (mstatus)
 
-extern crate register;
-use register::{cpu::RegisterReadWrite, register_bitfields};
+use crate::register;
 
-register_bitfields! {u64,
-    pub mstatus [
-        /// U-mode InterruptEnable
+register!(
+    Mstatus,            /* Register Name */
+    u64,                /* Register Size */
+    "csrr $0, 0x300",   /* Read Instruction */
+    "csrw 0x300, $0",   /* Write Instruction */
+    {                   /* Register Field */
+        // U-mode InterruptEnable
         UIE       OFFSET(0)  NUMBITS(1) [],
-        /// S-mode Interrupt Enable
+        // S-mode Interrupt Enable
         SIE       OFFSET(1)  NUMBITS(1) [],
         //WPRI      OFFSET(2)  NUMBITS(1) [],
-        /// M-mode Interrupt Enable
+        // M-mode Interrupt Enable
         MIE       OFFSET(3)  NUMBITS(1) [],
 
         // xPIE ... xは割込みがトラップされているモード
@@ -45,28 +48,6 @@ register_bitfields! {u64,
         GVA       OFFSET(38) NUMBITS(1) [],
         MPV       OFFSET(39) NUMBITS(1) [],
         SD        OFFSET(63) NUMBITS(1) []
-    ]
-}
-
-#[derive(Clone)]
-pub struct Mstatus;
-
-impl RegisterReadWrite<u64, mstatus::Register> for Mstatus {
-    /// Reads the raw bits of the CPU register.
-    #[inline(always)]
-    fn get(&self) -> u64 {
-        let reg;
-        unsafe {
-            asm!("csrr $0, mstatus" : "=r"(reg) ::: "volatile");
-        }
-        reg
     }
+);
 
-    /// Writes raw bits to the CPU register.
-    #[inline(always)]
-    fn set(&self, value: u64) {
-        unsafe {
-            asm!("csrw mstatus, $0" :: "r"(value) :: "volatile");
-        }
-    }
-}

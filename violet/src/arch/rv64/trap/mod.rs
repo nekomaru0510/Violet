@@ -2,9 +2,6 @@
 pub mod exc;
 pub mod int;
 
-extern crate register;
-use register::cpu::RegisterReadWrite;
-
 use super::csr::scause::*;
 use super::trap::exc::Exception;
 use super::trap::int::Interrupt;
@@ -135,9 +132,8 @@ impl TrapHandler {
 #[no_mangle]
 pub extern "C" fn trap_handler(regs: *mut usize) {
     /* 割込み・例外要因 */
-    let scause = Scause {};
     //cpu().trap.call_vector(scause.get() as usize, regs);
-    cpu().call_vector(scause.get() as usize, regs)
+    cpu().call_vector(Scause::get() as usize, regs)
 }
 
 #[cfg(target_arch = "riscv64")]

@@ -1,8 +1,5 @@
 //! Hypervisor Extension
 
-extern crate register;
-use register::cpu::RegisterReadWrite;
-
 use crate::environment::cpu_mut; /* [todo delete] */
 
 use crate::arch::rv64;
@@ -15,6 +12,7 @@ use rv64::PagingMode;
 
 use rv64::csr::hcounteren::*;
 use rv64::csr::hedeleg::*;
+use rv64::csr::hgatp;
 use rv64::csr::hgatp::*;
 use rv64::csr::hgeie::*;
 use rv64::csr::hideleg::*;
@@ -22,6 +20,7 @@ use rv64::csr::hie::*;
 use rv64::csr::htval::*;
 use rv64::csr::hvip::*;
 use rv64::csr::vsatp::*;
+use rv64::csr::vsatp;
 use rv64::csr::vstval::*;
 use rv64::csr::vstvec::*;
 
@@ -70,126 +69,126 @@ impl Hext {
     /* hypervisorモードの指定割込みを有効化 */
     pub fn enable_mask_h(int_mask: usize) {
         let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
-        Hie.set(Hie.get() | hint_mask as u64);
+        Hie::set(Hie::get() | hint_mask as u64);
     }
 
     /* hypervisorモードの指定割込みを無効化 */
     pub fn disable_mask_h(int_mask: usize) {
         let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
-        Hie.set(Hie.get() & !(hint_mask as u64));
+        Hie::set(Hie::get() & !(hint_mask as u64));
     }
 
     /* VS-modeへの割込み移譲を設定 */
     pub fn set_delegation_int(int_mask: usize) {
-        Hideleg.set(Hideleg.get() | int_mask as u64);
+        Hideleg::set(Hideleg::get() | int_mask as u64);
     }
 
     /* VS-modeへの割込み移譲を解除 */
     pub fn clear_delegation_int(int_mask: usize) {
-        Hideleg.set(Hideleg.get() & !(int_mask as u64));
+        Hideleg::set(Hideleg::get() & !(int_mask as u64));
     }
 
     /* VS-modeへの例外移譲を設定 */
     pub fn set_delegation_exc(exc_mask: usize) {
-        Hedeleg.set(Hedeleg.get() | exc_mask as u64);
+        Hedeleg::set(Hedeleg::get() | exc_mask as u64);
     }
 
     /* VS-modeへの例外移譲を解除 */
     pub fn clear_delegation_exc(exc_mask: usize) {
-        Hedeleg.set(Hedeleg.get() & !(exc_mask as u64));
+        Hedeleg::set(Hedeleg::get() & !(exc_mask as u64));
     }
 
     /* VS-modeに仮想割込みを発生させる */
     pub fn assert_vsmode_interrupt(int_mask: usize) {
-        Hvip.set(int_mask as u64);
+        Hvip::set(int_mask as u64);
     }
 
     /* VS-modeの割込みをクリアする */
     pub fn flush_vsmode_interrupt(int_mask: usize) {
-        let mask = !(int_mask) & Hvip.get() as usize;
-        Hvip.set(mask as u64);
+        let mask = !(int_mask) & Hvip::get() as usize;
+        Hvip::set(mask as u64);
     }
 
     /* 指定外部割込みの有効化  */
     pub fn enable_exint_mask_h(int_mask: usize) {
-        Hgeie.set(Hgeie.get() | int_mask as u64);
+        Hgeie::set(Hgeie::get() | int_mask as u64);
     }
 
     /* 指定外部割込みの無効化 */
     pub fn disable_exint_mask_h(int_mask: usize) {
-        Hgeie.set(Hgeie.get() & !(int_mask as u64));
+        Hgeie::set(Hgeie::get() & !(int_mask as u64));
     }
 
     /* VS-modeのcounterenレジスタを設定 */
     pub fn enable_vsmode_counter_access(counter_mask: usize) {
-        Hcounteren.set(Hcounteren.get() | counter_mask as u32);
+        Hcounteren::set(Hcounteren::get() | counter_mask as u32);
     }
 
     /* VS-modeのcounterenレジスタをクリア */
     pub fn disable_vsmode_counter_access(counter_mask: usize) {
-        Hcounteren.set(Hcounteren.get() & !(counter_mask as u32));
+        Hcounteren::set(Hcounteren::get() & !(counter_mask as u32));
     }
 
     /* HS-modeが用意するページテーブルのモードを設定 */
     pub fn set_paging_mode_hv(mode: PagingMode) {
         match mode {
             PagingMode::Bare => {
-                Hgatp.modify(hgatp::MODE::BARE);
+                Hgatp::write(hgatp::MODE, hgatp::MODE::BARE);
             }
             PagingMode::Sv39x4 => {
-                Hgatp.modify(hgatp::MODE::SV39X4);
+                Hgatp::write(hgatp::MODE, hgatp::MODE::SV39X4);
             }
             PagingMode::Sv48x4 => {
-                Hgatp.modify(hgatp::MODE::SV48X4);
+                Hgatp::write(hgatp::MODE, hgatp::MODE::SV48X4);
             }
             PagingMode::Sv57x4 => {
-                Hgatp.modify(hgatp::MODE::SV57X4);
+                Hgatp::write(hgatp::MODE, hgatp::MODE::SV57X4);
             }
         };
     }
 
     /* HS-modeが用意するページテーブルのアドレスを設定 */
     pub fn set_table_addr_hv(table_addr: usize) {
-        Hgatp.modify(hgatp::PPN::CLEAR);
-        let current = Hgatp.get();
-        Hgatp.set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
+        Hgatp::write(hgatp::PPN, hgatp::PPN::CLEAR);
+        let current = Hgatp::get();
+        Hgatp::set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 
     /* ページテーブルのアドレスを取得する */
     pub fn get_hs_pagetable() -> u64 {
-        (Hgatp.get() & 0x0fff_ffff_ffff) << 12
+        (Hgatp::get() & 0x0fff_ffff_ffff) << 12
     }
 
     /* ページテーブルのアドレスを取得する */
     pub fn set_vs_pagetable(table_addr: usize) {
-        Vsatp.modify(vsatp::PPN::CLEAR);
-        let current = Vsatp.get();
-        Vsatp.set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
+        Vsatp::write(vsatp::PPN, vsatp::PPN::CLEAR);
+        let current = Vsatp::get();
+        Vsatp::set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 
     /* ページテーブルのアドレスを取得する */
     pub fn get_vs_pagetable() -> u64 {
-        (Vsatp.get() & 0x0fff_ffff_ffff) << 12
+        (Vsatp::get() & 0x0fff_ffff_ffff) << 12
     }
 
     /* ページフォルト時のアドレスを取得する */
     pub fn get_vs_fault_address() -> u64 {
-        Vstval.get()
+        Vstval::get()
     }
 
     /* ページテーブルのアドレスを取得する */
     pub fn get_vs_fault_paddr() -> u64 {
-        Htval.get() << 2
+        Htval::get() << 2
     }
 
     /* VS-modeのstvecを取得 */
     pub fn set_vs_vector(val: u64) {
-        Vstvec.set(val);
+        Vstvec::set(val);
     }
 
     /* VS-modeのstvecを取得 */
     pub fn get_vs_vector() -> u64 {
-        Vstvec.get()
+        Vstvec::get()
     }
 }
 

@@ -55,6 +55,39 @@ impl<T: RegSize> Field<T> {
 }
 
 #[macro_export]
+macro_rules! register {
+    (
+        $reg_name:ident,       /* Register Name */
+        $reg_size:ty,          /* Register Size */
+        $read_instr:expr,      /* Read Instruction */
+        $write_instr:expr,     /* Write Instruction */
+        {                      /* Register Field */
+            $($field_name:ident OFFSET($offset:expr) NUMBITS($numbits:expr) [$($field_val:ident = $val:expr),*]),*
+        }
+    ) => {
+        use crate::regfield;
+        use crate::regfunc;
+
+        regfield!(
+            $reg_name,       /* Register Name */
+            $reg_size,       /* Register Size */
+            {                /* Register Field */
+                $(
+                    $field_name OFFSET($offset) NUMBITS($numbits) [$($field_val = $val),*]
+                ),*
+            }
+        );
+
+        regfunc!(
+            $reg_name,       /* Register Name */
+            $reg_size,       /* Register Size */
+            $read_instr,     /* Read */
+            $write_instr     /* Write */
+        );
+    };
+}
+
+#[macro_export]
 macro_rules! regfield {
     (
         $reg_name:ident, $type:ty, 
@@ -73,8 +106,8 @@ macro_rules! regfield {
             pub mod $field_name {                
                 pub const OFFSET: usize= $off;
                 pub const NUMBITS: usize = $bits;
-                pub const MASK: $type = ((1 << NUMBITS) - 1) << OFFSET;
-                pub const SET: $type = MASK;
+                pub const MASK: $type = ((1 as $type).wrapping_shl(NUMBITS as u32) - 1).wrapping_shl(OFFSET as u32);
+                pub const SET: $type = MASK.wrapping_shr(OFFSET as u32);
                 pub const CLEAR: $type = !SET;
 
                 $(
@@ -82,7 +115,7 @@ macro_rules! regfield {
                 )*
             }
 
-            pub const $field_name: Field<$type> = Field::new($field_name::OFFSET, $field_name::SET);
+            pub const $field_name: Field<$type> = Field::new($field_name::OFFSET, $field_name::MASK);
         )*
     };
 }
@@ -127,10 +160,11 @@ macro_rules! regfunc {
 }
 
 mod vreg{
-    // Virtual Register for test
-    regfield! (
+    register!(
         Vreg,       /* Register Name */
         u64,        /* Register Size */
+        "csrr $0, 0x240",   /* Read */
+        "csrw 0x240, $0",    /* Write */
         {           /* Register Field */
             VSSIE OFFSET(2) NUMBITS(1) [],
             VSTIE OFFSET(6) NUMBITS(1) [],
@@ -141,16 +175,9 @@ mod vreg{
                 SUPERVISOR = 1,
                 RESERVED = 2,
                 MACHINE = 3
-        ]
+            ]
         }
     );
-
-    regfunc!(
-        Vreg,               /* Register Name */
-        u64,                /* Register Size */
-        "csrr $0, 0x240",   /* Read */
-        "csrw 0x240, $0"    /* Write */
-    );    
 }
 
 //#[cfg(test)]
@@ -161,7 +188,9 @@ pub fn test_register() -> Result<(), &'static str> {
     let backup = Vreg::get();
 
     Vreg::set( (1<<2) | (1<<6) );
-        
+
+    println!("Vreg: 0x{:x}", Vreg::get());
+
     if Vreg::get() != (1<<2) | (1<<6) {
         return Err("Invalid value");
     }
@@ -192,5 +221,6 @@ pub fn test_register() -> Result<(), &'static str> {
     }
 
     Vreg::set(backup);
+    println!("Vreg test passed");
     Ok(())
 }

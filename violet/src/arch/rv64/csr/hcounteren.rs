@@ -1,10 +1,13 @@
 //! Hypervisor Counter-Enable Register (hcounteren)
 
-extern crate register;
-use register::{cpu::RegisterReadWrite, register_bitfields};
+use crate::register;
 
-register_bitfields! {u32,
-    pub hcounteren [
+register!(
+    Hcounteren,         /* Register Name */
+    u32,                /* Register Size */
+    "csrr $0, 0x606",   /* Read Instruction */
+    "csrw 0x606, $0",   /* Write Instruction */
+    {                   /* Register Field */
         CY         OFFSET(0)  NUMBITS(1) [],
         TM         OFFSET(1)  NUMBITS(1) [],
         IR         OFFSET(2)  NUMBITS(1) [],
@@ -37,28 +40,5 @@ register_bitfields! {u32,
         HPM29      OFFSET(29) NUMBITS(1) [],
         HPM30      OFFSET(30) NUMBITS(1) [],
         HPM31      OFFSET(31) NUMBITS(1) []
-    ]
-}
-
-#[derive(Clone)]
-pub struct Hcounteren;
-
-impl RegisterReadWrite<u32, hcounteren::Register> for Hcounteren {
-    /// Reads the raw bits of the CPU register.
-    #[inline(always)]
-    fn get(&self) -> u32 {
-        let reg;
-        unsafe {
-            asm!("csrr $0, 0x606" : "=r"(reg) ::: "volatile");
-        }
-        reg
     }
-
-    /// Writes raw bits to the CPU register.
-    #[inline(always)]
-    fn set(&self, value: u32) {
-        unsafe {
-            asm!("csrw 0x606, $0" :: "r"(value) :: "volatile");
-        }
-    }
-}
+);

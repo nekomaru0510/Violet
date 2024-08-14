@@ -14,8 +14,6 @@ pub mod vscontext;
 use crate::environment::STACK_SIZE;
 /* ドライバ用トレイト */
 use crate::arch::traits::TraitCpu;
-extern crate register;
-use register::cpu::RegisterReadWrite;
 
 use instruction::Instruction;
 use mmu::Rv64Mmu;
@@ -28,17 +26,20 @@ use extension::hypervisor::Hext;
 extern crate core;
 use core::intrinsics::transmute;
 
+use csr::hstatus;
 use csr::hstatus::*;
 use csr::mtvec::Mtvec;
 use csr::scause::Scause;
 use csr::sepc::Sepc;
 use csr::sscratch::Sscratch;
+use csr::sstatus;
 use csr::sstatus::*;
 use csr::stval::Stval;
 use csr::stvec::Stvec;
 use csr::vscause::Vscause;
 use csr::vsepc::Vsepc;
 use csr::vsie::Vsie;
+use csr::vsstatus;
 use csr::vsstatus::*;
 use csr::vstval::Vstval;
 use csr::vstvec::Vstvec;
@@ -146,7 +147,7 @@ impl Rv64 {
     }
 
     pub fn set_sscratch(&self) {
-        Sscratch.set(unsafe { transmute(&self.scratch) });
+        Sscratch::set(unsafe { transmute(&self.scratch) });
     }
 
     pub fn set_default_vector(&self) {
@@ -156,10 +157,10 @@ impl Rv64 {
     fn set_vector(&self, addr: usize) {
         match self.mode {
             PrivilegeMode::ModeM => {
-                Mtvec.set(addr as u64);
+                Mtvec::set(addr as u64);
             }
             PrivilegeMode::ModeS => {
-                Stvec.set(addr as u64);
+                Stvec::set(addr as u64);
             }
             _ => {}
         }
@@ -175,17 +176,17 @@ impl Rv64 {
     pub fn set_next_mode(mode: PrivilegeMode) {
         match mode {
             PrivilegeMode::ModeS => {
-                Sstatus.modify(sstatus::SPP::SET);
-                Hstatus.modify(hstatus::SPV::CLEAR);
+                Sstatus::write(sstatus::SPP, sstatus::SPP::SET);
+                Hstatus::write(hstatus::SPV, hstatus::SPV::CLEAR);
             }
             PrivilegeMode::ModeVS => {
-                Sstatus.modify(sstatus::SPP::SET);
-                Hstatus.modify(hstatus::SPV::SET);
-                Hstatus.modify(hstatus::SPVP::SET);
+                Sstatus::write(sstatus::SPP, sstatus::SPP::SET);
+                Hstatus::write(hstatus::SPV, hstatus::SPV::SET);
+                Hstatus::write(hstatus::SPV, hstatus::SPVP::SET);
             }
             PrivilegeMode::ModeHS => {
-                Sstatus.modify(sstatus::SPP::SET);
-                Hstatus.modify(hstatus::SPV::CLEAR);
+                Sstatus::write(sstatus::SPP, sstatus::SPP::SET);
+                Hstatus::write(hstatus::SPV, hstatus::SPV::CLEAR);
             }
             _ => (),
         };
@@ -205,8 +206,8 @@ pub extern "C" fn setup_cpu(cpu_id: usize) {
 #[no_mangle]
 pub extern "C" fn get_cpuid() -> usize {
     unsafe {
-        let scratch: &Scratch = transmute(Sscratch.get());
-        if Sscratch.get() == 0 {
+        let scratch: &Scratch = transmute(Sscratch::get());
+        if Sscratch::get() == 0 {
             0
         } else {
             scratch.cpu_id as usize
@@ -216,10 +217,8 @@ pub extern "C" fn get_cpuid() -> usize {
 
 pub fn redirect_to_guest(regs: &mut Registers) {
     let hstatus = Hstatus {};
-    let sstatus = Sstatus {};
     let vsstatus = Vsstatus {};
     let vsepc = Vsepc {};
-    let sepc = Sepc {};
     let vscause = Vscause {};
     let scause = Scause {};
     let vstvec = Vstvec {};
@@ -227,37 +226,37 @@ pub fn redirect_to_guest(regs: &mut Registers) {
     let vstval = Vstval {};
 
     //1. vsstatus.SPP = sstatus.SPP
-    match sstatus.read(sstatus::SPP) {
-        1 => vsstatus.modify(vsstatus::SPP::SET),
-        0 => vsstatus.modify(vsstatus::SPP::CLEAR),
+    match Sstatus::read(sstatus::SPP) {
+        1 => Vsstatus::write(vsstatus::SPP, vsstatus::SPP::SET),
+        0 => Vsstatus::write(vsstatus::SPP, vsstatus::SPP::CLEAR),
         _ => (),
     }
 
     //2. vsstatus.SPIE = vsstatus.SIE
-    let _s = vsstatus.read(vsstatus::SIE);
-    match vsstatus.read(vsstatus::SIE) {
-        1 => vsstatus.modify(vsstatus::SPIE::SET),
-        0 => vsstatus.modify(vsstatus::SPIE::CLEAR),
+    let _s = Vsstatus::read(vsstatus::SIE);
+    match Vsstatus::read(vsstatus::SIE) {
+        1 => Vsstatus::write(vsstatus::SPIE, vsstatus::SPIE::SET),
+        0 => Vsstatus::write(vsstatus::SPIE, vsstatus::SPIE::CLEAR),
         _ => (),
     }
-    let _s2 = vsstatus.read(vsstatus::SIE);
-    let _v = Vsie {}.get();
+    let _s2 = Vsstatus::read(vsstatus::SIE);
+    let _v = Vsie::get();
     // vsstatus.SIE = 0
-    vsstatus.modify(vsstatus::SIE::CLEAR);
+    Vsstatus::write(vsstatus::SIE, vsstatus::SIE::CLEAR);
 
     // vscause = scause
-    vscause.set(scause.get());
+    Vscause::set(Scause::get());
     // vstval = stval
-    vstval.set(stval.get());
+    Vstval::set(Stval::get());
     // vsepc = sepc
-    vsepc.set(sepc.get());
+    Vsepc::set(Sepc::get());
 
     //3. sepc = vstvec
     //sepc.set(vstvec.get());
-    (*(regs)).epc = vstvec.get() as usize;
+    (*(regs)).epc = Vstvec::get() as usize;
 
     //4. sstatus.SPP = 1
-    sstatus.modify(sstatus::SPP::SET);
+    Sstatus::write(sstatus::SPP, sstatus::SPP::SET);
 
     //5. sret
 }

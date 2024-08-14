@@ -1,10 +1,13 @@
 //! Hypervisor guest address translation and protection Register (hgatp)
 
-extern crate register;
-use register::{cpu::RegisterReadWrite, register_bitfields};
+use crate::register;
 
-register_bitfields! {u64,
-    pub hgatp [
+register!(
+    Hgatp,              /* Register Name */
+    u64,                /* Register Size */
+    "csrr $0, 0x680",   /* Read Instruction */
+    "csrw 0x680, $0",   /* Write Instruction */
+    {                   /* Register Field */
         PPN       OFFSET(0)  NUMBITS(44) [],
         VMID      OFFSET(44)  NUMBITS(14) [],
         MODE      OFFSET(60)  NUMBITS(4) [
@@ -13,28 +16,5 @@ register_bitfields! {u64,
             SV48X4 = 9,
             SV57X4 = 10 //Reserved
         ]
-    ]
-}
-
-#[derive(Clone)]
-pub struct Hgatp;
-
-impl RegisterReadWrite<u64, hgatp::Register> for Hgatp {
-    /// Reads the raw bits of the CPU register.
-    #[inline(always)]
-    fn get(&self) -> u64 {
-        let reg;
-        unsafe {
-            asm!("csrr $0, 0x680" : "=r"(reg) ::: "volatile");
-        }
-        reg
     }
-
-    /// Writes raw bits to the CPU register.
-    #[inline(always)]
-    fn set(&self, value: u64) {
-        unsafe {
-            asm!("csrw 0x680, $0" :: "r"(value) :: "volatile");
-        }
-    }
-}
+);

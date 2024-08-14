@@ -8,10 +8,6 @@ use crate::arch::rv64::PrivilegeMode;
 use crate::arch::rv64::Rv64;
 use crate::arch::traits::context::TraitContext;
 use crate::arch::traits::registers::TraitRegisters;
-//use crate::CPU;
-
-extern crate register;
-use register::cpu::RegisterReadWrite;
 
 pub struct VsContext {
     regs: Registers,
@@ -32,8 +28,8 @@ impl TraitContext for VsContext {
         self.regs.switch(regs);
 
         /* [todo fix] switchする機械語命令(csrrw)があるので、それを使いたい */
-        let tmp_epc: usize = Sepc.get() as usize;
-        Sepc.set(self.sepc as u64);
+        let tmp_epc: usize = Sepc::get() as usize;
+        Sepc::set(self.sepc as u64);
         self.sepc = tmp_epc;
     }
 

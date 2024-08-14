@@ -1,16 +1,19 @@
 //! Supervisor Status Register (sstatus)
 
-extern crate register;
-use register::{cpu::RegisterReadWrite, register_bitfields};
+use crate::register;
 
-register_bitfields! {u64,
-    pub sstatus [
-        /// U-mode InterruptEnable
+register!(
+    Sstatus,            /* Register Name */
+    u64,                /* Register Size */
+    "csrr $0, 0x100",   /* Read Instruction */
+    "csrw 0x100, $0",   /* Write Instruction */
+    {                   /* Register Field */
+        // U-mode InterruptEnable
         UIE       OFFSET(0)  NUMBITS(1) [],
-        /// S-mode Interrupt Enable
+        // S-mode Interrupt Enable
         SIE       OFFSET(1)  NUMBITS(1) [],
         //WPRI      OFFSET(2)  NUMBITS(1) [],
-        /// M-mode Interrupt Enable
+        // M-mode Interrupt Enable
         MIE       OFFSET(3)  NUMBITS(1) [],
 
         // xPIE ... xは割込みがトラップされているモード
@@ -39,28 +42,5 @@ register_bitfields! {u64,
         TSR       OFFSET(22) NUMBITS(1) [],
         WPRI      OFFSET(23) NUMBITS(8) [],
         SD        OFFSET(31) NUMBITS(1) []
-    ]
-}
-
-#[derive(Clone)]
-pub struct Sstatus;
-
-impl RegisterReadWrite<u64, sstatus::Register> for Sstatus {
-    /// Reads the raw bits of the CPU register.
-    #[inline(always)]
-    fn get(&self) -> u64 {
-        let reg;
-        unsafe {
-            asm!("csrr $0, sstatus" : "=r"(reg) ::: "volatile");
-        }
-        reg
     }
-
-    /// Writes raw bits to the CPU register.
-    #[inline(always)]
-    fn set(&self, value: u64) {
-        unsafe {
-            asm!("csrw sstatus, $0" :: "r"(value) :: "volatile");
-        }
-    }
-}
+);

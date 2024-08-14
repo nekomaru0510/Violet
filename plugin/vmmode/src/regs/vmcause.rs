@@ -4,8 +4,6 @@ extern crate violet;
 use violet::library::vm::vcpu::vreg::VirtualRegisterT;
 use violet::arch::rv64::csr::vscause::Vscause;
 use violet::arch::rv64::trap::TrapVector;
-extern crate register;
-use register::cpu::RegisterReadWrite;
 
 pub struct Vmcause {
     val: u64,
@@ -26,7 +24,7 @@ impl VirtualRegisterT for Vmcause {
 
     fn read(&mut self) -> u64 {
 
-        self.val = Vscause.get();
+        self.val = Vscause::get();
 
         self.val = match self.val as usize {
             TrapVector::SUPERVISOR_SOFTWARE_INTERRUPT => TrapVector::MACHINE_SOFTWARE_INTERRUPT,
