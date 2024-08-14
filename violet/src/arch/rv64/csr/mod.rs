@@ -37,7 +37,7 @@ pub mod hgatp;
 pub mod vsie;
 pub mod vsstatus;
 pub mod vstvec;
-//pub mod vsscratch
+pub mod vsscratch;
 pub mod vsatp;
 pub mod vscause;
 pub mod vsepc;
@@ -73,6 +73,7 @@ use hip::*;
 use hstatus::*;
 use hvip::*;
 
+//use vsscratch::*;
 use vsatp::*;
 use vscause::*;
 use vsepc::*;
@@ -119,6 +120,7 @@ pub struct Csr {
     pub vscause: Vscause,
     pub vstval: Vstval,
     pub vsip: Vsip,
+    //pub vsscratch: Vsscratch,
     pub vsatp: Vsatp,
 
     pub mtvec: Mtvec,
@@ -160,6 +162,7 @@ impl Csr {
             vscause: Vscause {},
             vstval: Vstval {},
             vsip: Vsip {},
+            //vsscratch: Vsscratch {},
             vsatp: Vsatp {},
 
             mtvec: Mtvec {},
