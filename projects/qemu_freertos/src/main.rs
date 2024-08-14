@@ -210,8 +210,7 @@ fn boot_freertos() {
         VM.run();
     }
 }
-use violet::library::register::test_register;
+
 pub fn main() {
-    //test_register();
     boot_freertos();
 }
