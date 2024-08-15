@@ -55,7 +55,6 @@ pub fn do_app_calls() {
 #[macro_export]
 macro_rules! driver_init {
     ($func:path) => {
-        //#[used]
         #[used(linker)]
         #[link_section = ".init_calls.1.start"]
         pub static __DRIVER_INIT_FUNC: Option<fn()> = Some($func);
@@ -65,28 +64,9 @@ macro_rules! driver_init {
 #[macro_export]
 macro_rules! app_init {
     ($func:path) => {
-        //#[used]
         #[used(linker)]
         #[link_section = ".init_calls.2.start"]
         pub static __APP_INIT_FUNC: Option<fn()> = Some($func);
     };
 }
 
-use crate::println;
-use crate::print;
-#[cold]
-pub fn hoge() {
-    //__APP_INIT_FUNC.unwrap()();
-    println!("hoge");
-}
-
-
-
-//#[used(compiler)]
-/*
-#[used(linker)]
-#[no_mangle]
-#[link_section = ".init_calls.2.start"]
-pub static __APP_INIT_FUNC: Option<fn()> = Some(hoge);
-*/
-//driver_init!(do_driver_calls);

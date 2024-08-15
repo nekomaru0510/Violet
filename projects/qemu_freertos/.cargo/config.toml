@@ -4,9 +4,12 @@ opt-level = 0
 [target.riscv64imac-unknown-none-elf]
 runner = "./run.sh "
 
+[target.qemu_virt]
+runner = "./run.sh "
+
 [build]
-target = "riscv64imac-unknown-none-elf"
-#target = "../../env/qemu_virt/target.json"
+#target = "riscv64imac-unknown-none-elf"
+target = "../../env/qemu_virt/qemu_virt.json"
 rustflags = [
     "-C", "link-arg=-Tqemu_virt.ld", 
 ]

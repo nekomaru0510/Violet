@@ -37,9 +37,11 @@ SECTIONS
     {
         __INIT_CALLS_1_START = .;
         *(.init_calls.1.start);
+        . += 8;
         *(.init_calls.1.end);
         __INIT_CALLS_2_START = .;
         *(.init_calls.2.start);
+        . += 8;
         *(.init_calls.2.end);
     } > RAM
 
