@@ -5,8 +5,8 @@ use crate::register;
 register!(
     Hstatus,            /* Register Name */
     u64,                /* Register Size */
-    "csrr $0, 0x600",   /* Read Instruction */
-    "csrw 0x600, $0",   /* Write Instruction */
+    "csrr {}, 0x600",   /* Read Instruction */
+    "csrw 0x600, {}",   /* Write Instruction */
     {                   /* Register Field */
         VSBE       OFFSET(5)  NUMBITS(1) [],    // エンディアンの設定
         GVA        OFFSET(6)  NUMBITS(1) [],    //

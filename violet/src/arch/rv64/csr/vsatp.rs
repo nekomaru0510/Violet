@@ -5,8 +5,8 @@ use crate::register;
 register!(
     Vsatp,              /* Register Name */
     u64,                /* Register Size */
-    "csrr $0, 0x280",   /* Read Instruction */
-    "csrw 0x280, $0",   /* Write Instruction */
+    "csrr {}, 0x280",   /* Read Instruction */
+    "csrw 0x280, {}",   /* Write Instruction */
     {                   /* Register Field */
         PPN       OFFSET(0)  NUMBITS(44) [],
         ASID      OFFSET(44)  NUMBITS(16) [],

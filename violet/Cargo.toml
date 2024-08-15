@@ -10,8 +10,5 @@ build = "src/build.rs"
 #[build-dependencies]
 #cc = "1.0.25"
 
-#[dependencies]
-#register = "1.0.2"
-
 #[target.qemu_virt.dependencies]
 #env = { path = "../../" }

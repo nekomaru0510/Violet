@@ -5,8 +5,8 @@ use crate::register;
 register!(
     Vsie,               /* Register Name */
     u64,                /* Register Size */
-    "csrr $0, 0x204",   /* Read Instruction */
-    "csrw 0x204, $0",   /* Write Instruction */
+    "csrr {}, 0x204",   /* Read Instruction */
+    "csrw 0x204, {}",   /* Write Instruction */
     {                   /* Register Field */
         // Software Interrpt Enable
         USIE      OFFSET(0)  NUMBITS(1) [],

@@ -5,8 +5,8 @@ use crate::register;
 register!(
     Mstatus,            /* Register Name */
     u64,                /* Register Size */
-    "csrr $0, 0x300",   /* Read Instruction */
-    "csrw 0x300, $0",   /* Write Instruction */
+    "csrr {}, 0x300",   /* Read Instruction */
+    "csrw 0x300, {}",   /* Write Instruction */
     {                   /* Register Field */
         // U-mode InterruptEnable
         UIE       OFFSET(0)  NUMBITS(1) [],

@@ -5,8 +5,8 @@ use crate::register;
 register!(
     Hcounteren,         /* Register Name */
     u32,                /* Register Size */
-    "csrr $0, 0x606",   /* Read Instruction */
-    "csrw 0x606, $0",   /* Write Instruction */
+    "csrr {}, 0x606",   /* Read Instruction */
+    "csrw 0x606, {}",   /* Write Instruction */
     {                   /* Register Field */
         CY         OFFSET(0)  NUMBITS(1) [],
         TM         OFFSET(1)  NUMBITS(1) [],

@@ -1,10 +1,11 @@
 //! Violet Hypervisor
-#![feature(asm)]
+//#![feature(asm)]
 #![feature(naked_functions)]
 #![feature(stmt_expr_attributes)]
-#![feature(associated_type_bounds)]
+//#![feature(associated_type_bounds)]
 #![feature(alloc_error_handler)]
-#![feature(const_fn)]
+//#![feature(const_fn)]
+#![feature(const_mut_refs)] /* [todo remove] */
 /* テスト用 */
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]

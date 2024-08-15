@@ -5,8 +5,8 @@ use crate::register;
 register!(
     Mip,                /* Register Name */
     u64,                /* Register Size */
-    "csrr $0, 0x344",   /* Read Instruction */
-    "csrw 0x344, $0",   /* Write Instruction */
+    "csrr {}, 0x344",   /* Read Instruction */
+    "csrw 0x344, {}",   /* Write Instruction */
     {                   /* Register Field */
         USIP      OFFSET(0)  NUMBITS(1) [],
         SSIP      OFFSET(1)  NUMBITS(1) [],

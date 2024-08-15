@@ -123,8 +123,9 @@ macro_rules! regfield {
 #[macro_export]
 macro_rules! regfunc {
     ($name:ident, $type:ty, $read_instr:expr, $write_instr:expr) => {
+        use core::arch::asm;
         use crate::library::register::Field;
-
+        
         pub struct $name;
 
         impl $name {
@@ -133,7 +134,8 @@ macro_rules! regfunc {
             pub fn get() -> $type {
                 let reg;
                 unsafe {
-                    asm!($read_instr : "=r"(reg) ::: "volatile");
+                    //asm!($read_instr : "=r"(reg) ::: "volatile");
+                    asm!($read_instr, out(reg) reg, options(nostack));
                 }
                 reg
             }
@@ -142,7 +144,8 @@ macro_rules! regfunc {
             #[inline(always)]
             pub fn set(value: $type) {
                 unsafe {
-                    asm!($write_instr :: "r"(value) :: "volatile");
+                    //asm!($write_instr :: "r"(value) :: "volatile");
+                    asm!($write_instr, in(reg) value, options(nostack));
                 }
             }
 
@@ -163,8 +166,8 @@ mod vreg{
     register!(
         Vreg,       /* Register Name */
         u64,        /* Register Size */
-        "csrr $0, 0x240",   /* Read */
-        "csrw 0x240, $0",    /* Write */
+        "csrr {}, 0x240",   /* Read */
+        "csrw 0x240, {}",    /* Write */
         {           /* Register Field */
             VSSIE OFFSET(2) NUMBITS(1) [],
             VSTIE OFFSET(6) NUMBITS(1) [],

@@ -5,8 +5,8 @@ use crate::register;
 register!(
     Htval,              /* Register Name */
     u64,                /* Register Size */
-    "csrr $0, 0x643",   /* Read Instruction */
-    "csrw 0x643, $0",   /* Write Instruction */
+    "csrr {}, 0x643",   /* Read Instruction */
+    "csrw 0x643, {}",   /* Write Instruction */
     {                   /* Register Field */
         HTVAL       OFFSET(0)  NUMBITS(64) []
     }

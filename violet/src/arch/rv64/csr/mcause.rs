@@ -5,8 +5,8 @@ use crate::register;
 register!(
     Mcause,             /* Register Name */
     u64,                /* Register Size */
-    "csrr $0, 0x342",   /* Read Instruction */
-    "csrw 0x342, $0",   /* Write Instruction */
+    "csrr {}, 0x342",   /* Read Instruction */
+    "csrw 0x342, {}",   /* Write Instruction */
     {                   /* Register Field */
         EXCEPTION_CODE  OFFSET(0)  NUMBITS(63) [
             USER_SOFTWARE = 0,

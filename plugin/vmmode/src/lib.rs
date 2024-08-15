@@ -23,7 +23,7 @@ use violet::arch::traits::hypervisor::HypervisorT;
 use violet::environment::cpu_mut;
 
 use violet::arch::rv64::instruction::ret::Ret;
-use core::ptr::write_volatile;
+use core::ptr::write_unaligned;
 
 pub fn init<H: HypervisorT>(vm: &mut VirtualMachine<H>) {
     Hext::set_delegation_exc(TrapVector::ILLEGAL_INSTRUCTION);
@@ -48,8 +48,7 @@ pub fn do_ecall_from_vsmode(sp: *mut usize /*regs: &mut Registers*/) {
 
 fn do_illegal_instruction(sp: *mut usize) {
     let regs = Registers::from(sp);
-    //let inst = Instruction::fetch(regs.epc + 0x4000_0000/*todo delete*/);
-    let inst = Instruction::fetch(regs.epc); // デバッグ用
+    let inst = Instruction::fetch(regs.epc);
     
     /* CSRアクセス命令 */
     let csr = Csr::from_val(inst);
@@ -61,7 +60,8 @@ fn do_illegal_instruction(sp: *mut usize) {
                     /* mret命令をsret命令に書き換え */
                     /* mret命令をエミュレーションしたほうがいいかも */
                     //unsafe { write_volatile((regs.epc+0x4000_0000)/*todo delete*/ as *mut usize, 0x10200073); }
-                    unsafe { write_volatile((regs.epc) as *mut usize, 0x10200073); } /* デバッグ用 */
+                    /* 圧縮命令により、命令のアライメントがそろってない可能性あり。write_volatileではなく、write_unalignedを使う */
+                    unsafe { write_unaligned((regs.epc) as *mut usize, 0x10200073); }
                     return;
                 },
                 _ => redirect_to_guest(regs),

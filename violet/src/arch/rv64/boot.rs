@@ -1,3 +1,5 @@
+use core::arch::asm;
+
 #[cfg(target_arch = "riscv64")]
 #[link_section = ".reset.boot"]
 #[export_name = "_start"]
@@ -16,11 +18,9 @@ pub extern "C" fn _start() {
                 add     sp, sp, t0
 
                 j       setup_cpu
-        "
-        :
-        :
-        :
-        : "volatile");
+        ",
+        options(noreturn)
+        );
     }
 }
 
@@ -40,10 +40,8 @@ pub extern "C" fn _start_ap() {
                 add     sp, sp, t0
 
                 jalr    a1
-        "
-        :
-        :
-        :
-        : "volatile");
+        ",
+        options(noreturn)
+        );
     }
 }

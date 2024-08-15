@@ -2,6 +2,7 @@
 
 #![no_main]
 #![no_std]
+#![feature(used_with_arg)]
 
 extern crate violet;
 extern crate vmmode;
@@ -205,6 +206,7 @@ fn boot_freertos() {
     );
     
     unsafe {vmmode::init(&mut VM);}
+    //unsafe {vmmode::init(addr_of_mut!(VM));}
 
     unsafe {
         VM.run();

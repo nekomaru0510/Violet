@@ -8,4 +8,3 @@ edition = "2018"
 
 [dependencies]
 violet = { path = "../../violet" }
-register = "1.0.2"

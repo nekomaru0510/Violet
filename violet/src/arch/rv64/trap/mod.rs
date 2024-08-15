@@ -2,6 +2,7 @@
 pub mod exc;
 pub mod int;
 
+use core::arch::asm;
 use super::csr::scause::*;
 use super::trap::exc::Exception;
 use super::trap::int::Interrupt;
@@ -254,10 +255,8 @@ pub extern "C" fn _start_trap() {
             //addi sp, sp, 32*8
 
             sret
-        "
-        :
-        :
-        :
-        : "volatile");
+        ",
+        options(noreturn)
+        );
     }
 }
