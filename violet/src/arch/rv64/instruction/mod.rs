@@ -52,8 +52,8 @@ impl Instruction {
         arg4: usize,
         arg5: usize,
     ) -> (usize, usize) {
-        let mut val: usize = 0;
-        let mut err: usize = 0;
+        let mut val: usize;
+        let mut err: usize;
         unsafe {
             asm! ("
             .align 8

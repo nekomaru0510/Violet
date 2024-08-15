@@ -3,6 +3,7 @@
 #![no_main]
 #![no_std]
 #![feature(used_with_arg)]
+#![allow(static_mut_refs)] /* [todo remove] */
 
 extern crate violet;
 extern crate vmmode;

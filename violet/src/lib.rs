@@ -1,10 +1,7 @@
 //! Violet Hypervisor
-//#![feature(asm)]
 #![feature(naked_functions)]
 #![feature(stmt_expr_attributes)]
-//#![feature(associated_type_bounds)]
 #![feature(alloc_error_handler)]
-//#![feature(const_fn)]
 #![feature(const_mut_refs)] /* [todo remove] */
 /* テスト用 */
 #![cfg_attr(test, no_main)]
@@ -15,6 +12,7 @@
 #![allow(dead_code)]
 #![allow(unused_macros)]
 #![allow(unused_variables)]
+#![allow(static_mut_refs)] /* [todo remove] */
 #![no_std]
 
 pub mod arch;
