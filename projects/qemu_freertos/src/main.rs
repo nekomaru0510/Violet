@@ -7,7 +7,6 @@
 
 extern crate violet;
 extern crate vmmode;
-
 use violet::environment::cpu_mut;
 
 use violet::library::vm::vdev::vclint::VClint;

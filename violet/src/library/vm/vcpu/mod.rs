@@ -110,7 +110,7 @@ impl<T: HypervisorT> VirtualCpu<T> {
 }
 
 #[cfg(test)]
-use crate::driver::arch::rv64::extension::hypervisor::Hext;
+use crate::arch::rv64::extension::hypervisor::Hext;
 
 #[test_case]
 fn test_vcpumap() -> Result<(), &'static str> {

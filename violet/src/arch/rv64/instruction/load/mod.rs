@@ -89,7 +89,7 @@ impl Load {
 }
 
 #[cfg(test)]
-use crate::driver::arch::rv64::regs;
+use crate::arch::rv64::regs;
 //use regs::Registers;
 #[test_case]
 fn test_load() -> Result<(), &'static str> {

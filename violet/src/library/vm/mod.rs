@@ -73,7 +73,7 @@ impl<H: HypervisorT> VirtualMachine<H> {
 }
 
 #[cfg(test)]
-use crate::driver::arch::rv64::extension::hypervisor::Hext;
+use crate::arch::rv64::extension::hypervisor::Hext;
 #[cfg(test)]
 use crate::library::vm::vdev::vplic::VPlic;
 
@@ -107,7 +107,7 @@ fn test_read_write_dev() -> Result<(), &'static str> {
 }
 
 #[cfg(test)]
-use crate::driver::arch::rv64::vscontext::*; //[todo delete]
+use crate::arch::rv64::vscontext::*; //[todo delete]
 
 #[test_case]
 fn test_vcpu() -> Result<(), &'static str> {
