@@ -1,6 +1,7 @@
 //! Violetアプリケーションのサンプル(Linuxカーネルを動作させる)
 #![no_main]
 #![no_std]
+#![feature(used_with_arg)]
 
 extern crate violet;
 
@@ -10,22 +11,22 @@ use violet::library::vm::vdev::vplic::VPlic;
 use violet::library::vm::vdev::vclint::VClint;
 use violet::library::vm::VirtualMachine;
 
-use violet::driver::arch::rv64::extension::hypervisor::Hext;
-use violet::driver::arch::rv64::instruction::load::Load;
-use violet::driver::arch::rv64::instruction::store::Store;
-use violet::driver::arch::rv64::instruction::*;
-use violet::driver::arch::rv64::regs::*;
-use violet::driver::arch::rv64::sbi;
-use violet::driver::arch::rv64::trap::int::Interrupt;
-use violet::driver::arch::rv64::trap::TrapVector;
-use violet::driver::arch::rv64::vscontext::*;
-use violet::driver::traits::cpu::context::TraitContext;
+use violet::arch::rv64::extension::hypervisor::Hext;
+use violet::arch::rv64::instruction::load::Load;
+use violet::arch::rv64::instruction::store::Store;
+use violet::arch::rv64::instruction::*;
+use violet::arch::rv64::regs::*;
+use violet::arch::rv64::sbi;
+use violet::arch::rv64::trap::int::Interrupt;
+use violet::arch::rv64::trap::TrapVector;
+use violet::arch::rv64::vscontext::*;
+use violet::arch::traits::context::TraitContext;
 
 use violet::kernel::syscall::vsi::create_task;
 use violet::resource::{get_resources, BorrowResource, ResourceType};
 
 use violet::app_init;
-app_init!(sample_main);
+app_init!(main);
 
 static mut VM: VirtualMachine<Hext> = VirtualMachine::new();
 
@@ -200,7 +201,7 @@ pub fn boot_linux() {
     }
 }
 
-pub fn sample_main() {
+pub fn main() {
     let boot_core = 1;
     let mut vplic = VPlic::new();
     vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
