@@ -1,4 +1,4 @@
-//! RV64I CPU ドライバ
+//! RV64 CPU module
 
 pub mod boot;
 pub mod csr;
@@ -10,10 +10,8 @@ pub mod sbi;
 pub mod trap;
 pub mod vscontext;
 
-/*  */
-use crate::environment::STACK_SIZE;
-/* ドライバ用トレイト */
-use crate::arch::traits::TraitCpu;
+use crate::environment::STACK_SIZE;/* [todo remove] */
+use super::traits::TraitCpu;
 
 use instruction::Instruction;
 use mmu::Rv64Mmu;

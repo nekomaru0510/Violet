@@ -13,8 +13,14 @@ pub extern "C" fn _start() {
         .option norvc
         .option norelax
         .align 8
-                /* a0 = hartid */
-                slli    a0, a0, 14                
+                /* a0 ... hartid */
+                li      t0, 1        
+                li      t1, 14
+                sll     t0, t0, t1
+                // [todo fix] mul instruction is not wanted, 
+                // but if only shift operation is used, 
+                // sp will be broken by optimization
+                mul     t0, t0, a0          
                 la      sp, __KERNEL_SP_BOTTOM
                 add     sp, sp, t0
 
@@ -33,11 +39,15 @@ pub extern "C" fn _start() {
 pub extern "C" fn _start_ap() {
     unsafe {
         asm! ("
-        .option norvc
-        .option norelax
         .align 8
-                /* a0 = hartid, a1 = next function*/
-                slli    a0, a0, 14
+                /* a0 ... hartid, a1 ... next function */
+                li      t0, 1        
+                li      t1, 14
+                sll     t0, t0, t1
+                // [todo fix] mul instruction is not wanted, 
+                // but if only shift operation is used, 
+                // sp will be broken by optimization
+                mul     t0, t0, a0
                 la      sp, __KERNEL_SP_BOTTOM
                 add     sp, sp, t0
 

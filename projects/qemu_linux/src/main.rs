@@ -4,7 +4,7 @@
 #![feature(used_with_arg)]
 
 extern crate violet;
-
+use violet::{println, print};
 use violet::environment::cpu_mut;
 
 use violet::library::vm::vdev::vplic::VPlic;
@@ -30,7 +30,7 @@ app_init!(main);
 
 static mut VM: VirtualMachine<Hext> = VirtualMachine::new();
 
-pub fn do_ecall_from_vsmode(sp: *mut usize /*regs: &mut Registers*/) {
+pub fn do_ecall_from_vsmode(sp: *mut usize) {
     let regs = Registers::from(sp);
     let ext: i32 = regs.reg[A7] as i32;
     let fid: i32 = regs.reg[A6] as i32;
@@ -69,12 +69,16 @@ pub fn do_ecall_from_vsmode(sp: *mut usize /*regs: &mut Registers*/) {
     regs.reg[A0] = ret.0;
     regs.reg[A1] = ret.1;
 
-    regs.epc = regs.epc + 4; /* todo fix */
+    regs.epc = regs.epc + 4;
 }
 
 /* [todo delete] */
 fn topaddr(epc: usize) -> usize {
-    (epc & 0x0_ffff_ffff) + 0x1000_0000 + 0x20_0000 //linux
+    if epc >= 0x1_0000_0000 {
+        (epc & 0x0_ffff_ffff) + 0x1000_0000 + 0x20_0000 //after MMU start in linux
+    } else {
+        (epc & 0x0_ffff_ffff) + 0x1000_0000 //before MMU start in linux
+    }
 }
 
 pub fn do_guest_store_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
@@ -97,7 +101,7 @@ pub fn do_guest_store_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
     }
 }
 
-pub fn do_guest_load_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
+pub fn do_guest_load_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
     let inst = Instruction::fetch(topaddr(regs.epc));
@@ -113,13 +117,13 @@ pub fn do_guest_load_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
     }
 }
 
-pub fn do_guest_instruction_page_fault(_sp: *mut usize /*_regs: &mut Registers*/) {
+pub fn do_guest_instruction_page_fault(_sp: *mut usize) {
     unsafe {
         VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
     }
 }
 
-pub fn do_supervisor_external_interrupt(_sp: *mut usize /*_regs: &mut Registers*/) {
+pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
     // 物理PLICからペンディングビットを読み、クリアする
     let int_id = if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
         i.get_pend_int()
@@ -149,7 +153,7 @@ pub fn do_supervisor_external_interrupt(_sp: *mut usize /*_regs: &mut Registers*
     }
 }
 
-pub fn do_supervisor_timer_interrupt(_sp: *mut usize /*_regs: &mut Registers*/) {
+pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
     /* タイマの無効化 */
     sbi::sbi_set_timer(0xffff_ffff_ffff_ffff);
 

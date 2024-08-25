@@ -57,23 +57,16 @@ impl Instruction {
         unsafe {
             asm! ("
             .align 8
-                    addi a0, {2}, 0
-                    addi a1, {3}, 0
-                    addi a2, {4}, 0
-                    addi a3, {5}, 0
-                    addi a4, {6}, 0
-                    addi a5, {7}, 0
-                    addi a6, {8}, 0
-                    addi a7, {9}, 0
                     ecall
-                    addi {0}, a0, 0
-                    addi {1}, a1, 0
             ",
-            out(reg) err, out(reg) val, //"+r"(err), "+r"(val),
-            //"r"(arg0), "r"(arg1), "r"(arg2), "r"(arg3), "r"(arg4), "r"(arg5), "r"(fid), "r"(ext),
-            in(reg) arg0, in(reg) arg1, in(reg) arg2, in(reg) arg3, in(reg) arg4, in(reg) arg5, in(reg) fid, in(reg) ext,  
-            //"a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7",
-            options(nostack)
+            inout("a0") arg0 => err,
+            inout("a1") arg1 => val,
+            in("a2") arg2,
+            in("a3") arg3,
+            in("a4") arg4,
+            in("a5") arg5,
+            in("a6") fid,
+            in("a7") ext,
         );
 
             return (err, val);
