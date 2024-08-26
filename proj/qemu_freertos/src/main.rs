@@ -132,7 +132,7 @@ pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
     // write to virtual plic
     unsafe {
         match VM.dev.get_mut(0x0c20_1000) {
-            // [todo fix] 割込み番号で検索できるようにする
+            // [todo fix] Make it possible to search by interrupt number
             None => (),
             Some(d) => {
                 d.interrupt(int_id as usize);
@@ -155,7 +155,7 @@ pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
     // Disable the timer
     sbi::sbi_set_timer(0xffff_ffff_ffff_ffff);
 
-    /* ゲストにタイマ割込みをあげる */
+    // Raise a timer interrupt to the guest
     Hext::assert_vsmode_interrupt(Interrupt::bit(
         Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
     ));
@@ -185,12 +185,12 @@ fn boot_freertos() {
         VM.setup();
     }
 
-    /* 割込みを有効化 */
+    /* Enable Interrupt */
     Interrupt::enable_mask_s(
         Interrupt::bit(Interrupt::SUPERVISOR_TIMER_INTERRUPT)
         | Interrupt::bit(Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT),
     );
-    /* 割込みハンドラの登録 [todo fix]本当はタイマ割込みをパススルーしたい */
+    
     cpu_mut().register_vector(
         TrapVector::SUPERVISOR_TIMER_INTERRUPT,
         do_supervisor_timer_interrupt,

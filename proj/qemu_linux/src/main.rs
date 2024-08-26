@@ -1,4 +1,4 @@
-//! Violetアプリケーションのサンプル(Linuxカーネルを動作させる)
+//! Running Linux on virtual machine with violet
 #![no_main]
 #![no_std]
 #![feature(used_with_arg)]
@@ -36,7 +36,6 @@ pub fn do_ecall_from_vsmode(sp: *mut usize) {
     let fid: i32 = regs.reg[A6] as i32;
 
     match sbi::Extension::from_ext(ext) {
-        /* タイマセット */
         sbi::Extension::SetTimer | sbi::Extension::Timer => {
             Hext::flush_vsmode_interrupt(Interrupt::bit(
                 Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
@@ -81,7 +80,7 @@ fn topaddr(epc: usize) -> usize {
     }
 }
 
-pub fn do_guest_store_page_fault(sp: *mut usize /*regs: &mut Registers*/) {
+pub fn do_guest_store_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
 
@@ -124,17 +123,17 @@ pub fn do_guest_instruction_page_fault(_sp: *mut usize) {
 }
 
 pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
-    // 物理PLICからペンディングビットを読み、クリアする
+    // Read and clear the pending bit from the physical PLIC
     let int_id = if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
         i.get_pend_int()
     } else {
         0
     };
 
-    // 仮想PLICへ書込み
+    // write to virtual plic
     unsafe {
         match VM.dev.get_mut(0x0c20_1000) {
-            // [todo fix] 割込み番号で検索できるようにする
+            // [todo fix] Make it possible to search by interrupt number
             None => (),
             Some(d) => {
                 d.interrupt(int_id as usize);
@@ -142,22 +141,22 @@ pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
         }
     }
 
-    // 仮想外部割込みを発生させる
+    // Raise a virtual external interrupt 
     Hext::assert_vsmode_interrupt(Interrupt::bit(
         Interrupt::VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT,
     ));
 
-    // PLICでペンディングビットをクリア
+    // Clear the pending bit in the PLIC 
     if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
         i.set_comp_int(int_id);
     }
 }
 
 pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
-    /* タイマの無効化 */
+    // Disable the timer
     sbi::sbi_set_timer(0xffff_ffff_ffff_ffff);
 
-    /* ゲストにタイマ割込みをあげる */
+    // Raise a timer interrupt to the guest
     Hext::assert_vsmode_interrupt(Interrupt::bit(
         Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
     ));
@@ -169,13 +168,13 @@ pub fn boot_linux() {
         VM.setup();
     }
 
-    /* 割込みを有効化 */
+    /* Enable Interrupt */
     Interrupt::enable_mask_s(
         Interrupt::bit(Interrupt::SUPERVISOR_TIMER_INTERRUPT)
             | Interrupt::bit(Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT),
     );
 
-    /* 割込みハンドラの登録 */
+    /* Register interrupt handler */
     cpu_mut().register_vector(
         TrapVector::SUPERVISOR_TIMER_INTERRUPT,
         do_supervisor_timer_interrupt,
@@ -185,7 +184,7 @@ pub fn boot_linux() {
         do_supervisor_external_interrupt,
     );
 
-    /* 例外ハンドラの登録 */
+    /* Register exception handler */
     cpu_mut().register_vector(
         TrapVector::ENVIRONMENT_CALL_FROM_VSMODE,
         do_ecall_from_vsmode,
@@ -222,12 +221,12 @@ pub fn main() {
         }
         /* RAM */
         VM.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
-        VM.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
-        VM.mem.register(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
+        VM.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000);    // FDT is mapped to physical memory.
+        VM.mem.register(0x8810_0000, 0x88100000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
 
         /* MMIO */
         VM.dev.register(0x0c00_0000, 0x0400_0000, vplic);
     }
-    /* コア1でLinuxを起動させる */
+    // Boot Linux on core 1
     create_task(2, boot_linux, boot_core);
 }
