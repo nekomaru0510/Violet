@@ -4,11 +4,9 @@
 #![feature(used_with_arg)]
 
 extern crate violet;
-use violet::{println, print};
 use violet::environment::cpu_mut;
 
 use violet::library::vm::vdev::vplic::VPlic;
-use violet::library::vm::vdev::vclint::VClint;
 use violet::library::vm::VirtualMachine;
 
 use violet::arch::rv64::extension::hypervisor::Hext;
