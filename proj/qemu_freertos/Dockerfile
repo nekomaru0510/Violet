@@ -10,7 +10,7 @@ WORKDIR $RISCV
 
 # Install Tools
 RUN apt update && \
-	apt install -y autoconf automake autotools-dev curl bc git device-tree-compiler vim python3 cpio
+	apt install -y autoconf automake autotools-dev curl bc git device-tree-compiler vim python3 cpio gdb-multiarch
 
 # Build QEMU
 RUN apt update && \
