@@ -168,7 +168,6 @@ fn test_rm() -> Result<(), &'static str> {
     let idx = rm.register(Resource::Serial(Box::new(Uart::new(0x1000_0000))));
 
     if let BorrowResource::Serial(x) = rm.get(ResourceType::Serial, 0) {
-        x.write('s' as u8);
         Ok(())
     } else {
         Err("Failed to open Resource")

@@ -51,8 +51,6 @@ fn test_bitfield() -> Result<(), &'static str> {
 fn test_bitfield2() -> Result<(), &'static str> {
     bitfield!(RS2:[24,20]);
     let val = bit_set!(0x0000_0000, RS2, 0xffff);
-    //
-    println!("val: {:x}", val);
     if bit_set!(0x0000_0000, RS2, 0xffff) == 0x01f0_0000 {
         Ok(())
     } else {

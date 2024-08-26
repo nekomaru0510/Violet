@@ -10,7 +10,6 @@ pub fn test_runner(tests: &[&dyn Fn() -> Result<(), &'static str>]) {
     for test in tests {
         match test() {
             Ok(()) => {
-                println!("[ok]");
                 success += 1;
             }
             Err(e) => {
@@ -20,6 +19,12 @@ pub fn test_runner(tests: &[&dyn Fn() -> Result<(), &'static str>]) {
         }
     }
     println!("Result: {}/{} ", success, tests.len());
+
+    if success == tests.len() {
+        println!("All tests passed");
+    } else {
+        println!("Some tests failed");
+    }
 }
 
 #[test_case]
