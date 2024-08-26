@@ -1,3 +1,4 @@
+# All-in-one environment (so it takes a long time to build)
 FROM ubuntu:22.04
 
 ENV RISCV=/opt/riscv
