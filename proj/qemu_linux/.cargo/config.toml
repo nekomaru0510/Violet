@@ -7,7 +7,7 @@ runner = "./run.sh "
 [build]
 target = "../../env/qemu_virt/qemu_virt.json"
 rustflags = [
-    "-C", "link-arg=-Tqemu_virt.ld", 
+    "-C", "link-arg=-T../../env/qemu_virt/qemu_virt.ld", 
 ]
 
 [unstable]
