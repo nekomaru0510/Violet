@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.231.6/containers/docker-existing-dockerfile
 {
-	"name": "Existing Dockerfile",
+	"name": "Violet Development Container",
 
 	// Sets the run context to one level up instead of the .devcontainer folder.
 	"context": "..",
@@ -13,10 +13,7 @@
 	"settings": {},
 	
 	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": [
-		"matklad.rust-analyzer",
-		"vadimcn.vscode-lldb",
-	]
+	"extensions": []
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
