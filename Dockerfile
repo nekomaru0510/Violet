@@ -26,6 +26,7 @@ RUN wget https://download.qemu.org/qemu-8.0.0.tar.xz && \
 
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+	rustup install nightly-2024-07-25-x86_64-unknown-linux-gnu && \
 	rustup component add rust-src --toolchain nightly-2024-07-25-x86_64-unknown-linux-gnu
 
 # Build OpenSBI
@@ -102,3 +103,5 @@ RUN cd ${RISCV}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt64_GCC  && \
 make clean && \
 make PICOLIBC=1 DEBUG=1 && \
 riscv64-unknown-elf-objcopy -O binary build/RTOSDemo.axf build/RTOSDemo.bin
+
+WORKDIR /workspaces/Violet
