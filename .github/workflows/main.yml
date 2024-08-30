@@ -1,0 +1,24 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "dev" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag violet-test:$(date +%s)
+
+    - name: Run the Docker image (violet-test)
+      run: docker run -v .:/workspace/ violet-test:$(date +%s) ./violet/test.sh
+
+    - name: Run the Docker image (linux-test)
+      run: docker run -v .:/workspace/ violet-test:$(date +%s) ./proj/qemu_linux/tools/test.sh
+    
+    - name: Run the Docker image (freertos-test)
+      run: docker run -v .:/workspace/ violet-test:$(date +%s) ./proj/qemu_freertos/tools/test.sh

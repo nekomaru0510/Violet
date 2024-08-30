@@ -21,6 +21,8 @@ function log_checker () {
     fi
 }
 
+cd $(cd $(dirname $0); pwd)
+
 # Run cargo build to ensure the project is built
 cargo build
 
