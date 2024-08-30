@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - name: Build the Docker image
-      run: ls -l && echo " | " && pwd && echo " | " && docker build . --file ./Violet/Dockerfile --tag violet-test:$(date +%s)
+      run: ls -l .. && echo " | " && pwd && echo " | " && docker build . --file ./Violet/Dockerfile --tag violet-test:$(date +%s)
 
     - name: Run the Docker image (violet-test)
       run: docker run -v .:/workspace/ violet-test:$(date +%s) ./violet/test.sh
