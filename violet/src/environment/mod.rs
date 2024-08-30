@@ -6,6 +6,7 @@ use crate::resource::*;
 use crate::arch::rv64::Rv64;
 use crate::arch::rv64::extension::hypervisor::Hext;
 use crate::arch::traits::TraitCpu;
+use crate::arch::rv64::instruction::Instruction;
 
 /* Device Driver */
 use crate::driver::board::sifive_u::clint_timer::ClintTimer;
@@ -46,6 +47,19 @@ pub fn setup_container() {
     let result = resources.register(Resource::Serial(Box::new(Uart::new(UART_BASE))));
     let result = resources.register(Resource::Intc(Box::new(Plic::new(PLIC_BASE))));
     let result = resources.register(Resource::Timer(Box::new(ClintTimer::new(CLINT_TIMER_BASE))));
+}
+
+pub fn shutdown() {
+    let ret = Instruction::ecall(
+        0x53525354,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    );
 }
 
 use crate::arch::rv64::get_cpuid;
