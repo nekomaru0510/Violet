@@ -13,7 +13,7 @@ jobs:
     steps:
     - name: Build the Docker image
     - uses: actions/checkout@v4
-      run: docker build . --file Dockerfile --tag violet-test:$(date +%s)
+    - run: docker build . --file Dockerfile --tag violet-test:$(date +%s)
 
     - name: Run the Docker image (violet-test)
       run: docker run -v .:/workspace/ violet-test:$(date +%s) ./violet/test.sh
