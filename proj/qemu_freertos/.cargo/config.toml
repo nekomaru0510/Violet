@@ -2,7 +2,7 @@
 opt-level = 0
 
 [target.qemu_virt]
-runner = "./run.sh "
+runner = "./tools/run.sh "
 
 [build]
 target = "../../env/qemu_virt/qemu_virt.json"

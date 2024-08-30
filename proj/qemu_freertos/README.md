@@ -29,10 +29,10 @@ Split the terminal into two and execute the following commands:
 
 **Debug Execution**
 ```
-% ./debug.sh
+% ./tools/debug.sh
 ```
 
 **Monitoring with gdb**
 ```
-% ./monitor.sh
+% ./tools/monitor.sh
 ```
