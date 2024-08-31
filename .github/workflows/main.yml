@@ -15,11 +15,14 @@ jobs:
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag violet-test
 
+    - name: Run the Docker image (test)
+      run: docker run -v "$(pwd)":/workspaces/ violet-test ls -l
+
     - name: Run the Docker image (violet-test)
-      run: docker run -v .:/workspaces/ violet-test /workspaces/Violet/violet/test.sh
+      run: docker run -v "$(pwd)":/workspaces/ violet-test /workspaces/Violet/violet/test.sh
 
     - name: Run the Docker image (linux-test)
-      run: docker run -v .:/workspaces/ violet-test /workspaces/Violet/proj/qemu_linux/tools/test.sh
+      run: docker run -v "$(pwd)":/workspaces/ violet-test /workspaces/Violet/proj/qemu_linux/tools/test.sh
     
     - name: Run the Docker image (freertos-test)
-      run: docker run -v .:/workspaces/ violet-test /workspaces/Violet/proj/qemu_freertos/tools/test.sh
+      run: docker run -v "$(pwd)":/workspaces/ violet-test /workspaces/Violet/proj/qemu_freertos/tools/test.sh
