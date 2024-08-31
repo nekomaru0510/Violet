@@ -32,4 +32,10 @@ pkill -f qemu-system-riscv64
 
 log_checker ${LOG_FILE} "${SEARCH_STRING}"
 
-exit $?
+if [ $? -eq 0 ]; then
+    echo "Linux test passed"
+    exit 0
+else
+    echo "Linux test failed"
+    exit 1
+fi
