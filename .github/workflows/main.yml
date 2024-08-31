@@ -16,8 +16,12 @@ jobs:
       run: docker build . --file Dockerfile --tag violet-test
 
     - name: Run the Docker image (test)
+      run: ls -l
+
+    - name: Run the Docker image (test)
       run: docker run -v "$(pwd)":/workspaces/ violet-test ls -l
 
+    - uses: actions/checkout@v4
     - name: Run the Docker image (violet-test)
       run: docker run -v "$(pwd)":/workspaces/ violet-test /workspaces/Violet/violet/test.sh
 
