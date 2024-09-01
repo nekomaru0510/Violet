@@ -54,7 +54,7 @@ pub fn do_guest_load_page_fault(sp: *mut usize) {
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
     let inst = Instruction::fetch(vm.mem.get_paddr(regs.epc).unwrap());
 
-    match { vm.dev.read(fault_paddr) } {
+    match vm.dev.read(fault_paddr) {
         None => {
             vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
         },

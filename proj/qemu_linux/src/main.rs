@@ -4,7 +4,7 @@
 #![feature(used_with_arg)]
 
 extern crate violet;
-use violet::environment::cpu_mut;
+use violet::environment::Arch;
 
 use violet::library::vm::vdev::vplic::VPlic;
 use violet::library::vm::{create_virtual_machine, get_mut_virtual_machine};
@@ -19,6 +19,7 @@ use violet::arch::rv64::trap::int::Interrupt;
 use violet::arch::rv64::trap::TrapVector;
 use violet::arch::rv64::vscontext::*;
 use violet::arch::traits::context::TraitContext;
+use violet::arch::traits::TraitArch;
 
 use violet::kernel::syscall::vsi::create_task;
 use violet::resource::{get_resources, BorrowResource, ResourceType};
@@ -192,26 +193,26 @@ pub fn boot_linux() {
     );
 
     /* Register interrupt handler */
-    cpu_mut().register_vector(
+    let _ = Arch::register_vector(
         TrapVector::SUPERVISOR_TIMER_INTERRUPT,
         do_supervisor_timer_interrupt,
     );
-    cpu_mut().register_vector(
+    let _ = Arch::register_vector(
         TrapVector::SUPERVISOR_EXTERNAL_INTERRUPT,
         do_supervisor_external_interrupt,
     );
 
     /* Register exception handler */
-    cpu_mut().register_vector(
+    let _ = Arch::register_vector(
         TrapVector::ENVIRONMENT_CALL_FROM_VSMODE,
         do_ecall_from_vsmode,
     );
-    cpu_mut().register_vector(TrapVector::LOAD_GUEST_PAGE_FAULT, do_guest_load_page_fault);
-    cpu_mut().register_vector(
+    let _ = Arch::register_vector(TrapVector::LOAD_GUEST_PAGE_FAULT, do_guest_load_page_fault);
+    let _ = Arch::register_vector(
         TrapVector::STORE_AMO_GUEST_PAGE_FAULT,
         do_guest_store_page_fault,
     );
-    cpu_mut().register_vector(
+    let _ = Arch::register_vector(
         TrapVector::INSTRUCTION_GUEST_PAGE_FAULT,
         do_guest_instruction_page_fault,
     );

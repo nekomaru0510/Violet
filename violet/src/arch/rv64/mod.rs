@@ -12,21 +12,19 @@ pub mod vscontext;
 
 use crate::environment::STACK_SIZE;/* [todo remove] */
 use super::traits::TraitCpu;
+use super::traits::TraitArch;
 
 use instruction::Instruction;
-use mmu::Rv64Mmu;
 use regs::Registers;
 use trap::TrapVector;
 use trap::_start_trap;
 use trap::int::Interrupt;
-use extension::hypervisor::Hext;
 
 extern crate core;
 use core::intrinsics::transmute;
 
 use csr::hstatus;
 use csr::hstatus::*;
-use csr::mtvec::Mtvec;
 use csr::scause::Scause;
 use csr::sepc::Sepc;
 use csr::sscratch::Sscratch;
@@ -43,10 +41,11 @@ use csr::vstval::Vstval;
 use csr::vstvec::Vstvec;
 
 pub struct Rv64 {
-    pub scratch: Scratch,    /* scratchレジスタが指す構造体 */
-    pub mode: PrivilegeMode, /* 動作モード */
-    pub mmu: Rv64Mmu,
-    pub hext: Option<Hext>,  /* Hypervisor Extension */
+    cpu_id: u64,
+    sp: usize,
+    tmp0: usize,
+    stack_size: usize,
+    status: CpuStatus,
     trap: TrapVector,
 }
 
@@ -57,39 +56,7 @@ pub enum CpuStatus {
     SUSPENDED,      /* 停止中(Violetが管理している) */
 }
 
-// scratchレジスタが指す構造体
-#[derive(Copy, Clone)]
-pub struct Scratch {
-    cpu_id: u64,
-    sp: usize,
-    tmp0: usize,
-    stack_size: usize,
-    status: CpuStatus,
-}
-
-impl Scratch {
-    pub const fn new(cpu_id: u64) -> Self {
-        Scratch {
-            cpu_id,
-            sp: 0x0,
-            tmp0: 0x0,
-            stack_size: STACK_SIZE,
-            status: CpuStatus::STARTED,
-        }
-    }
-
-    pub fn set_cpu_id(&mut self, cpu_id: u64) {
-        self.cpu_id = cpu_id;
-    }
-
-    pub fn get_cpu_id(&self) -> u64 {
-        self.cpu_id
-    }
-}
-
 impl TraitCpu for Rv64 {
-    //type Registers = Registers;
-
     fn core_init(&self) {
         self.set_sscratch();
         self.set_default_vector();
@@ -97,7 +64,7 @@ impl TraitCpu for Rv64 {
     }
 
     fn wakeup(&self) {
-        sbi::sbi_hart_start(self.scratch.cpu_id, boot::_start_ap as u64, 0xabcd);
+        sbi::sbi_hart_start(self.cpu_id, boot::_start_ap as u64, 0xabcd);
     }
 
     fn sleep(&self) {
@@ -110,6 +77,7 @@ impl TraitCpu for Rv64 {
 
     fn call_vector(&self, vecid: usize, regs: *mut usize) {
         self.trap.call_vector(vecid, regs);
+        //self.scratch.trap.call_vector(vecid, regs);
     }
 
     fn enable_interrupt(&self) {
@@ -126,23 +94,24 @@ impl TraitCpu for Rv64 {
     }
 }
 
-////////////////////////////////
-/* ハードウェア依存の機能の実装 */
-///////////////////////////////
-impl Rv64 {
-    pub const fn new(id: u64) -> Self {
-        Rv64 {
-            mode: PrivilegeMode::ModeS,
-            mmu: Rv64Mmu::new(),
-            scratch: Scratch::new(id),
-            hext: None,
-            trap: TrapVector::new(),
-        }
+impl TraitArch for Rv64 {
+
+    fn core_init() {
+        Stvec::set(_start_trap as u64);
+        Interrupt::enable_s();
     }
 
-    pub fn get_cpuid() -> usize {
+    fn wakeup(cpuid: usize) {
+        sbi::sbi_hart_start(cpuid as u64, boot::_start_ap as u64, 0xabcd);
+    }
+
+    fn sleep() {
+        sbi::sbi_hart_stop();
+    }
+
+    fn get_cpuid() -> usize {
         unsafe {
-            let scratch: &Scratch = transmute(Sscratch::get());
+            let scratch: &Rv64 = transmute(Sscratch::get());
             if Sscratch::get() == 0 {
                 0
             } else {
@@ -151,12 +120,77 @@ impl Rv64 {
         }
     }
 
-    pub fn add_hext(&mut self, hext: Hext) {
-        self.hext = Some(hext);
+    fn register_vector(vecid: usize, func: fn(regs: *mut usize)) -> Result<(), ()> {
+        unsafe {
+            let scratch: &mut Rv64 = transmute(Sscratch::get());
+            if Sscratch::get() == 0 {
+                Err(())
+            } else {
+                scratch.trap.register_vector(vecid, func);
+                Ok(())
+            }
+        }
     }
 
+    fn call_vector(vecid: usize, regs: *mut usize) -> Result<(), ()> {
+        unsafe {
+            let scratch: &Rv64 = transmute(Sscratch::get());
+            if Sscratch::get() == 0 {
+                Err(())
+            } else {
+                scratch.trap.call_vector(vecid, regs);
+                Ok(())
+            }
+        }
+    }
+
+    fn enable_interrupt() {
+        Interrupt::enable_s();
+    }
+
+    fn disable_interrupt() {
+        Interrupt::disable_s();
+    }
+
+    fn ipi(core_id: usize) {
+        let hart_mask: u64 = 0x01 << core_id;
+        sbi::sbi_send_ipi(&hart_mask);
+    }
+}
+
+////////////////////////////////
+/* ハードウェア依存の機能の実装 */
+///////////////////////////////
+impl Rv64 {
+    pub const fn new(id: u64) -> Self {
+        Rv64 {
+            cpu_id: id,
+            sp: 0x0,
+            tmp0: 0x0,
+            stack_size: STACK_SIZE,
+            status: CpuStatus::STARTED,
+            trap: TrapVector::new(),
+        }
+    }
+
+    pub fn get_cpuid() -> usize {
+        unsafe {
+            let scratch: &Rv64 = transmute(Sscratch::get());
+            if Sscratch::get() == 0 {
+                0
+            } else {
+                scratch.cpu_id as usize
+            }
+        }
+    }
+
+    /*
+    pub fn add_hext(&mut self, hext: Hext) {
+        self.hext = Some(hext);
+    }*/
+
     pub fn set_sscratch(&self) {
-        Sscratch::set(unsafe { transmute(&self.scratch) });
+        Sscratch::set(unsafe { transmute(self) });
     }
 
     pub fn set_default_vector(&self) {
@@ -164,15 +198,7 @@ impl Rv64 {
     }
 
     fn set_vector(&self, addr: usize) {
-        match self.mode {
-            PrivilegeMode::ModeM => {
-                Mtvec::set(addr as u64);
-            }
-            PrivilegeMode::ModeS => {
-                Stvec::set(addr as u64);
-            }
-            _ => {}
-        }
+        Stvec::set(addr as u64);
     }
 
     pub fn switch_hs_mode() {
@@ -216,7 +242,7 @@ pub extern "C" fn setup_cpu(cpu_id: usize) {
 #[no_mangle]
 pub extern "C" fn get_cpuid() -> usize {
     unsafe {
-        let scratch: &Scratch = transmute(Sscratch::get());
+        let scratch: &Rv64 = transmute(Sscratch::get());
         if Sscratch::get() == 0 {
             0
         } else {

@@ -38,10 +38,10 @@ pub fn setup_container() {
 
     let resources = get_mut_resources();
 
-    let mut cpu0 = Rv64::new(0);
-    let mut cpu1 = Rv64::new(1);
-    cpu0.add_hext(Hext{});
-    cpu1.add_hext(Hext{});
+    let cpu0 = Rv64::new(0);
+    let cpu1 = Rv64::new(1);
+    //cpu0.add_hext(Hext{});
+    //cpu1.add_hext(Hext{});
     let result = resources.register(Resource::Cpu(Box::new(cpu0)));
     let result = resources.register(Resource::Cpu(Box::new(cpu1)));
 
