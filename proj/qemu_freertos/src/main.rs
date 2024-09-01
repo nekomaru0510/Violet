@@ -30,55 +30,6 @@ app_init!(main);
 
 static mut VM: VirtualMachine = VirtualMachine::new();
 
-fn do_ecall(regs: &mut Registers) {
-    let ret = Instruction::ecall(
-        regs.reg[A7] as i32, /* ext */
-        regs.reg[A6] as i32, /* fid */
-        regs.reg[A0],
-        regs.reg[A1],
-        regs.reg[A2],
-        regs.reg[A3],
-        regs.reg[A4],
-        regs.reg[A5],
-    );
-
-    regs.reg[A0] = ret.0;
-    regs.reg[A1] = ret.1;
-}
-
-fn handle_set_timer(regs: &mut Registers) {
-    Hext::flush_vsmode_interrupt(Interrupt::bit(
-        Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
-    ));
-    do_ecall(regs);
-}
-
-fn handle_hart_state_management(regs: &mut Registers, fid: i32) {
-    match fid {
-        0 => {
-            regs.reg[A0] = 0;
-            regs.reg[A1] = 0;
-        },
-        _ => do_ecall(regs),
-    }
-}
-
-pub fn do_ecall_from_vsmode(sp: *mut usize) {
-    let regs = Registers::from(sp);
-    let ext: i32 = regs.reg[A7] as i32;
-    let fid: i32 = regs.reg[A6] as i32;
-
-    match sbi::Extension::from_ext(ext) {
-        sbi::Extension::SetTimer | sbi::Extension::Timer => handle_set_timer(regs),
-        sbi::Extension::HartStateManagement => handle_hart_state_management(regs, fid),
-        sbi::Extension::SystemReset => loop {},
-        _ => do_ecall(regs),
-    }
-
-    /* size of ecall instruction is always 4byte */
-    regs.epc = regs.epc + 4;
-}
-
 pub fn do_guest_store_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
