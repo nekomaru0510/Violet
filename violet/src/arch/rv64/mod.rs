@@ -140,6 +140,17 @@ impl Rv64 {
         }
     }
 
+    pub fn get_cpuid() -> usize {
+        unsafe {
+            let scratch: &Scratch = transmute(Sscratch::get());
+            if Sscratch::get() == 0 {
+                0
+            } else {
+                scratch.cpu_id as usize
+            }
+        }
+    }
+
     pub fn add_hext(&mut self, hext: Hext) {
         self.hext = Some(hext);
     }
@@ -201,6 +212,7 @@ pub extern "C" fn setup_cpu(cpu_id: usize) {
     boot_init(cpu_id);
 }
 
+/* [todo delete] */
 #[no_mangle]
 pub extern "C" fn get_cpuid() -> usize {
     unsafe {

@@ -6,34 +6,34 @@ pub mod vcpu;
 pub mod vdev;
 pub mod vmem;
 
-use crate::arch::rv64::extension::hypervisor::*; //[todo delete]
-use crate::arch::rv64::mmu::sv48::PageTableSv48;
-use crate::arch::traits::hypervisor::HypervisorT;
-
 use vcpu::VirtualCpuMap;
 use vdev::VirtualDevMap;
 use vmem::VirtualMemoryMap;
 
-use crate::arch::traits::context::TraitContext; //[todo delete]
+use crate::arch::rv64::extension::hypervisor::*; //[todo delete]
+use crate::arch::rv64::mmu::sv48::PageTableSv48; //[todo delete]
+use crate::arch::traits::hypervisor::HypervisorT;
+use crate::arch::traits::context::TraitContext;
+use crate::environment::Hyp;
 
-pub struct VirtualMachine<H: HypervisorT> {
-    pub cpu: VirtualCpuMap<H>,
+pub struct VirtualMachine {
+    pub cpu: VirtualCpuMap,
     pub mem: VirtualMemoryMap,
     pub dev: VirtualDevMap,
 }
 
-impl<H: HypervisorT> VirtualMachine<H> {
-    pub const fn new() -> VirtualMachine<H> {
-        VirtualMachine::<H> {
-            cpu: VirtualCpuMap::<H>::new(),
+impl VirtualMachine {
+    pub const fn new() -> VirtualMachine {
+        VirtualMachine {
+            cpu: VirtualCpuMap::new(),
             mem: VirtualMemoryMap::new(),
             dev: VirtualDevMap::new(),
         }
     }
 
     pub fn setup(&self) {
-        /* ゲスト起動前のデフォルトセットアップ */
-        H::init();
+        // Default setup before guest boot
+        Hyp::init();
     }
 
     pub fn run(&mut self) {
@@ -46,9 +46,8 @@ impl<H: HypervisorT> VirtualMachine<H> {
     pub fn map_guest_page(&mut self, guest_paddr: usize) {
         match self.mem.get(guest_paddr) {
             None => {
-                /* 設定していないアドレスは、基本パススルーとする */
-                /* アクセス禁止にしたい場合、少なくとも、アクセス時の動作を設定する必要があるはず */
-                /* [todo fix] CPUトレイトから呼び出す */
+                // Pass through addresses that are not set
+                // [todo fix] Call from CPU trait
                 map_vaddr::<PageTableSv48>(
                     unsafe { transmute(Hext::get_hs_pagetable()) },
                     guest_paddr,
@@ -59,7 +58,7 @@ impl<H: HypervisorT> VirtualMachine<H> {
                 match m.get_paddr(guest_paddr) {
                     None => {}
                     Some(r) => {
-                        /* [todo fix] CPUトレイトから呼び出す */
+                        // [todo fix] Call from CPU trait
                         map_vaddr::<PageTableSv48>(
                             unsafe { transmute(Hext::get_hs_pagetable()) },
                             r,
@@ -79,7 +78,7 @@ use crate::library::vm::vdev::vplic::VPlic;
 
 #[test_case]
 fn test_read_write_dev() -> Result<(), &'static str> {
-    let mut vm: VirtualMachine<Hext> = VirtualMachine::new();
+    let mut vm: VirtualMachine = VirtualMachine::new();
     let vplic = VPlic::new();
     let val = 0x01;
     vm.dev.register(0x0c00_0000, 0x0400_0000, vplic);
@@ -111,7 +110,7 @@ use crate::arch::rv64::vscontext::*; //[todo delete]
 
 #[test_case]
 fn test_vcpu() -> Result<(), &'static str> {
-    let mut vm: VirtualMachine<Hext> = VirtualMachine::new();
+    let mut vm: VirtualMachine = VirtualMachine::new();
     // ブート
     // 自動で自分のCPU番号から仮想CPUを取得
     vm.cpu.register(1, 0);
@@ -130,14 +129,13 @@ fn test_vcpu() -> Result<(), &'static str> {
 
 #[test_case]
 fn test_vmem() -> Result<(), &'static str> {
-    //let mut vm: VirtualMachine = VirtualMachine::new();
-    /*
-    VM.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
-    VM.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
-    VM.mem.register(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
-    VM.dev.register(0x0c00_0000, 0x0400_0000, vplic); // 仮想デバイス追加したら、勝手にマップしないようにしたい？
-    */
-
+    let mut vm: VirtualMachine = VirtualMachine::new();
+    
+    vm.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
+    vm.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
+    vm.mem.register(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
+    //vm.dev.register(0x0c00_0000, 0x0400_0000, vplic); // 仮想デバイス追加したら、勝手にマップしないようにしたい？
+    
     //vm.map_all_guest_page(); /* 登録されたページをすべてマップ(静的にマップするときに使う) */
     //vm.map_guest_page(guest_paddr); /* 指定ページをマップ(動的にマップするときに使う) */
     Ok(())

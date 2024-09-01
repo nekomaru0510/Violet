@@ -19,13 +19,12 @@ use violet::arch::rv64::trap::TrapVector;
 use violet::arch::rv64::instruction::Instruction;
 use violet::arch::rv64::regs::*;
 use violet::arch::rv64::redirect_to_guest;
-use violet::arch::traits::hypervisor::HypervisorT;
 use violet::environment::cpu_mut;
 
 use violet::arch::rv64::instruction::ret::Ret;
 use core::ptr::write_unaligned;
 
-pub fn init<H: HypervisorT>(vm: &mut VirtualMachine<H>) {
+pub fn init(vm: &mut VirtualMachine) {
     Hext::set_delegation_exc(TrapVector::ILLEGAL_INSTRUCTION);
     cpu_mut().register_vector(TrapVector::ILLEGAL_INSTRUCTION, do_illegal_instruction);
 

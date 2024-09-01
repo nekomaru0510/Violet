@@ -23,7 +23,8 @@ static UART_BASE: usize = 0x1000_0000;
 static CLINT_TIMER_BASE: usize = 0x0200_0000;
 static PLIC_BASE: usize = 0x0C00_0000;
 
-type Arch = Rv64; /* CPUの型 */
+pub type Arch = Rv64; /* CPUの型 */
+pub type Hyp = Hext; /* Hypervisorの型 */
 type Intc = Plic;
 type Timer = ClintTimer;
 type Serial = Uart;

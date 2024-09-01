@@ -1,4 +1,4 @@
-//! 仮想CPU
+//! Virtual CPU
 
 pub mod vreg;
 
@@ -8,16 +8,17 @@ use alloc::vec::Vec;
 use crate::arch::traits::context::TraitContext;
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::environment::NUM_OF_CPUS;
-//use crate::arch::traits::registers::TraitRegisters;
-use crate::arch::rv64::get_cpuid; // [todo delete] //test
 use vreg::{VirtualRegisterMap, VirtualRegisterT};
 
-pub struct VirtualCpuMap<T: HypervisorT> {
-    vcpus: Vec<VirtualCpu<T>>,
+use crate::environment::Hyp;
+use crate::environment::Arch;
+
+pub struct VirtualCpuMap {
+    vcpus: Vec<VirtualCpu>,
     p2v_cpu: [usize; NUM_OF_CPUS],
 }
 
-impl<T: HypervisorT> VirtualCpuMap<T> {
+impl VirtualCpuMap {
     pub const fn new() -> Self {
         VirtualCpuMap {
             vcpus: Vec::new(),
@@ -30,24 +31,24 @@ impl<T: HypervisorT> VirtualCpuMap<T> {
         self.vcpus.push(VirtualCpu::new(vcpuid));
     }
 
-    /* 現在動作している(本メソッドを呼び出したCPUに対応する)仮想CPUのIDを返す */
+    // Return the ID of the virtual CPU currently running
     pub fn get_vcpuid(&self) -> usize {
-        self.p2v_cpu[get_cpuid()]
+        self.p2v_cpu[Arch::get_cpuid()]
     }
 
-    pub fn get(&self, vcpuid: usize) -> Option<&VirtualCpu<T>> {
+    pub fn get(&self, vcpuid: usize) -> Option<&VirtualCpu> {
         self.find(vcpuid)
     }
 
-    pub fn get_mut(&mut self, vcpuid: usize) -> Option<&mut VirtualCpu<T>> {
+    pub fn get_mut(&mut self, vcpuid: usize) -> Option<&mut VirtualCpu> {
         self.find_mut(vcpuid)
     }
 
-    pub fn find(&self, vcpuid: usize) -> Option<&VirtualCpu<T>> {
+    pub fn find(&self, vcpuid: usize) -> Option<&VirtualCpu> {
         self.vcpus.iter().find(|e| e.vcpuid == vcpuid)
     }
 
-    pub fn find_mut(&mut self, vcpuid: usize) -> Option<&mut VirtualCpu<T>> {
+    pub fn find_mut(&mut self, vcpuid: usize) -> Option<&mut VirtualCpu> {
         self.vcpus.iter_mut().find(|e| e.vcpuid == vcpuid)
     }
 }
@@ -58,26 +59,25 @@ pub enum VcpuStatus {
     SUSPENDED,
 }
 
-pub struct VirtualCpu<T: HypervisorT> {
-    vcpuid: usize, /* 仮想CPU番号 */
-    pub context: T::Context,
+pub struct VirtualCpu {
+    vcpuid: usize,
+    pub context: <Hyp as HypervisorT>::Context,
     status: VcpuStatus,
     vregs: VirtualRegisterMap,
 }
 
-impl<T: HypervisorT> VirtualCpu<T> {
+impl VirtualCpu {
     pub fn new(vcpuid: usize) -> Self {
         VirtualCpu {
             vcpuid,
-            context: T::Context::new(),
+            context: <Hyp as HypervisorT>::Context::new(),
             status: VcpuStatus::STOPPED,
             vregs: VirtualRegisterMap::new(),
         }
     }
 
-    pub fn run(&mut self, regs: &mut <T::Context as TraitContext>::Registers) {
-        // レジスタの復帰
-        //self.regs.restore_to(sp);
+    pub fn run(&mut self, regs: &mut <<Hyp as HypervisorT>::Context as TraitContext>::Registers) {
+        // Restore registers
         self.context.switch(regs);
     }
 
@@ -100,21 +100,13 @@ impl<T: HypervisorT> VirtualCpu<T> {
     }
 
     pub fn hook(&self, vecid: usize, func: fn(regs: *mut usize)) {
-        T::hook(vecid, func);
+        Hyp::hook(vecid, func);
     }
-
-    /*
-    pub fn switch(&mut self) {
-
-    }*/
 }
-
-#[cfg(test)]
-use crate::arch::rv64::extension::hypervisor::Hext;
 
 #[test_case]
 fn test_vcpumap() -> Result<(), &'static str> {
-    let mut map = VirtualCpuMap::<Hext>::new();
+    let mut map = VirtualCpuMap::new();
 
     map.register(1, 0);
 
@@ -138,7 +130,7 @@ use vreg::vmhartid::Vmhartid;
 
 #[test_case]
 fn test_vcpu() -> Result<(), &'static str> {
-    let mut vcpu = VirtualCpu::<Hext>::new(0);
+    let mut vcpu = VirtualCpu::new(0);
     let vmhartid = Vmhartid::new(0x128);
 
     vcpu.register(1, vmhartid);

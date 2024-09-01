@@ -26,7 +26,7 @@ use violet::resource::{get_resources, BorrowResource, ResourceType};
 use violet::app_init;
 app_init!(main);
 
-static mut VM: VirtualMachine<Hext> = VirtualMachine::new();
+static mut VM: VirtualMachine = VirtualMachine::new();
 
 pub fn do_ecall_from_vsmode(sp: *mut usize) {
     let regs = Registers::from(sp);
