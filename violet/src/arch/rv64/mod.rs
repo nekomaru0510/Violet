@@ -68,9 +68,9 @@ pub struct Rv64 {
 
 #[derive(Copy, Clone)]
 pub enum CpuStatus {
-    STOPPED = 0x00, /* 停止中(Violetとしても管理できてない) */
-    STARTED,        /* 起動中 */
-    SUSPENDED,      /* 停止中(Violetが管理している) */
+    STOPPED = 0x00,
+    STARTED,       
+    SUSPENDED,     
 }
 
 impl TraitCpu for Rv64 {
@@ -163,9 +163,9 @@ impl Rv64 {
     }
 
     pub fn switch_hs_mode() {
-        /* 次の動作モードをHS-modeに */
+        // Next mode is HS-mode
         Self::set_next_mode(PrivilegeMode::ModeHS);
-        /* 次の動作モードへ切替え */
+        // switch next mode
         Instruction::sret(0, 0, 0);
     }
 
@@ -189,7 +189,7 @@ impl Rv64 {
     }
 }
 
-// CPU初期化処理 ブート直後に実行される
+// Executed immediately after boot
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
 pub extern "C" fn setup_cpu(cpu_id: usize) {
@@ -197,15 +197,6 @@ pub extern "C" fn setup_cpu(cpu_id: usize) {
 }
 
 pub fn redirect_to_guest(regs: &mut Registers) {
-    //let hstatus = Hstatus {};
-    let vsstatus = Vsstatus {};
-    let vsepc = Vsepc {};
-    let vscause = Vscause {};
-    let scause = Scause {};
-    let vstvec = Vstvec {};
-    let stval = Stval {};
-    let vstval = Vstval {};
-
     //1. vsstatus.SPP = sstatus.SPP
     match Sstatus::read(sstatus::SPP) {
         1 => Vsstatus::write(vsstatus::SPP, vsstatus::SPP::SET),
@@ -242,48 +233,7 @@ pub fn redirect_to_guest(regs: &mut Registers) {
     //5. sret
 }
 
-
 #[test_case]
 fn test_rv64() -> Result<(), &'static str> {
-    /*
-        cpu!()
-        cpu().
-
-        /*  */
-        cpu().register_interrupt(
-            Interrupt::SupervisorExternalInterrupt,
-            do_supervisor_external_interrupt,
-        );
-
-        /* トレイトに指定されてる機能 割込みを有効化 */
-        cpu().enable_int(
-            Interrupt::SupervisorTimerInterrupt | Interrupt::SupervisorExternalInterrupt,
-        );
-
-        /* トレイトに指定されていない機能(↓の機能はトレイトに入れてもいいかも) */
-        cpu().inst.fetch(addr);
-        Rv64::get_cpuid()
-        rv64::Instruction::fetch(addr);
-        Instruction::fetch(addr);
-        Rv64::Csr::stvec::set(addr);
-
-        /* CPUの拡張機能追加関連は、トレイトでまとめてもよい */
-        /* register(id: usize, obj: T) */
-        /* as_ref, as_mutみたいな感じで。hashmapとか使える？ */
-        /* 命令の追加 */
-        cpu().inst.insert(id, Instruction::new(format, opcode, funct));
-        cpu().inst.get(id); /* 命令の取得(Vecみたいにアクセスしたい) */
-        cpu().inst.analyse(inst); /* 命令の判定 */
-        cpu().inst[id].call();    /* 命令の呼び出し */
-
-        /* レジスタ(CSR)の追加 */
-        cpu().csr.register(id, Csr::new());
-        cpu().csr(stvec).read(); /* read/write */
-
-        /* 例外・割込みの追加 */
-        cpu().int.register(id);
-        cpu().exc.register(id);
-    */
-    /* MMU機能追加(難しい。後で) */
     Ok(())
 }
