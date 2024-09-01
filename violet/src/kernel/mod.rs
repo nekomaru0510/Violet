@@ -69,13 +69,13 @@ pub extern "C" fn boot_init(cpu_id: usize) {
 
 fn init_bsp(cpu_id: usize) {
     if let BorrowResource::Cpu(c) = get_resources().get(ResourceType::Cpu, cpu_id) {
-        c.core_init()
+        c.setup();
     }
 }
 
 fn init_ap(cpu_id: usize) {
     if let BorrowResource::Cpu(c) = get_resources().get(ResourceType::Cpu, cpu_id) {
-        c.core_init()
+        c.setup();
     }
 
     main_loop(cpu_id);

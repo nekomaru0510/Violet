@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 
 use crate::arch::traits::context::TraitContext;
 use crate::arch::traits::hypervisor::HypervisorT;
+use crate::arch::traits::TraitArch;
 use crate::environment::NUM_OF_CPUS;
 use vreg::{VirtualRegisterMap, VirtualRegisterT};
 

@@ -5,36 +5,14 @@ pub mod hypervisor;
 pub mod mmu;
 pub mod registers;
 
+// Processor Core specific processing
 pub trait TraitCpu {
-    //type Registers;
-
     /* コアごとの初期化 */
-    fn core_init(&self);
-
-    /* CPUのstart */
-    fn wakeup(&self);
-    /* CPUの停止 */
-    fn sleep(&self);
-    /* ベクタの登録 */
-    //fn register_vector(&mut self, vecid: usize, func: fn(regs: &mut Self::Registers));
-    fn register_vector(&mut self, vecid: usize, func: fn(regs: *mut usize));
-    /* ベクタハンドラの呼出し */
-    //fn call_vector(&self, vecid: usize, regs: &mut Self::Registers);
-    fn call_vector(&self, vecid: usize, regs: *mut usize);
-    /* 割込みの有効化 */
-    fn enable_interrupt(&self);
-    /* 割込みの無効化 */
-    fn disable_interrupt(&self);
-
-    /* コア間通信 */
-    fn ipi(&self, core_id: usize);
+    fn setup(&self);
 }
 
+// Architecture specific processing
 pub trait TraitArch {
-    //type Registers;
-
-    /* コアごとの初期化 */
-    fn core_init();
     fn get_cpuid() -> usize;
     /* CPUのstart */
     fn wakeup(cpuid: usize);

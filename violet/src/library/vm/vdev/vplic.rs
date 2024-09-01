@@ -2,8 +2,8 @@
 
 use super::VirtualDeviceT;
 use super::{read_raw, write_raw};
-use crate::arch::rv64::get_cpuid; // [todo delete] //test
-                                          //use crate::driver::traits::intc::TraitIntc;
+use crate::arch::rv64::Rv64;
+use crate::arch::traits::TraitArch;
 use crate::environment::NUM_OF_CPUS;
 use crate::resource::{get_resources, BorrowResource, ResourceType}; /* [todo delete] */
 
@@ -110,7 +110,7 @@ impl VPlic {
     }
 
     fn claim_comp_int(&mut self, intid: u32) {
-        let vcpuid = self.p2v_cpu[get_cpuid()];
+        let vcpuid = self.p2v_cpu[Rv64::get_cpuid()];
         self.claim_comp[vcpuid] = intid as u32;
     }
 }

@@ -16,6 +16,7 @@ use crate::arch::rv64::extension::hypervisor::*; //[todo delete]
 use crate::arch::rv64::mmu::sv48::PageTableSv48; //[todo delete]
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::context::TraitContext;
+use crate::arch::traits::TraitArch;
 use crate::environment::Arch;
 use crate::environment::Hyp;
 use crate::environment::NUM_OF_CPUS;

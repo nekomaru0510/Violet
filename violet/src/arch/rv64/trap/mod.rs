@@ -3,10 +3,11 @@ pub mod exc;
 pub mod int;
 
 use core::arch::asm;
+use super::Rv64;
 use super::csr::scause::*;
 use super::trap::exc::Exception;
 use super::trap::int::Interrupt;
-use crate::environment::cpu;
+use crate::arch::traits::TraitArch;
 
 /* 割込み・例外ベクタ */
 pub struct TrapVector {
@@ -134,7 +135,7 @@ impl TrapHandler {
 pub extern "C" fn trap_handler(regs: *mut usize) {
     /* 割込み・例外要因 */
     //cpu().trap.call_vector(scause.get() as usize, regs);
-    cpu().call_vector(Scause::get() as usize, regs)
+    let _ = Rv64::call_vector(Scause::get() as usize, regs);
 }
 
 #[cfg(target_arch = "riscv64")]

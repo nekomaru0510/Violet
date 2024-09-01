@@ -1,9 +1,9 @@
 //! Hypervisor Extension
 
-use crate::environment::cpu_mut; /* [todo delete] */
-
 use crate::arch::rv64;
 use crate::arch::traits::hypervisor::HypervisorT;
+use crate::arch::traits::TraitArch;
+use rv64::Rv64;
 use rv64::trap::exc::Exception;
 use rv64::trap::int::Interrupt;
 use rv64::trap::TrapVector;
@@ -39,7 +39,7 @@ impl HypervisorT for Hext {
         } else {
             Self::clear_delegation_exc(Exception::bit(vecid));
         }
-        cpu_mut().register_vector(vecid, func);
+        let _ = Rv64::register_vector(vecid, func);
     }
 }
 

@@ -3,7 +3,8 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::arch::rv64::get_cpuid;
+use crate::arch::traits::TraitArch;
+use crate::environment::Arch;
 use crate::kernel::Kernel;
 use crate::resource::{Resource, ResourceManager}; // [todo delete] //test
 
@@ -58,7 +59,7 @@ impl ContainerTable {
     }
 
     pub fn current_id(&self) -> usize {
-        self.cpu2container[get_cpuid()]
+        self.cpu2container[Arch::get_cpuid()]
     }
 
     pub fn is_ready(&self) -> bool {

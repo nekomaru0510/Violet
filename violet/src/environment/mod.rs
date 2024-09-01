@@ -5,14 +5,12 @@ use crate::resource::*;
 
 use crate::arch::rv64::Rv64;
 use crate::arch::rv64::extension::hypervisor::Hext;
-use crate::arch::traits::TraitCpu;
 use crate::arch::rv64::instruction::Instruction;
 
 /* Device Driver */
 use crate::driver::board::sifive_u::clint_timer::ClintTimer;
 use crate::driver::board::sifive_u::plic::Plic;
 use crate::driver::board::sifive_u::uart::Uart;
-
 
 /* CPUコア数 */
 pub const NUM_OF_CPUS: usize = 2;
@@ -63,6 +61,7 @@ pub fn shutdown() {
     );
 }
 
+/*
 use crate::arch::rv64::get_cpuid;
 
 pub fn cpu() -> &'static dyn TraitCpu {
@@ -81,7 +80,7 @@ pub fn cpu_mut() -> &'static mut dyn TraitCpu {
         panic!("Fail to get CPU resource");
     }
 }
-
+*/
 extern crate alloc;
 use alloc::boxed::Box;
 

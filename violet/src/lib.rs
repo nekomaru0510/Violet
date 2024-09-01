@@ -15,6 +15,9 @@
 #![allow(static_mut_refs)] /* [todo remove] */
 #![no_std]
 
+extern crate core;
+extern crate alloc;
+
 pub mod arch;
 pub mod container;
 pub mod driver;

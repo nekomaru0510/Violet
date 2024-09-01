@@ -5,7 +5,8 @@ use core::ptr::{read_volatile, write_volatile};
 /* ドライバ用トレイト */
 use crate::driver::traits::intc::TraitIntc;
 
-use crate::arch::rv64::get_cpuid; // [todo delete] //test
+use crate::arch::traits::TraitArch;
+use crate::environment::Arch;
 
 #[derive(Clone)]
 pub struct Plic {
@@ -55,7 +56,7 @@ impl TraitIntc for Plic {
     fn set_priority_threshold(&self, val: u32) {
         unsafe {
             write_volatile(
-                (self.base + PRIO_THRESHOLD_CONTEXT0 + PRIO_THRESHOLD_HART_OFFSET * get_cpuid())
+                (self.base + PRIO_THRESHOLD_CONTEXT0 + PRIO_THRESHOLD_HART_OFFSET * Arch::get_cpuid())
                     as *mut u32,
                 val,
             );
@@ -90,7 +91,7 @@ impl Plic {
     pub fn get_claim_complete(&self) -> u32 {
         unsafe {
             read_volatile(
-                (self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * get_cpuid())
+                (self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * Arch::get_cpuid())
                     as *const u32,
             )
         }
@@ -99,7 +100,7 @@ impl Plic {
     pub fn set_claim_complete(&self, id: u32) {
         unsafe {
             write_volatile(
-                (self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * get_cpuid())
+                (self.base + CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET * Arch::get_cpuid())
                     as *mut u32,
                 id,
             );

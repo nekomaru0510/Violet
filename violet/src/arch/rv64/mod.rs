@@ -10,7 +10,8 @@ pub mod sbi;
 pub mod trap;
 pub mod vscontext;
 
-use crate::environment::STACK_SIZE;/* [todo remove] */
+use crate::kernel::boot_init;
+
 use super::traits::TraitCpu;
 use super::traits::TraitArch;
 
@@ -20,7 +21,6 @@ use trap::TrapVector;
 use trap::_start_trap;
 use trap::int::Interrupt;
 
-extern crate core;
 use core::intrinsics::transmute;
 
 use csr::hstatus;
@@ -40,11 +40,28 @@ use csr::vsstatus::*;
 use csr::vstval::Vstval;
 use csr::vstvec::Vstvec;
 
+#[derive(Clone, Copy)]
+pub enum PrivilegeMode {
+    ModeM,
+    ModeHS,
+    ModeS,
+    ModeHU,
+    ModeU,
+    ModeVS,
+    ModeVU,
+}
+
+pub enum PagingMode {
+    Bare = 0,
+    Sv39x4 = 8,
+    Sv48x4 = 9,
+    Sv57x4 = 10,
+}
+
 pub struct Rv64 {
     cpu_id: u64,
     sp: usize,
     tmp0: usize,
-    stack_size: usize,
     status: CpuStatus,
     trap: TrapVector,
 }
@@ -57,50 +74,14 @@ pub enum CpuStatus {
 }
 
 impl TraitCpu for Rv64 {
-    fn core_init(&self) {
+    fn setup(&self) {
         self.set_sscratch();
         self.set_default_vector();
-        self.enable_interrupt();
-    }
-
-    fn wakeup(&self) {
-        sbi::sbi_hart_start(self.cpu_id, boot::_start_ap as u64, 0xabcd);
-    }
-
-    fn sleep(&self) {
-        sbi::sbi_hart_stop();
-    }
-
-    fn register_vector(&mut self, vecid: usize, func: fn(regs: *mut usize)) {
-        self.trap.register_vector(vecid, func);
-    }
-
-    fn call_vector(&self, vecid: usize, regs: *mut usize) {
-        self.trap.call_vector(vecid, regs);
-        //self.scratch.trap.call_vector(vecid, regs);
-    }
-
-    fn enable_interrupt(&self) {
-        Interrupt::enable_s();
-    }
-
-    fn disable_interrupt(&self) {
-        Interrupt::disable_s();
-    }
-
-    fn ipi(&self, core_id: usize) {
-        let hart_mask: u64 = 0x01 << core_id;
-        sbi::sbi_send_ipi(&hart_mask);
+        Rv64::enable_interrupt();
     }
 }
 
 impl TraitArch for Rv64 {
-
-    fn core_init() {
-        Stvec::set(_start_trap as u64);
-        Interrupt::enable_s();
-    }
-
     fn wakeup(cpuid: usize) {
         sbi::sbi_hart_start(cpuid as u64, boot::_start_ap as u64, 0xabcd);
     }
@@ -158,36 +139,16 @@ impl TraitArch for Rv64 {
     }
 }
 
-////////////////////////////////
-/* ハードウェア依存の機能の実装 */
-///////////////////////////////
 impl Rv64 {
     pub const fn new(id: u64) -> Self {
         Rv64 {
             cpu_id: id,
             sp: 0x0,
             tmp0: 0x0,
-            stack_size: STACK_SIZE,
             status: CpuStatus::STARTED,
             trap: TrapVector::new(),
         }
     }
-
-    pub fn get_cpuid() -> usize {
-        unsafe {
-            let scratch: &Rv64 = transmute(Sscratch::get());
-            if Sscratch::get() == 0 {
-                0
-            } else {
-                scratch.cpu_id as usize
-            }
-        }
-    }
-
-    /*
-    pub fn add_hext(&mut self, hext: Hext) {
-        self.hext = Some(hext);
-    }*/
 
     pub fn set_sscratch(&self) {
         Sscratch::set(unsafe { transmute(self) });
@@ -228,9 +189,6 @@ impl Rv64 {
     }
 }
 
-/* カーネルの起動処理 */
-use crate::kernel::boot_init;
-
 // CPU初期化処理 ブート直後に実行される
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
@@ -238,21 +196,8 @@ pub extern "C" fn setup_cpu(cpu_id: usize) {
     boot_init(cpu_id);
 }
 
-/* [todo delete] */
-#[no_mangle]
-pub extern "C" fn get_cpuid() -> usize {
-    unsafe {
-        let scratch: &Rv64 = transmute(Sscratch::get());
-        if Sscratch::get() == 0 {
-            0
-        } else {
-            scratch.cpu_id as usize
-        }
-    }
-}
-
 pub fn redirect_to_guest(regs: &mut Registers) {
-    let hstatus = Hstatus {};
+    //let hstatus = Hstatus {};
     let vsstatus = Vsstatus {};
     let vsepc = Vsepc {};
     let vscause = Vscause {};
@@ -297,24 +242,6 @@ pub fn redirect_to_guest(regs: &mut Registers) {
     //5. sret
 }
 
-/* 特権モード */
-#[derive(Clone, Copy)]
-pub enum PrivilegeMode {
-    ModeM,
-    ModeHS,
-    ModeS,
-    ModeHU,
-    ModeU,
-    ModeVS,
-    ModeVU,
-}
-
-pub enum PagingMode {
-    Bare = 0,
-    Sv39x4 = 8,
-    Sv48x4 = 9,
-    Sv57x4 = 10,
-}
 
 #[test_case]
 fn test_rv64() -> Result<(), &'static str> {
