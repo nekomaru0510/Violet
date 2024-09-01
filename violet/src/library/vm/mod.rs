@@ -1,6 +1,8 @@
 //! VirtualMachine
 extern crate core;
 use core::intrinsics::transmute; // [todo delete]
+extern crate alloc;
+use alloc::vec::Vec;
 
 pub mod vcpu;
 pub mod vdev;
@@ -14,7 +16,9 @@ use crate::arch::rv64::extension::hypervisor::*; //[todo delete]
 use crate::arch::rv64::mmu::sv48::PageTableSv48; //[todo delete]
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::context::TraitContext;
+use crate::environment::Arch;
 use crate::environment::Hyp;
+use crate::environment::NUM_OF_CPUS;
 
 pub struct VirtualMachine {
     pub cpu: VirtualCpuMap,
@@ -69,6 +73,70 @@ impl VirtualMachine {
             }
         }
     }
+}
+
+/* Virtual Machine Table */
+static mut VIRTUAL_MACHINE_TABLE: VirtualMachineTable = VirtualMachineTable::new();
+
+struct VirtualMachineTable {
+    vms: Vec<VirtualMachine>,
+    cpu2vm: [usize; NUM_OF_CPUS],
+}
+
+impl VirtualMachineTable {
+    pub const fn new() -> Self {
+        VirtualMachineTable {
+            vms: Vec::new(),
+            cpu2vm: [0; NUM_OF_CPUS],
+        }
+    }
+
+    pub fn create(&mut self) -> usize {
+        let id: usize = self.vms.len();
+        self.vms.push(VirtualMachine::new());
+        id
+    }
+
+    pub fn get(&self, id: usize) -> &VirtualMachine {
+        &self.vms[id]
+    }
+
+    pub fn get_mut(&mut self, id: usize) -> &mut VirtualMachine {
+        &mut self.vms[id]
+    }
+
+    pub fn current_id(&self) -> usize {
+        self.cpu2vm[Arch::get_cpuid()]
+    }
+
+    pub fn is_ready(&self) -> bool {
+        if self.vms.len() == 0 {
+            false
+        } else {
+            true
+        }
+    }
+}
+
+/* IF function */
+pub fn create_virtual_machine() -> usize {
+    unsafe { VIRTUAL_MACHINE_TABLE.create() }
+}
+
+pub fn get_virtual_machine() -> &'static VirtualMachine {
+    unsafe { VIRTUAL_MACHINE_TABLE.get(current_vm_id()) }
+}
+
+pub fn get_mut_virtual_machine() -> &'static mut VirtualMachine {
+    unsafe { VIRTUAL_MACHINE_TABLE.get_mut(current_vm_id()) }
+}
+
+pub fn current_vm_id() -> usize {
+    unsafe { VIRTUAL_MACHINE_TABLE.current_id() }
+}
+
+pub fn is_ready_virtual_machine() -> bool {
+    unsafe { VIRTUAL_MACHINE_TABLE.is_ready() }
 }
 
 #[cfg(test)]

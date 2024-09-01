@@ -7,7 +7,7 @@ extern crate violet;
 use violet::environment::cpu_mut;
 
 use violet::library::vm::vdev::vplic::VPlic;
-use violet::library::vm::VirtualMachine;
+use violet::library::vm::{create_virtual_machine, get_mut_virtual_machine};
 
 use violet::arch::rv64::extension::hypervisor::Hext;
 use violet::arch::rv64::instruction::load::Load;
@@ -25,8 +25,6 @@ use violet::resource::{get_resources, BorrowResource, ResourceType};
 
 use violet::app_init;
 app_init!(main);
-
-static mut VM: VirtualMachine = VirtualMachine::new();
 
 pub fn do_ecall_from_vsmode(sp: *mut usize) {
     let regs = Registers::from(sp);
@@ -80,14 +78,14 @@ fn topaddr(epc: usize) -> usize {
 
 pub fn do_guest_store_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
+    let vm = get_mut_virtual_machine();
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
-
     let inst = Instruction::fetch(topaddr(regs.epc));
     let val = Store::from_val(inst).store_value(regs);
 
-    match unsafe { VM.dev.write(fault_paddr, val) } {
-        None => unsafe {
-            VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
+    match vm.dev.write(fault_paddr, val) {
+        None => {
+            vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
         },
         Some(()) => {
             regs.epc = regs.epc + Instruction::len(inst);
@@ -100,12 +98,13 @@ pub fn do_guest_store_page_fault(sp: *mut usize) {
 
 pub fn do_guest_load_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
+    let vm = get_mut_virtual_machine();
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
     let inst = Instruction::fetch(topaddr(regs.epc));
 
-    match unsafe { VM.dev.read(fault_paddr) } {
-        None => unsafe {
-            VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
+    match vm.dev.read(fault_paddr) {
+        None => {
+            vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
         },
         Some(x) => {
             regs.reg[Load::from_val(inst).dst()] = x;
@@ -115,12 +114,12 @@ pub fn do_guest_load_page_fault(sp: *mut usize) {
 }
 
 pub fn do_guest_instruction_page_fault(_sp: *mut usize) {
-    unsafe {
-        VM.map_guest_page(Hext::get_vs_fault_paddr() as usize);
-    }
+    let vm = get_mut_virtual_machine();
+    vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
 }
 
 pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
+    let vm = get_mut_virtual_machine();
     // Read and clear the pending bit from the physical PLIC
     let int_id = if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
         i.get_pend_int()
@@ -129,13 +128,11 @@ pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
     };
 
     // write to virtual plic
-    unsafe {
-        match VM.dev.get_mut(0x0c20_1000) {
-            // [todo fix] Make it possible to search by interrupt number
-            None => (),
-            Some(d) => {
-                d.interrupt(int_id as usize);
-            }
+    match vm.dev.get_mut(0x0c20_1000) {
+        // [todo fix] Make it possible to search by interrupt number
+        None => (),
+        Some(d) => {
+            d.interrupt(int_id as usize);
         }
     }
 
@@ -161,10 +158,32 @@ pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
 }
 
 pub fn boot_linux() {
+    let boot_core = 1;
     
-    unsafe {
-        VM.setup();
+    create_virtual_machine();
+    let vm = get_mut_virtual_machine();
+    
+    /* CPU */
+    vm.cpu.register(0, boot_core); /* vcpu0 ... pcpu1 */
+    match vm.cpu.get_mut(0) {
+        None => (),
+        Some(v) => {
+            v.context.set(JUMP_ADDR, 0x8020_0000);
+            v.context.set(ARG0, 0);
+            v.context.set(ARG1, 0x8220_0000);
+        }
     }
+    /* RAM */
+    vm.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
+    vm.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000);    // FDT is mapped to physical memory.
+    vm.mem.register(0x8810_0000, 0x88100000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
+
+    /* MMIO */
+    let mut vplic = VPlic::new();
+    vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
+    vm.dev.register(0x0c00_0000, 0x0400_0000, vplic);
+
+    vm.setup();
 
     /* Enable Interrupt */
     Interrupt::enable_mask_s(
@@ -197,34 +216,10 @@ pub fn boot_linux() {
         do_guest_instruction_page_fault,
     );
 
-    unsafe {
-        VM.run();
-    }
+    vm.run();
 }
 
 pub fn main() {
-    let boot_core = 1;
-    let mut vplic = VPlic::new();
-    vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
-    unsafe {
-        /* CPU */
-        VM.cpu.register(0, boot_core); /* vcpu0 ... pcpu1 */
-        match VM.cpu.get_mut(0) {
-            None => (),
-            Some(v) => {
-                v.context.set(JUMP_ADDR, 0x8020_0000);
-                v.context.set(ARG0, 0);
-                v.context.set(ARG1, 0x8220_0000);
-            }
-        }
-        /* RAM */
-        VM.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
-        VM.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000);    // FDT is mapped to physical memory.
-        VM.mem.register(0x8810_0000, 0x88100000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
-
-        /* MMIO */
-        VM.dev.register(0x0c00_0000, 0x0400_0000, vplic);
-    }
     // Boot Linux on core 1
-    create_task(2, boot_linux, boot_core);
+    create_task(2, boot_linux, 1);
 }
