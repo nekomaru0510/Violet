@@ -4,7 +4,6 @@
 #![feature(used_with_arg)]
 
 extern crate violet;
-use violet::environment::Arch;
 
 use violet::library::vm::vdev::vplic::VPlic;
 use violet::library::vm::{create_virtual_machine, get_mut_virtual_machine};
@@ -19,7 +18,6 @@ use violet::arch::rv64::trap::int::Interrupt;
 use violet::arch::rv64::trap::TrapVector;
 use violet::arch::rv64::vscontext::*;
 use violet::arch::traits::context::TraitContext;
-use violet::arch::traits::TraitArch;
 
 use violet::kernel::syscall::vsi::create_task;
 use violet::resource::{get_resources, BorrowResource, ResourceType};
@@ -161,6 +159,7 @@ pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
 pub fn boot_linux() {
     let boot_core = 1;
     
+    /* Create virtual machine */
     create_virtual_machine();
     let vm = get_mut_virtual_machine();
     
@@ -174,16 +173,17 @@ pub fn boot_linux() {
             v.context.set(ARG1, 0x8220_0000);
         }
     }
+
     /* RAM */
     vm.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
     vm.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000);    // FDT is mapped to physical memory.
-    vm.mem.register(0x8810_0000, 0x88100000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
+    vm.mem.register(0x8810_0000, 0x8810_0000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
 
     /* MMIO */
     let mut vplic = VPlic::new();
     vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
     vm.dev.register(0x0c00_0000, 0x0400_0000, vplic);
-
+    
     vm.setup();
 
     /* Enable Interrupt */
@@ -192,31 +192,19 @@ pub fn boot_linux() {
             | Interrupt::bit(Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT),
     );
 
-    /* Register interrupt handler */
-    let _ = Arch::register_vector(
-        TrapVector::SUPERVISOR_TIMER_INTERRUPT,
-        do_supervisor_timer_interrupt,
-    );
-    let _ = Arch::register_vector(
-        TrapVector::SUPERVISOR_EXTERNAL_INTERRUPT,
-        do_supervisor_external_interrupt,
-    );
+    /* Register interrupt/exception handler */
+    if vm.trap.register_traps(
+        &[
+            (TrapVector::SUPERVISOR_TIMER_INTERRUPT, do_supervisor_timer_interrupt),
+            (TrapVector::SUPERVISOR_EXTERNAL_INTERRUPT, do_supervisor_external_interrupt),
+            (TrapVector::ENVIRONMENT_CALL_FROM_VSMODE, do_ecall_from_vsmode),
+            (TrapVector::LOAD_GUEST_PAGE_FAULT, do_guest_load_page_fault),
+            (TrapVector::STORE_AMO_GUEST_PAGE_FAULT, do_guest_store_page_fault),
+            (TrapVector::INSTRUCTION_GUEST_PAGE_FAULT, do_guest_instruction_page_fault),
+        ]
+    ) == Err(()) { panic!("Fail to register trap"); }
 
-    /* Register exception handler */
-    let _ = Arch::register_vector(
-        TrapVector::ENVIRONMENT_CALL_FROM_VSMODE,
-        do_ecall_from_vsmode,
-    );
-    let _ = Arch::register_vector(TrapVector::LOAD_GUEST_PAGE_FAULT, do_guest_load_page_fault);
-    let _ = Arch::register_vector(
-        TrapVector::STORE_AMO_GUEST_PAGE_FAULT,
-        do_guest_store_page_fault,
-    );
-    let _ = Arch::register_vector(
-        TrapVector::INSTRUCTION_GUEST_PAGE_FAULT,
-        do_guest_instruction_page_fault,
-    );
-
+    /* Run */
     vm.run();
 }
 

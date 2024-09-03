@@ -1,16 +1,17 @@
 //! VirtualMachine
-extern crate core;
+
 use core::intrinsics::transmute; // [todo delete]
-extern crate alloc;
 use alloc::vec::Vec;
 
 pub mod vcpu;
 pub mod vdev;
 pub mod vmem;
+pub mod trap;
 
 use vcpu::VirtualCpuMap;
 use vdev::VirtualDevMap;
 use vmem::VirtualMemoryMap;
+use trap::TrapMap;
 
 use crate::arch::rv64::extension::hypervisor::*; //[todo delete]
 use crate::arch::rv64::mmu::sv48::PageTableSv48; //[todo delete]
@@ -25,6 +26,7 @@ pub struct VirtualMachine {
     pub cpu: VirtualCpuMap,
     pub mem: VirtualMemoryMap,
     pub dev: VirtualDevMap,
+    pub trap: TrapMap,
 }
 
 impl VirtualMachine {
@@ -33,6 +35,7 @@ impl VirtualMachine {
             cpu: VirtualCpuMap::new(),
             mem: VirtualMemoryMap::new(),
             dev: VirtualDevMap::new(),
+            trap: TrapMap::new(),
         }
     }
 
