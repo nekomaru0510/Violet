@@ -7,7 +7,6 @@
 
 extern crate violet;
 extern crate vmmode;
-use violet::environment::cpu_mut;
 
 use violet::library::vm::vdev::vclint::VClint;
 use violet::library::vm::{create_virtual_machine, get_mut_virtual_machine};
@@ -22,8 +21,6 @@ use violet::arch::rv64::trap::int::Interrupt;
 use violet::arch::rv64::trap::TrapVector;
 use violet::arch::rv64::vscontext::*;
 use violet::arch::traits::context::TraitContext;
-
-use violet::resource::{get_resources, BorrowResource, ResourceType};
 
 use violet::app_init;
 app_init!(main);
@@ -70,36 +67,6 @@ pub fn do_guest_instruction_page_fault(_sp: *mut usize) {
     vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
 }
 
-pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
-    let vm = get_mut_virtual_machine();
-
-    // Read and clear the pending bit from the physical PLIC
-    let int_id = if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
-        i.get_pend_int()
-    } else {
-        0
-    };
-
-    // write to virtual plic
-    match vm.dev.get_mut(0x0c20_1000) {
-        // [todo fix] Make it possible to search by interrupt number
-        None => (),
-        Some(d) => {
-            d.interrupt(int_id as usize);
-        }
-    }
-
-    // Raise a virtual external interrupt 
-    Hext::assert_vsmode_interrupt(Interrupt::bit(
-        Interrupt::VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT,
-    ));
-
-    // Clear the pending bit in the PLIC 
-    if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
-        i.set_comp_int(int_id);
-    }
-}
-
 pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
     // Disable the timer
     sbi::sbi_set_timer(0xffff_ffff_ffff_ffff);
@@ -141,19 +108,15 @@ fn boot_freertos() {
         | Interrupt::bit(Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT),
     );
     
-    cpu_mut().register_vector(
-        TrapVector::SUPERVISOR_TIMER_INTERRUPT,
-        do_supervisor_timer_interrupt,
-    );
-    cpu_mut().register_vector(TrapVector::LOAD_GUEST_PAGE_FAULT, do_guest_load_page_fault);
-    cpu_mut().register_vector(
-        TrapVector::STORE_AMO_GUEST_PAGE_FAULT,
-        do_guest_store_page_fault,
-    );
-    cpu_mut().register_vector(
-        TrapVector::INSTRUCTION_GUEST_PAGE_FAULT,
-        do_guest_instruction_page_fault,
-    );
+    /* Register interrupt/exception handler */
+    if vm.trap.register_traps(
+        &[
+            (TrapVector::SUPERVISOR_TIMER_INTERRUPT, do_supervisor_timer_interrupt),
+            (TrapVector::LOAD_GUEST_PAGE_FAULT, do_guest_load_page_fault),
+            (TrapVector::STORE_AMO_GUEST_PAGE_FAULT, do_guest_store_page_fault),
+            (TrapVector::INSTRUCTION_GUEST_PAGE_FAULT, do_guest_instruction_page_fault),
+        ]
+    ) == Err(()) { panic!("Fail to register trap"); }
     
     vmmode::init(&mut vm);
     //vmmode::init(addr_of_mut!(vm));
