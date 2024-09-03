@@ -29,9 +29,8 @@ const SPACE: u8 = 0x20;
 
 impl VShell {
     pub fn new() -> Self {
-        /* コマンドの登録 */
+        /* Register command */
         let mut vec = Vec::new();
-        //vec.push(Command{name: String::from("test"), func:test});
         vec.push(Command {
             name: String::from("help"),
             func: help,
@@ -43,12 +42,10 @@ impl VShell {
         }
     }
 
-    /* 実行 */
     pub fn run(&mut self) {
         self.exec();
     }
 
-    /* コマンドの追加 */
     pub fn add_cmd(&mut self, command: Command) {
         self.cmds.push(command);
     }
@@ -59,14 +56,20 @@ impl VShell {
 
     fn main_loop(&mut self) {
         loop {
-            /* プロンプトの出力 */
+            /* output prompt */
             print!("{} ", self.prompt);
 
-            /* コマンドの実行 */
+            /* Run command */
             let line: String = self.get_line();
             match self.search_cmd(&line) {
                 Some(x) => self.execute_cmd(x),
-                None => {}
+                None => {
+                    if &line == "exit" {
+                        break;
+                    } else if &line != "" {
+                        println!("Command not found: {}", line);
+                    }
+                }
             }
         }
     }
@@ -76,7 +79,6 @@ impl VShell {
         let mut c: u8;
 
         loop {
-            /* 入力の受付 */
             c = getc();
 
             match c {
@@ -116,124 +118,3 @@ impl VShell {
 pub fn help() {
     println!("Help is Working now ... ");
 }
-
-//
-// 以下、無法地帯
-//
-//use table::Table;
-//use register::{cpu::RegisterReadWrite/*, register_bitfields*/};
-/*
-#[no_mangle]
-pub fn test() {
-    init_interrupt();
-
-    unsafe {
-        let res = &mut Table::table();
-        println!("mie: {:x}", res.cpu.core.mie.get());
-        println!("mip: {:x}", res.cpu.core.mip.get());
-        println!("mtime: {:x}", res.io.timer.get());
-        println!("mstatus: {:x}", res.cpu.core.mstatus.get());
-
-        res.io.timer.enable_interrupt();
-        res.io.timer.set_interrupt_time(0x4000000);
-        res.cpu.enable_interrupt();
-
-        register_timer_interrupt_handler(timer_handler);
-
-        println!("mtimecmp: {:x}", res.io.timer.timer.read_mtimecmp());
-    }
-
-}
-
-pub fn timer_handler() {
-    print!("interrupt ok!");
-}
-*/
-/*
-use intrusive_collections::container_of;
-
-//extern crate alloc;
-use alloc::rc::{Rc, Weak};
-extern crate core;
-use core::cell::RefCell;
-use alloc::vec;
-
-pub fn hoge() {
-/*
-    let leaf = Rc::new(VTreeNode {
-        instance: Inst::new(3),
-        parent: RefCell::new(Weak::new()),
-        children: RefCell::new(vec![]),
-    });
-    */
-    let leaf = Rc::new(VTreeNode::new(Inst::new(3)));
-    // leafの親 = {:?} Noneになる
-    //let inst = leaf.parent.borrow().upgrade().unwrap().value;
-    //println!("leaf parent = {:?}", inst.get()/*.get()*/);
-
-    let branch = Rc::new(VTreeNode::new(Inst::new(5)));
-
-    /*
-    let branch = Rc::new(VTreeNode {
-        instance: Inst::new(5),
-        parent: RefCell::new(Weak::new()),
-        children: RefCell::new(vec![Rc::clone(&leaf)]),
-    });
-    */
-
-    // leafを変更して、親へのWeak<Node>参照を与える？
-    // Rc::downgradeは、Rc<Node>からWeak<Node>への変換
-    // borrow_mutは、RefCellのメソッド。leafは不変なのに、可変参照できてる。
-    //println!("{}", leaf.parent.borrow_mut());
-    *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
-
-    // upgradeは、Weakのメソッドであり、WeakからRcへ変換する。
-    //println!("leaf parent = {:?}", leaf.parent.borrow());
-    //println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
-    let inst = leaf.parent.borrow().upgrade().unwrap().instance;
-    println!("leaf parent = {:?}", inst.get()/*.get()*/);
-}
-
-#[derive(Copy, Clone)]
-struct Inst {
-    pub value :i32,
-}
-
-impl Inst {
-    pub fn new(value: i32) -> Self {
-        Inst {value, }
-    }
-    pub fn get(&self) -> i32 {
-        self.value
-    }
-}
-
-impl VNode for Inst {
-
-}
-
-pub trait VNode {
-    //fn get_mut(&self);
-}
-
-#[derive(Debug)]
-struct VTreeNode<T> {
-    instance: T,
-    parent: RefCell<Weak<VTreeNode<T>>>,
-    children: RefCell<Vec<Rc<VTreeNode<T>>>>,
-}
-
-impl<T> VTreeNode<T> {
-    pub fn new(instance: T) -> Self {
-        VTreeNode {instance, parent: RefCell::new(Weak::new()), children: RefCell::new(vec![]),}
-    }
-
-    pub fn add_child(self, node: Rc<VTreeNode<T>>) {
-        //
-        //*node.parent.borrow_mut() = Rc::downgrade(&Rc::new(self));
-        // 親ノード(self)のchildrenに追加
-        //self.children.get_mut().push(node);
-    }
-}
-*/
-*/
