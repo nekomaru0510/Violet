@@ -24,7 +24,9 @@ RUN wget https://download.qemu.org/qemu-8.0.0.tar.xz && \
 	make install
 
 # Install Rust
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+	rustup install nightly-2024-07-25-x86_64-unknown-linux-gnu && \
+	rustup component add rust-src --toolchain nightly-2024-07-25-x86_64-unknown-linux-gnu
 
 # Build OpenSBI
 RUN cd ${RISCV} && \
@@ -48,11 +50,10 @@ RUN cd ${RISCV} && \
 	apt install -y gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf && \
     sed -i -e "s/32/64/g" main_blinky.c && \
 	sed -i -e "s/rv32imac/rv64imac/g" Makefile && \
-    sed -i -e "s/ilp32/lp64/g" Makefile && \
-    sed -i -e "s/ORIGIN = 0x80000000/ORIGIN = 0xc0000000/g" fake_rom.lds && \
-    sed -i -e "s/ORIGIN = 0x80080000/ORIGIN = 0xc0080000/g" fake_rom.lds
+    sed -i -e "s/ilp32/lp64/g" Makefile
 RUN cd ${RISCV}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt64_GCC  && \
 	make clean && \
 	make PICOLIBC=1 DEBUG=1 && \
 	riscv64-unknown-elf-objcopy -O binary build/RTOSDemo.axf build/RTOSDemo.bin
 
+WORKDIR /workspaces/Violet	

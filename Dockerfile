@@ -87,21 +87,19 @@ mkdir -p /dev \n\
 
 # Build FreeRTOS
 RUN cd ${RISCV} && \
-git clone https://github.com/FreeRTOS/FreeRTOS.git && \
-cd ${RISCV}/FreeRTOS && \
-git checkout 82099c32a0d5960685c79033edde8f381c2f73ea && \
-git submodule update --init --recursive FreeRTOS/Source && \
-cp -r ${RISCV}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt_GCC ${RISCV}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt64_GCC  && \
-cd ${RISCV}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt64_GCC && \
-apt install -y gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf && \
-sed -i -e "s/32/64/g" main_blinky.c && \
-sed -i -e "s/rv32imac/rv64imac/g" Makefile && \
-sed -i -e "s/ilp32/lp64/g" Makefile && \
-sed -i -e "s/ORIGIN = 0x80000000/ORIGIN = 0xc0000000/g" fake_rom.lds && \
-sed -i -e "s/ORIGIN = 0x80080000/ORIGIN = 0xc0080000/g" fake_rom.lds
+	git clone https://github.com/FreeRTOS/FreeRTOS.git && \
+	cd ${RISCV}/FreeRTOS && \
+	git checkout 82099c32a0d5960685c79033edde8f381c2f73ea && \
+	git submodule update --init --recursive FreeRTOS/Source && \
+	cp -r ${RISCV}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt_GCC ${RISCV}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt64_GCC  && \
+	cd ${RISCV}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt64_GCC && \
+	apt install -y gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf && \
+	sed -i -e "s/32/64/g" main_blinky.c && \
+	sed -i -e "s/rv32imac/rv64imac/g" Makefile && \
+	sed -i -e "s/ilp32/lp64/g" Makefile
 RUN cd ${RISCV}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt64_GCC  && \
-make clean && \
-make PICOLIBC=1 DEBUG=1 && \
-riscv64-unknown-elf-objcopy -O binary build/RTOSDemo.axf build/RTOSDemo.bin
+	make clean && \
+	make PICOLIBC=1 DEBUG=1 && \
+	riscv64-unknown-elf-objcopy -O binary build/RTOSDemo.axf build/RTOSDemo.bin
 
 WORKDIR /workspaces/Violet

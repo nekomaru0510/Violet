@@ -47,8 +47,9 @@ pub fn do_ecall_from_vsmode(sp: *mut usize) {
 
 fn do_illegal_instruction(sp: *mut usize) {
     let regs = Registers::from(sp);
-    let inst = Instruction::fetch(regs.epc);
     let vm = get_mut_virtual_machine();
+    let pepc = vm.mem.get_paddr(regs.epc).unwrap();
+    let inst = Instruction::fetch(pepc);
     
     let csr = Csr::from_val(inst);
     match csr {
@@ -61,7 +62,7 @@ fn do_illegal_instruction(sp: *mut usize) {
                     // may be better to emulate mret instruction
                     // There is a possibility that the instruction alignment is not correct due to the compressed instruction
                     // -> use write_unaligned instead of write_volatile
-                    unsafe { write_unaligned((regs.epc) as *mut usize, 0x10200073); }
+                    unsafe { write_unaligned(pepc as *mut usize, 0x10200073); }
                     return;
                 },
                 _ => redirect_to_guest(regs),

@@ -89,13 +89,12 @@ fn boot_freertos() {
     match vm.cpu.get_mut(0) {
         None => (),
         Some(v) => {
-            v.context.set(JUMP_ADDR, 0xC000_0000);
+            v.context.set(JUMP_ADDR, 0x8000_0000);
         }
     }
     
     /* RAM */
-    //vm.mem.register(0x8000_0000, 0xc000_0000, 0x1000_0000);
-    vm.mem.register(0xc000_0000, 0xc000_0000, 0x1000_0000);
+    vm.mem.register(0x8000_0000, 0xc000_0000, 0x1000_0000);
 
     /* MMIO */
     vm.dev.register(0x0200_0000, 0x0001_0000, vclint);
@@ -119,7 +118,6 @@ fn boot_freertos() {
     ) == Err(()) { panic!("Fail to register trap"); }
     
     vmmode::init(&mut vm);
-    //vmmode::init(addr_of_mut!(vm));
 
     vm.run();
 }
