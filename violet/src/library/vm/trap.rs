@@ -15,12 +15,20 @@ impl TrapMap {
 
     pub fn register_trap(&mut self, id: usize, func: fn(regs: *mut usize)) -> Result<(), ()> {
         self.map.push(Trap::new(id, func));
+        match Arch::enable_vector(id) {
+            Err(_) => return Err(()),
+            _ => (),
+        }
         Arch::register_vector(id, func)
     }
 
     pub fn register_traps(&mut self, traps: &[(usize, fn(regs: *mut usize))]) -> Result<(), ()> {
         for &(id, func) in traps {
             self.map.push(Trap::new(id, func));
+            match Arch::enable_vector(id) {
+                Err(_) => return Err(()),
+                _ => (),
+            }
             Arch::register_vector(id, func)?;
         }
         Ok(())

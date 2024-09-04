@@ -65,6 +65,15 @@ impl TrapVector {
         }
     }
 
+    pub fn enable_vector(&mut self, vecid: usize) {
+        /* Interrupt */
+        if vecid > Self::INTERRUPT_OFFSET {
+            Interrupt::enable_mask_s(Interrupt::bit(vecid - Self::INTERRUPT_OFFSET));
+        }
+        /* Exception */
+        else {}
+    }
+
     pub fn register_vector(&mut self, vecid: usize, func: fn(regs: *mut usize)) {
         /* Interrupt */
         if vecid > Self::INTERRUPT_OFFSET {

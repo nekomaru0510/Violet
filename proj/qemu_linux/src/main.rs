@@ -159,10 +159,11 @@ pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
 pub fn boot_linux() {
     let boot_core = 1;
     
-    /* Create virtual machine */
+    /* Setup virtual machine */
     create_virtual_machine();
     let vm = get_mut_virtual_machine();
-    
+    vm.reset();
+
     /* CPU */
     vm.cpu.register(0, boot_core); /* vcpu0 ... pcpu1 */
     match vm.cpu.get_mut(0) {
@@ -178,20 +179,13 @@ pub fn boot_linux() {
     vm.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
     vm.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000);    // FDT is mapped to physical memory.
     vm.mem.register(0x8810_0000, 0x8810_0000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
+    vm.mmu_enable();
 
     /* MMIO */
     let mut vplic = VPlic::new();
     vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
     vm.dev.register(0x0c00_0000, 0x0400_0000, vplic);
     
-    vm.setup();
-
-    /* Enable Interrupt */
-    Interrupt::enable_mask_s(
-        Interrupt::bit(Interrupt::SUPERVISOR_TIMER_INTERRUPT)
-            | Interrupt::bit(Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT),
-    );
-
     /* Register interrupt/exception handler */
     if vm.trap.register_traps(
         &[

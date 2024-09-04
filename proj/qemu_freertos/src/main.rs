@@ -78,11 +78,10 @@ pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
 }
 
 fn boot_freertos() {
-
+    /* Setup virtual machine */
     create_virtual_machine();
     let mut vm = get_mut_virtual_machine();
-
-    let vclint = VClint::new();
+    vm.reset();
 
     /* CPU */
     vm.cpu.register(0, 0); /* vcpu0 ... pcpu0 */
@@ -95,17 +94,10 @@ fn boot_freertos() {
     
     /* RAM */
     vm.mem.register(0x8000_0000, 0xc000_0000, 0x1000_0000);
+    vm.mmu_enable();
 
     /* MMIO */
-    vm.dev.register(0x0200_0000, 0x0001_0000, vclint);
-
-    vm.setup();
-
-    /* Enable Interrupt */
-    Interrupt::enable_mask_s(
-        Interrupt::bit(Interrupt::SUPERVISOR_TIMER_INTERRUPT)
-        | Interrupt::bit(Interrupt::SUPERVISOR_EXTERNAL_INTERRUPT),
-    );
+    vm.dev.register(0x0200_0000, 0x0001_0000, VClint::new());
     
     /* Register interrupt/exception handler */
     if vm.trap.register_traps(
@@ -117,8 +109,10 @@ fn boot_freertos() {
         ]
     ) == Err(()) { panic!("Fail to register trap"); }
     
+    /* Enable M-mode Virtualization */
     vmmode::init(&mut vm);
 
+    /* Enter VM */
     vm.run();
 }
 

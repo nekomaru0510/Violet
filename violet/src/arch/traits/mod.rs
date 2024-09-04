@@ -18,6 +18,7 @@ pub trait TraitArch {
     fn wakeup(cpuid: usize);
     /* CPUの停止 */
     fn sleep();
+    fn enable_vector(vecid: usize) -> Result<(), ()>;
     /* ベクタの登録 */
     fn register_vector(vecid: usize, func: fn(regs: *mut usize)) -> Result<(), ()>;
     /* ベクタハンドラの呼出し */

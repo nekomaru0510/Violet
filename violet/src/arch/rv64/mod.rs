@@ -101,6 +101,18 @@ impl TraitArch for Rv64 {
         }
     }
 
+    fn enable_vector(vecid: usize) -> Result<(), ()> {
+        unsafe {
+            let scratch: &mut Rv64 = transmute(Sscratch::get());
+            if Sscratch::get() == 0 {
+                Err(())
+            } else {
+                scratch.trap.enable_vector(vecid);
+                Ok(())
+            }
+        }
+    }
+
     fn register_vector(vecid: usize, func: fn(regs: *mut usize)) -> Result<(), ()> {
         unsafe {
             let scratch: &mut Rv64 = transmute(Sscratch::get());

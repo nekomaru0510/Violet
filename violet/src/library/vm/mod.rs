@@ -30,7 +30,7 @@ pub struct VirtualMachine {
 }
 
 impl VirtualMachine {
-    pub const fn new() -> VirtualMachine {
+    pub fn new() -> VirtualMachine {
         VirtualMachine {
             cpu: VirtualCpuMap::new(),
             mem: VirtualMemoryMap::new(),
@@ -39,7 +39,7 @@ impl VirtualMachine {
         }
     }
 
-    pub fn setup(&self) {
+    pub fn reset(&self) {
         // Default setup before guest boot
         Hyp::init();
     }
@@ -49,6 +49,10 @@ impl VirtualMachine {
             None => (),
             Some(v) => v.context.jump(),
         };
+    }
+
+    pub fn mmu_enable(&self) {
+        Hyp::mmu_enable();
     }
 
     pub fn map_guest_page(&mut self, guest_paddr: usize) {

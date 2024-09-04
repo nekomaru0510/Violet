@@ -30,7 +30,7 @@ pub struct Hext {}
 impl HypervisorT for Hext {
     type Context = VsContext;
     fn init() {
-        Hext::setup();
+        Hext::init();
     }
 
     fn hook(vecid: usize, func: fn(regs: *mut usize)) {
@@ -41,12 +41,14 @@ impl HypervisorT for Hext {
         }
         let _ = Rv64::register_vector(vecid, func);
     }
+
+    fn mmu_enable() {
+        enable_paging();
+    }
 }
 
 impl Hext {
-    pub fn setup() {
-        enable_paging();
-
+    pub fn init() {
         Self::set_delegation_exc(
             Exception::bit(Exception::INSTRUCTION_ADDRESS_MISALIGNED)
                 | Exception::bit(Exception::BREAKPOINT)
