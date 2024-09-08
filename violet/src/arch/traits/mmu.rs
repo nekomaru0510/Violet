@@ -1,18 +1,30 @@
 //! MMUのトレイト
 
 pub trait TraitMmu {
-    // MMU有効化
-    fn enable_mmu(&self);
-    // MMU無効化
-    fn disable_mmu(&self);
+    // Enable MMU
+    fn enable_mmu();
+    // Disable MMU
+    //fn disable_mmu(&self);
+}
 
-    // ページエントリの取得
-    //fn get_page_entry(&self, vaddr: usize);
-    //fn get_page_entry(&mut self, vaddr: usize) -> &mut <Self as PageTable>::Entry;
+// ページテーブル用トレイト
+pub trait TraitPageTable {
+    type Entry: TraitPageEntry;
+    type Table: TraitPageTable;
+
+    fn new() -> Self where Self: Sized;
+    //fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry;
+    fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as TraitPageTable>::Entry;
+    fn get_entry_ppn(&self, vpn: u64) -> u64;
+    fn get_page_entry(&mut self, vaddr: usize) -> Option<&mut <Self as TraitPageTable>::Entry>;
+    fn get_next_table(&self, vaddr: usize, idx: usize) -> Option<&mut <Self as TraitPageTable>::Table>;
+    fn create_page_entry(&mut self, paddr: usize, vaddr: usize) -> Result<(), usize>;
+    fn get_table(&mut self, vaddr: usize, idx: usize) -> Option<&mut <Self as TraitPageTable>::Table>;
+    fn map_vaddr(&mut self, paddr: usize, vaddr: usize);
 }
 
 // ページエントリ用トレイト
-pub trait PageEntry {
+pub trait TraitPageEntry {
     fn new() -> Self;
     fn set_paddr(&mut self, paddr: usize);
     fn set_ppn(&mut self, ppn: u64);
@@ -22,19 +34,7 @@ pub trait PageEntry {
     fn valid(&mut self);
     fn invalid(&mut self);
     fn writable(&mut self);
+    // Set page attribute
 }
 
-// ページテーブル用トレイト
-pub trait PageTable {
-    type Entry: PageEntry;
-    type Table: PageTable;
 
-    fn new() -> Self;
-    //fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry;
-    fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as PageTable>::Entry;
-    fn get_entry_ppn(&self, vpn: u64) -> u64;
-    fn get_page_entry(&mut self, vaddr: usize) -> Option<&mut <Self as PageTable>::Entry>;
-    fn get_next_table(&self, vaddr: usize, idx: usize) -> Option<&mut <Self as PageTable>::Table>;
-    fn create_page_entry(&mut self, paddr: usize, vaddr: usize) -> Result<(), usize>;
-    fn get_table(&mut self, vaddr: usize, idx: usize) -> Option<&mut <Self as PageTable>::Table>;
-}

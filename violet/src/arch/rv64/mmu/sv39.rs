@@ -4,8 +4,8 @@ extern crate core;
 use core::intrinsics::transmute;
 
 use super::BitField;
-//use crate::driver::traits::arch::riscv::{PageEntry, PageTable};
-use crate::arch::traits::mmu::{PageEntry, PageTable};
+use crate::arch::rv64::mmu::{get_new_page_table_idx, get_page_table_addr};
+use crate::arch::traits::mmu::{TraitPageEntry, TraitPageTable};
 
 const PAGE_TABLE_LEVEL: usize = 3; /* ページテーブルの段数 */
 const NUM_OF_PAGE_ENTRY: usize = 512; /* 1テーブルあたりのページエントリ数 */
@@ -145,7 +145,7 @@ impl PageEntrySv39 {
     }
 }
 
-impl PageEntry for PageEntrySv39 {
+impl TraitPageEntry for PageEntrySv39 {
     fn new() -> Self {
         PageEntrySv39 { entry: 0 }
     }
@@ -207,7 +207,7 @@ impl PageTableSv39 {
     }
 }
 
-impl PageTable for PageTableSv39 {
+impl TraitPageTable for PageTableSv39 {
     type Entry = PageEntrySv39;
     type Table = PageTableSv39;
 
@@ -219,10 +219,7 @@ impl PageTable for PageTableSv39 {
     }
 
     // ページエントリを取得
-    /*fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry {
-        &mut self.entry[vpn as usize]
-    }*/
-    fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as PageTable>::Entry {
+    fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as TraitPageTable>::Entry {
         let idx = PAGE_TABLE_LEVEL - table_level;
         &mut self.entry[vaddr_to_vpn(vaddr as u64, idx) as usize]
     }
@@ -234,7 +231,7 @@ impl PageTable for PageTableSv39 {
     }
 
     // 仮想アドレスからページエントリを取得
-    fn get_page_entry(&mut self, vaddr: usize) -> Option<&mut <Self as PageTable>::Entry> {
+    fn get_page_entry(&mut self, vaddr: usize) -> Option<&mut <Self as TraitPageTable>::Entry> {
         let vpn = SV39_VA.vpn[0].mask(vaddr as u64);
         let mut table: &mut PageTableSv39 = self;
 
@@ -249,7 +246,7 @@ impl PageTable for PageTableSv39 {
     }
 
     // 次のページテーブルを取得
-    fn get_next_table(&self, vaddr: usize, idx: usize) -> Option<&mut <Self as PageTable>::Table> {
+    fn get_next_table(&self, vaddr: usize, idx: usize) -> Option<&mut <Self as TraitPageTable>::Table> {
         let vpn = SV39_VA.vpn[idx].mask(vaddr as u64);
         let ret = (*self).get_entry_ppn(vpn) << 12;
         if ret == 0 {
@@ -277,7 +274,7 @@ impl PageTable for PageTableSv39 {
     }
 
     /* 指定段目のページテーブルを取得 */
-    fn get_table(&mut self, vaddr: usize, idx: usize) -> Option<&mut <Self as PageTable>::Table> {
+    fn get_table(&mut self, vaddr: usize, idx: usize) -> Option<&mut <Self as TraitPageTable>::Table> {
         let vpn = SV39_VA.vpn[0].mask(vaddr as u64);
         let mut table: &mut PageTableSv39 = self;
 
@@ -289,6 +286,24 @@ impl PageTable for PageTableSv39 {
             }
         }
         Some(table)
+    }
+
+    fn map_vaddr(&mut self, paddr: usize, vaddr: usize) {
+        for idx in 1..PAGE_TABLE_LEVEL {
+            match self.create_page_entry(paddr, vaddr) {
+                Ok(()) => break,
+                Err(i) => unsafe {
+                    match self.get_table(vaddr, i) {
+                        None => return,
+                        Some(t) => {
+                            t.get_entry(vaddr, i)
+                                .set_paddr(transmute(get_page_table_addr(get_new_page_table_idx())));
+                            t.get_entry(vaddr, i).valid();
+                        }
+                    }
+                },
+            }
+        }
     }
 }
 

@@ -1,15 +1,18 @@
 //! Hypervisor Extension
 
+use core::intrinsics::transmute;
+
 use crate::arch::rv64;
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::TraitArch;
+use crate::arch::traits::mmu::{TraitPageTable, TraitPageEntry};
+
 use rv64::Rv64;
 use rv64::trap::exc::Exception;
 use rv64::trap::int::Interrupt;
 use rv64::trap::TrapVector;
 use rv64::vscontext::VsContext;
 use rv64::PagingMode;
-
 use rv64::csr::hcounteren::*;
 use rv64::csr::hedeleg::*;
 use rv64::csr::hgatp;
@@ -45,6 +48,27 @@ impl HypervisorT for Hext {
     fn mmu_enable() {
         enable_paging();
     }
+
+    fn map_vaddr(paddr: usize, vaddr: usize, size: usize) {
+        match Hext::get_paging_mode() {
+            PagingMode::Sv39x4 => {
+                unsafe {
+                    transmute::<usize, &mut sv39::PageTableSv39>(
+                        Hext::get_table_addr_hv()
+                    ).map_vaddr(paddr, vaddr);
+                }
+            }
+            PagingMode::Sv48x4 => {
+                unsafe {
+                    transmute::<usize, &mut sv48::PageTableSv48>(
+                        Hext::get_table_addr_hv()
+                    ).map_vaddr(paddr, vaddr);
+                }
+            }
+            _ => {}
+        }
+    }
+
 }
 
 impl Hext {
@@ -70,13 +94,13 @@ impl Hext {
 
     /* hypervisorモードの指定割込みを有効化 */
     pub fn enable_mask_h(int_mask: usize) {
-        let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
+        let hint_mask = 0x1444 & int_mask;
         Hie::set(Hie::get() | hint_mask as u64);
     }
 
     /* hypervisorモードの指定割込みを無効化 */
     pub fn disable_mask_h(int_mask: usize) {
-        let hint_mask = 0x1444 & int_mask; // hieの有効ビットでマスク
+        let hint_mask = 0x1444 & int_mask;
         Hie::set(Hie::get() & !(hint_mask as u64));
     }
 
@@ -149,6 +173,16 @@ impl Hext {
         };
     }
 
+    pub fn get_paging_mode() -> PagingMode {
+        match Hgatp::read(hgatp::MODE) {
+            hgatp::MODE::BARE => PagingMode::Bare,
+            hgatp::MODE::SV39X4 => PagingMode::Sv39x4,
+            hgatp::MODE::SV48X4 => PagingMode::Sv48x4,
+            hgatp::MODE::SV57X4 => PagingMode::Sv57x4,
+            _ => PagingMode::Bare,
+        }
+    }
+
     /* HS-modeが用意するページテーブルのアドレスを設定 */
     pub fn set_table_addr_hv(table_addr: usize) {
         Hgatp::write(hgatp::PPN, hgatp::PPN::CLEAR);
@@ -156,12 +190,16 @@ impl Hext {
         Hgatp::set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 
-    /* ページテーブルのアドレスを取得する */
-    pub fn get_hs_pagetable() -> u64 {
-        (Hgatp::get() & 0x0fff_ffff_ffff) << 12
+    pub fn get_table_addr_hv() -> usize {
+        (Hgatp::read(hgatp::PPN) << 12) as usize
     }
 
     /* ページテーブルのアドレスを取得する */
+    pub fn _get_hs_pagetable() -> u64 {
+        (Hgatp::get() & 0x0fff_ffff_ffff) << 12
+    }
+
+    /* ページテーブルのアドレスを設定する */
     pub fn set_vs_pagetable(table_addr: usize) {
         Vsatp::write(vsatp::PPN, vsatp::PPN::CLEAR);
         let current = Vsatp::get();
@@ -192,39 +230,32 @@ impl Hext {
     pub fn get_vs_vector() -> u64 {
         Vstvec::get()
     }
+
+    pub fn get_hs_pagetable<T: TraitPageTable>() -> &'static T {
+        let base_addr = (Hgatp::get() & 0x0fff_ffff_ffff) << 12;
+        unsafe { &*(base_addr as *const T) }
+    }
 }
 
-extern crate core;
-use core::intrinsics::transmute;
-
-use crate::arch::rv64::mmu::sv48::PageTableSv48;
-use crate::arch::traits::mmu::{PageEntry, PageTable};
-
-static mut PAGE_TABLE_ARRAY: [PageTableSv48; MAX_PAGE_TABLE] =
-    [PageTableSv48::empty(); MAX_PAGE_TABLE];
-const MAX_PAGE_TABLE: usize = 32; //16;
-static mut PAGE_TABLE_IDX: usize = 0;
+use crate::arch::rv64::mmu::*;
 
 pub fn enable_paging() {
     Hext::set_vs_pagetable(0);
-    Hext::set_table_addr_hv(unsafe { transmute(&PAGE_TABLE_ARRAY[0]) });
+    Hext::set_table_addr_hv(get_page_table_addr(0));
     Hext::set_paging_mode_hv(PagingMode::Sv48x4);
 }
 
 pub fn create_page_table() {
     for i in 0..0x100 {
-        unsafe {
-            map_vaddr::<PageTableSv48>(
-                &mut PAGE_TABLE_ARRAY[0],
-                0x8020_0000 + i * 0x1000,
-                0x8020_0000 + i * 0x1000,
-            );
-        }
+        get_mut_page_table(0).map_vaddr(
+            0x8020_0000 + i * 0x1000,
+            0x8020_0000 + i * 0x1000,
+        );
     }
 }
 
 /* 仮想アドレス->物理アドレスへの変更 */
-pub fn to_paddr<T: PageTable>(table: &mut T, vaddr: usize) -> usize {
+pub fn to_paddr<T: TraitPageTable>(table: &mut T, vaddr: usize) -> usize {
     match (*table).get_page_entry(vaddr) {
         None => 0,
         Some(e) => ((e.get_ppn() << 12) as usize) | (vaddr & 0x0fff),
@@ -232,28 +263,7 @@ pub fn to_paddr<T: PageTable>(table: &mut T, vaddr: usize) -> usize {
 }
 
 /* 指定仮想アドレス領域の無効化 */
-pub fn invalid_page<T: PageTable>(table: &mut T, vaddr: usize) {
+pub fn invalid_page<T: TraitPageTable>(table: &mut T, vaddr: usize) {
     table.get_page_entry(vaddr).unwrap().invalid();
 }
 
-pub fn map_vaddr<T: PageTable>(table: &mut T, paddr: usize, vaddr: usize) {
-    for idx in 1..5 {
-        match (*table).create_page_entry(paddr, vaddr) {
-            Ok(()) => break,
-            Err(i) => unsafe {
-                match (*table).get_table(vaddr, i) {
-                    None => return,
-                    Some(t) => {
-                        t.get_entry(vaddr, i)
-                            .set_paddr(transmute(&mut PAGE_TABLE_ARRAY[PAGE_TABLE_IDX + 1]));
-                        t.get_entry(vaddr, i).valid();
-                        PAGE_TABLE_IDX = PAGE_TABLE_IDX + 1;
-                        if MAX_PAGE_TABLE < PAGE_TABLE_IDX {
-                            loop {}
-                        }
-                    }
-                }
-            },
-        }
-    }
-}

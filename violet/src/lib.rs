@@ -25,6 +25,7 @@ pub mod environment;
 pub mod kernel;
 pub mod library;
 pub mod resource;
+pub mod utils;
 #[cfg(test)]
 pub mod test;
 

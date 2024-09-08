@@ -1,6 +1,5 @@
 //! VirtualMachine
 
-use core::intrinsics::transmute; // [todo delete]
 use alloc::vec::Vec;
 
 pub mod vcpu;
@@ -14,7 +13,6 @@ use vmem::VirtualMemoryMap;
 use trap::TrapMap;
 
 use crate::arch::rv64::extension::hypervisor::*; //[todo delete]
-use crate::arch::rv64::mmu::sv48::PageTableSv48; //[todo delete]
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::context::TraitContext;
 use crate::arch::traits::TraitArch;
@@ -59,23 +57,15 @@ impl VirtualMachine {
         match self.mem.get(guest_paddr) {
             None => {
                 // Pass through addresses that are not set
-                // [todo fix] Call from CPU trait
-                map_vaddr::<PageTableSv48>(
-                    unsafe { transmute(Hext::get_hs_pagetable()) },
-                    guest_paddr,
-                    guest_paddr,
-                );
+                // [todo fix] fix size 0x1000
+                Hext::map_vaddr(guest_paddr, guest_paddr, 0x1000);
             }
             Some(m) => {
                 match m.get_paddr(guest_paddr) {
                     None => {}
                     Some(r) => {
-                        // [todo fix] Call from CPU trait
-                        map_vaddr::<PageTableSv48>(
-                            unsafe { transmute(Hext::get_hs_pagetable()) },
-                            r,
-                            guest_paddr,
-                        );
+                        // [todo fix] fix size 0x1000
+                        Hext::map_vaddr(r, guest_paddr, 0x1000);
                     }
                 }
             }
