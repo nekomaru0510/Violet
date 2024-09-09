@@ -12,7 +12,6 @@ use vdev::VirtualDevMap;
 use vmem::VirtualMemoryMap;
 use trap::TrapMap;
 
-use crate::arch::rv64::extension::hypervisor::*; //[todo delete]
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::context::TraitContext;
 use crate::arch::traits::TraitArch;
@@ -58,14 +57,14 @@ impl VirtualMachine {
             None => {
                 // Pass through addresses that are not set
                 // [todo fix] fix size 0x1000
-                Hext::map_vaddr(guest_paddr, guest_paddr, 0x1000);
+                Hyp::map_vaddr(guest_paddr, guest_paddr, 0x1000);
             }
             Some(m) => {
                 match m.get_paddr(guest_paddr) {
                     None => {}
                     Some(r) => {
                         // [todo fix] fix size 0x1000
-                        Hext::map_vaddr(r, guest_paddr, 0x1000);
+                        Hyp::map_vaddr(r, guest_paddr, 0x1000);
                     }
                 }
             }
@@ -138,8 +137,6 @@ pub fn is_ready_virtual_machine() -> bool {
 }
 
 #[cfg(test)]
-use crate::arch::rv64::extension::hypervisor::Hext;
-#[cfg(test)]
 use crate::library::vm::vdev::vplic::VPlic;
 
 #[test_case]
@@ -177,8 +174,6 @@ use crate::arch::rv64::vscontext::*; //[todo delete]
 #[test_case]
 fn test_vcpu() -> Result<(), &'static str> {
     let mut vm: VirtualMachine = VirtualMachine::new();
-    // ブート
-    // 自動で自分のCPU番号から仮想CPUを取得
     vm.cpu.register(1, 0);
     match vm.cpu.get_mut(1) {
         None => (),
@@ -198,11 +193,8 @@ fn test_vmem() -> Result<(), &'static str> {
     let mut vm: VirtualMachine = VirtualMachine::new();
     
     vm.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
-    vm.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000); //FDTは物理メモリにマップ サイズは適当
-    vm.mem.register(0x8810_0000, 0x88100000, 0x20_0000); //initrdも物理メモリにマップ サイズはrootfs.imgより概算
-    //vm.dev.register(0x0c00_0000, 0x0400_0000, vplic); // 仮想デバイス追加したら、勝手にマップしないようにしたい？
-    
-    //vm.map_all_guest_page(); /* 登録されたページをすべてマップ(静的にマップするときに使う) */
-    //vm.map_guest_page(guest_paddr); /* 指定ページをマップ(動的にマップするときに使う) */
+    vm.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000);
+    vm.mem.register(0x8810_0000, 0x88100000, 0x20_0000);
+
     Ok(())
 }

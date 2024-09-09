@@ -5,9 +5,12 @@ use core::intrinsics::transmute;
 use crate::arch::rv64;
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::TraitArch;
-use crate::arch::traits::mmu::{TraitPageTable, TraitPageEntry};
+use crate::arch::traits::mmu::{TraitPageTable};
 
 use rv64::Rv64;
+use rv64::regs::Registers;
+use rv64::mmu::{sv39, sv48};
+use rv64::mmu::get_new_page_table_addr;
 use rv64::trap::exc::Exception;
 use rv64::trap::int::Interrupt;
 use rv64::trap::TrapVector;
@@ -26,14 +29,30 @@ use rv64::csr::vsatp::*;
 use rv64::csr::vsatp;
 use rv64::csr::vstval::*;
 use rv64::csr::vstvec::*;
+use rv64::csr::vsie::*;
+use rv64::csr::sstatus;
+use rv64::csr::sstatus::*;
+use rv64::csr::vsstatus;
+use rv64::csr::vsstatus::*;
+use rv64::csr::vscause::*;
+use rv64::csr::scause::*;
+use rv64::csr::stval::*;
+use rv64::csr::sepc::*;
+use rv64::csr::vsepc::*;
 
 #[derive(Clone)]
 pub struct Hext {}
 
 impl HypervisorT for Hext {
     type Context = VsContext;
+    
     fn init() {
         Hext::init();
+    }
+    
+    // Reset virtual machine registers
+    fn reset() {
+        Hext::set_vs_pagetable(0);
     }
 
     fn hook(vecid: usize, func: fn(regs: *mut usize)) {
@@ -46,7 +65,8 @@ impl HypervisorT for Hext {
     }
 
     fn mmu_enable() {
-        enable_paging();
+        Self::set_table_addr(get_new_page_table_addr());
+        Self::set_paging_mode(PagingMode::Sv48x4);
     }
 
     fn map_vaddr(paddr: usize, vaddr: usize, size: usize) {
@@ -54,14 +74,14 @@ impl HypervisorT for Hext {
             PagingMode::Sv39x4 => {
                 unsafe {
                     transmute::<usize, &mut sv39::PageTableSv39>(
-                        Hext::get_table_addr_hv()
+                        Hext::get_table_addr()
                     ).map_vaddr(paddr, vaddr);
                 }
             }
             PagingMode::Sv48x4 => {
                 unsafe {
                     transmute::<usize, &mut sv48::PageTableSv48>(
-                        Hext::get_table_addr_hv()
+                        Hext::get_table_addr()
                     ).map_vaddr(paddr, vaddr);
                 }
             }
@@ -69,6 +89,63 @@ impl HypervisorT for Hext {
         }
     }
 
+    // Translate virtual address to physical address
+    fn v2p(vaddr: usize) -> usize {
+        match Hext::get_paging_mode() {
+            PagingMode::Sv39x4 => {
+                unsafe {
+                    transmute::<usize, &mut sv39::PageTableSv39>(
+                        Hext::get_table_addr()
+                    ).v2p(vaddr)
+                }
+            }
+            PagingMode::Sv48x4 => {
+                unsafe {
+                    transmute::<usize, &mut sv48::PageTableSv48>(
+                        Hext::get_table_addr()
+                    ).v2p(vaddr)
+                }
+            }
+            _ => 0
+        }
+    }
+
+    // Redirect exceptions and interrupts to the guest OS when trapping
+    fn redirect_to_guest(regs: &mut Registers) {
+        // 1. vsstatus.SPP = sstatus.SPP
+        match Sstatus::read(sstatus::SPP) {
+            1 => Vsstatus::write(vsstatus::SPP, vsstatus::SPP::SET),
+            0 => Vsstatus::write(vsstatus::SPP, vsstatus::SPP::CLEAR),
+            _ => (),
+        }
+    
+        // 2. vsstatus.SPIE = vsstatus.SIE
+        let _s = Vsstatus::read(vsstatus::SIE);
+        match Vsstatus::read(vsstatus::SIE) {
+            1 => Vsstatus::write(vsstatus::SPIE, vsstatus::SPIE::SET),
+            0 => Vsstatus::write(vsstatus::SPIE, vsstatus::SPIE::CLEAR),
+            _ => (),
+        }
+        let _s2 = Vsstatus::read(vsstatus::SIE);
+        let _v = Vsie::get();
+        // vsstatus.SIE = 0
+        Vsstatus::write(vsstatus::SIE, vsstatus::SIE::CLEAR);
+    
+        // vscause = scause
+        Vscause::set(Scause::get());
+        // vstval = stval
+        Vstval::set(Stval::get());
+        // vsepc = sepc
+        Vsepc::set(Sepc::get());
+    
+        // 3. sepc = vstvec
+        (*(regs)).epc = Vstvec::get() as usize;
+    
+        // 4. sstatus.SPP = 1
+        Sstatus::write(sstatus::SPP, sstatus::SPP::SET);
+    
+        // 5. sret
+    }
 }
 
 impl Hext {
@@ -92,13 +169,13 @@ impl Hext {
         Self::enable_vsmode_counter_access(0xffff_ffff);
     }
 
-    /* hypervisorモードの指定割込みを有効化 */
+    // Enable specified interrupt in hypervisor mode
     pub fn enable_mask_h(int_mask: usize) {
         let hint_mask = 0x1444 & int_mask;
         Hie::set(Hie::get() | hint_mask as u64);
     }
 
-    /* hypervisorモードの指定割込みを無効化 */
+    // Disable specified interrupt in hypervisor mode
     pub fn disable_mask_h(int_mask: usize) {
         let hint_mask = 0x1444 & int_mask;
         Hie::set(Hie::get() & !(hint_mask as u64));
@@ -114,49 +191,49 @@ impl Hext {
         Hideleg::set(Hideleg::get() & !(int_mask as u64));
     }
 
-    /* VS-modeへの例外移譲を設定 */
+    // Set exception delegation to VS-mode
     pub fn set_delegation_exc(exc_mask: usize) {
         Hedeleg::set(Hedeleg::get() | exc_mask as u64);
     }
 
-    /* VS-modeへの例外移譲を解除 */
+    // Clear exception delegation to VS-mode
     pub fn clear_delegation_exc(exc_mask: usize) {
         Hedeleg::set(Hedeleg::get() & !(exc_mask as u64));
     }
 
-    /* VS-modeに仮想割込みを発生させる */
+    // Raise a virtual interrupt to VS-mode
     pub fn assert_vsmode_interrupt(int_mask: usize) {
         Hvip::set(int_mask as u64);
     }
 
-    /* VS-modeの割込みをクリアする */
+    // Clear the interrupt of VS-mode
     pub fn flush_vsmode_interrupt(int_mask: usize) {
         let mask = !(int_mask) & Hvip::get() as usize;
         Hvip::set(mask as u64);
     }
 
-    /* 指定外部割込みの有効化  */
+    // Enable specified external interrupt
     pub fn enable_exint_mask_h(int_mask: usize) {
         Hgeie::set(Hgeie::get() | int_mask as u64);
     }
 
-    /* 指定外部割込みの無効化 */
+    // Disable specified external interrupt
     pub fn disable_exint_mask_h(int_mask: usize) {
         Hgeie::set(Hgeie::get() & !(int_mask as u64));
     }
 
-    /* VS-modeのcounterenレジスタを設定 */
+    // Set the counteren register of VS-mode
     pub fn enable_vsmode_counter_access(counter_mask: usize) {
         Hcounteren::set(Hcounteren::get() | counter_mask as u32);
     }
 
-    /* VS-modeのcounterenレジスタをクリア */
+    // Clear the counteren register of VS-mode
     pub fn disable_vsmode_counter_access(counter_mask: usize) {
         Hcounteren::set(Hcounteren::get() & !(counter_mask as u32));
     }
 
-    /* HS-modeが用意するページテーブルのモードを設定 */
-    pub fn set_paging_mode_hv(mode: PagingMode) {
+    // Set the mode of the page table provided by HS-mode
+    pub fn set_paging_mode(mode: PagingMode) {
         match mode {
             PagingMode::Bare => {
                 Hgatp::write(hgatp::MODE, hgatp::MODE::BARE);
@@ -173,6 +250,7 @@ impl Hext {
         };
     }
 
+    // Get the mode of the page table provided by HS-mode
     pub fn get_paging_mode() -> PagingMode {
         match Hgatp::read(hgatp::MODE) {
             hgatp::MODE::BARE => PagingMode::Bare,
@@ -183,87 +261,46 @@ impl Hext {
         }
     }
 
-    /* HS-modeが用意するページテーブルのアドレスを設定 */
-    pub fn set_table_addr_hv(table_addr: usize) {
+    // Set the address of the page table provided by HS-mode
+    pub fn set_table_addr(table_addr: usize) {
         Hgatp::write(hgatp::PPN, hgatp::PPN::CLEAR);
         let current = Hgatp::get();
         Hgatp::set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 
-    pub fn get_table_addr_hv() -> usize {
+    // Get the address of the page table provided by HS-mode
+    pub fn get_table_addr() -> usize {
         (Hgatp::read(hgatp::PPN) << 12) as usize
     }
 
-    /* ページテーブルのアドレスを取得する */
-    pub fn _get_hs_pagetable() -> u64 {
-        (Hgatp::get() & 0x0fff_ffff_ffff) << 12
-    }
-
-    /* ページテーブルのアドレスを設定する */
+    // Set the address of the page table set by the guest OS
     pub fn set_vs_pagetable(table_addr: usize) {
         Vsatp::write(vsatp::PPN, vsatp::PPN::CLEAR);
         let current = Vsatp::get();
         Vsatp::set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 
-    /* ページテーブルのアドレスを取得する */
+    // Get the address of the page table set by the guest OS
     pub fn get_vs_pagetable() -> u64 {
         (Vsatp::get() & 0x0fff_ffff_ffff) << 12
     }
 
-    /* ページフォルト時のアドレスを取得する */
+    // Get the address at the time of page fault
     pub fn get_vs_fault_address() -> u64 {
         Vstval::get()
     }
 
-    /* ページテーブルのアドレスを取得する */
     pub fn get_vs_fault_paddr() -> u64 {
         Htval::get() << 2
     }
 
-    /* VS-modeのstvecを取得 */
     pub fn set_vs_vector(val: u64) {
         Vstvec::set(val);
     }
 
-    /* VS-modeのstvecを取得 */
     pub fn get_vs_vector() -> u64 {
         Vstvec::get()
     }
 
-    pub fn get_hs_pagetable<T: TraitPageTable>() -> &'static T {
-        let base_addr = (Hgatp::get() & 0x0fff_ffff_ffff) << 12;
-        unsafe { &*(base_addr as *const T) }
-    }
-}
-
-use crate::arch::rv64::mmu::*;
-
-pub fn enable_paging() {
-    Hext::set_vs_pagetable(0);
-    Hext::set_table_addr_hv(get_page_table_addr(0));
-    Hext::set_paging_mode_hv(PagingMode::Sv48x4);
-}
-
-pub fn create_page_table() {
-    for i in 0..0x100 {
-        get_mut_page_table(0).map_vaddr(
-            0x8020_0000 + i * 0x1000,
-            0x8020_0000 + i * 0x1000,
-        );
-    }
-}
-
-/* 仮想アドレス->物理アドレスへの変更 */
-pub fn to_paddr<T: TraitPageTable>(table: &mut T, vaddr: usize) -> usize {
-    match (*table).get_page_entry(vaddr) {
-        None => 0,
-        Some(e) => ((e.get_ppn() << 12) as usize) | (vaddr & 0x0fff),
-    }
-}
-
-/* 指定仮想アドレス領域の無効化 */
-pub fn invalid_page<T: TraitPageTable>(table: &mut T, vaddr: usize) {
-    table.get_page_entry(vaddr).unwrap().invalid();
 }
 

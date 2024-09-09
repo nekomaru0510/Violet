@@ -337,11 +337,19 @@ impl TraitPageTable for PageTableSv48 {
             }
         }
     }
-
+    
     /* [todo impl] */    
     /*fn map_vaddr_size(&mut self, paddr: usize, vaddr: usize, size: usize) {
         self.map_vaddr(paddr, vaddr);
     }*/
+
+    fn v2p(&mut self, vaddr: usize) -> usize {
+        match self.get_page_entry(vaddr) {
+            None => 0,
+            Some(e) => ((e.get_ppn() << 12) as usize) | (vaddr & 0x0fff),
+        }   
+    }
+  
 }
 
 impl PageTableSv48 {

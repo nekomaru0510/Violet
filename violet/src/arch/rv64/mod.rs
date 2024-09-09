@@ -16,7 +16,6 @@ use super::traits::TraitCpu;
 use super::traits::TraitArch;
 
 use instruction::Instruction;
-use regs::Registers;
 use trap::TrapVector;
 use trap::_start_trap;
 use trap::int::Interrupt;
@@ -25,20 +24,10 @@ use core::intrinsics::transmute;
 
 use csr::hstatus;
 use csr::hstatus::*;
-use csr::scause::Scause;
-use csr::sepc::Sepc;
 use csr::sscratch::Sscratch;
 use csr::sstatus;
 use csr::sstatus::*;
-use csr::stval::Stval;
 use csr::stvec::Stvec;
-use csr::vscause::Vscause;
-use csr::vsepc::Vsepc;
-use csr::vsie::Vsie;
-use csr::vsstatus;
-use csr::vsstatus::*;
-use csr::vstval::Vstval;
-use csr::vstvec::Vstvec;
 
 #[derive(Clone, Copy)]
 pub enum PrivilegeMode {
@@ -206,43 +195,6 @@ impl Rv64 {
 #[no_mangle]
 pub extern "C" fn setup_cpu(cpu_id: usize) {
     boot_init(cpu_id);
-}
-
-pub fn redirect_to_guest(regs: &mut Registers) {
-    //1. vsstatus.SPP = sstatus.SPP
-    match Sstatus::read(sstatus::SPP) {
-        1 => Vsstatus::write(vsstatus::SPP, vsstatus::SPP::SET),
-        0 => Vsstatus::write(vsstatus::SPP, vsstatus::SPP::CLEAR),
-        _ => (),
-    }
-
-    //2. vsstatus.SPIE = vsstatus.SIE
-    let _s = Vsstatus::read(vsstatus::SIE);
-    match Vsstatus::read(vsstatus::SIE) {
-        1 => Vsstatus::write(vsstatus::SPIE, vsstatus::SPIE::SET),
-        0 => Vsstatus::write(vsstatus::SPIE, vsstatus::SPIE::CLEAR),
-        _ => (),
-    }
-    let _s2 = Vsstatus::read(vsstatus::SIE);
-    let _v = Vsie::get();
-    // vsstatus.SIE = 0
-    Vsstatus::write(vsstatus::SIE, vsstatus::SIE::CLEAR);
-
-    // vscause = scause
-    Vscause::set(Scause::get());
-    // vstval = stval
-    Vstval::set(Stval::get());
-    // vsepc = sepc
-    Vsepc::set(Sepc::get());
-
-    //3. sepc = vstvec
-    //sepc.set(vstvec.get());
-    (*(regs)).epc = Vstvec::get() as usize;
-
-    //4. sstatus.SPP = 1
-    Sstatus::write(sstatus::SPP, sstatus::SPP::SET);
-
-    //5. sret
 }
 
 #[test_case]

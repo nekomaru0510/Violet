@@ -1,4 +1,4 @@
-//! MMUのトレイト
+//! MMU Trait
 
 pub trait TraitMmu {
     // Enable MMU
@@ -7,7 +7,6 @@ pub trait TraitMmu {
     //fn disable_mmu(&self);
 }
 
-// ページテーブル用トレイト
 pub trait TraitPageTable {
     type Entry: TraitPageEntry;
     type Table: TraitPageTable;
@@ -21,9 +20,9 @@ pub trait TraitPageTable {
     fn create_page_entry(&mut self, paddr: usize, vaddr: usize) -> Result<(), usize>;
     fn get_table(&mut self, vaddr: usize, idx: usize) -> Option<&mut <Self as TraitPageTable>::Table>;
     fn map_vaddr(&mut self, paddr: usize, vaddr: usize);
+    fn v2p(&mut self, vaddr: usize) -> usize;
 }
 
-// ページエントリ用トレイト
 pub trait TraitPageEntry {
     fn new() -> Self;
     fn set_paddr(&mut self, paddr: usize);

@@ -30,8 +30,8 @@ pub mod utils;
 pub mod test;
 
 /*
- * [todo fix] 本来は、testモジュール内に配置したいが、
- * test_mainを参照できないため、ここに配置
+ * [todo fix] I want to place "test_entry" in the test module, 
+ * but I can't refer to test_main, so I'll place it here.)
  */
 #[no_mangle]
 pub fn test_entry() {

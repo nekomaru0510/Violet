@@ -19,9 +19,9 @@ use violet::arch::rv64::extension::hypervisor::Hext;
 use violet::arch::rv64::trap::TrapVector;
 use violet::arch::rv64::instruction::Instruction;
 use violet::arch::rv64::regs::*;
-use violet::arch::rv64::redirect_to_guest;
-
 use violet::arch::rv64::instruction::ret::Ret;
+use violet::arch::traits::hypervisor::HypervisorT;
+use violet::environment::Hyp;
 use core::ptr::write_unaligned;
 
 pub fn init(vm: &mut VirtualMachine) {
@@ -42,7 +42,7 @@ pub fn init(vm: &mut VirtualMachine) {
 
 pub fn do_ecall_from_vsmode(sp: *mut usize) {
     let regs = Registers::from(sp);
-    redirect_to_guest(regs);
+    Hyp::redirect_to_guest(regs);
 }
 
 fn do_illegal_instruction(sp: *mut usize) {
@@ -65,7 +65,7 @@ fn do_illegal_instruction(sp: *mut usize) {
                     unsafe { write_unaligned(pepc as *mut usize, 0x10200073); }
                     return;
                 },
-                _ => redirect_to_guest(regs),
+                _ => Hyp::redirect_to_guest(regs),
             }
         }
         /* Csr access instruction */

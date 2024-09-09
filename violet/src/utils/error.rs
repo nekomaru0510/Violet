@@ -51,7 +51,7 @@ fn return_error() -> Result<(), RuntimeError> {
 #[test_case]
 pub fn test_error() -> Result<(), &'static str> {
     match return_error() {
-        Ok(_) => (Err("Error not returned")),
+        Ok(_) => Err("Error not returned"),
         Err(e) => {Ok(())},
     }
 }

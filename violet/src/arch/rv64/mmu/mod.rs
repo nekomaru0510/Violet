@@ -14,7 +14,7 @@ type PageTable = PageTableSv48;
 static mut PAGE_TABLE_ARRAY: [PageTable; MAX_PAGE_TABLE] =
     [PageTable::empty(); MAX_PAGE_TABLE];
 pub const MAX_PAGE_TABLE: usize = 32; //16;
-static mut PAGE_TABLE_IDX: usize = 1;
+static mut PAGE_TABLE_IDX: usize = 0;
 
 pub fn get_new_page_table_idx() -> usize {    
     unsafe {
@@ -29,6 +29,14 @@ pub fn get_new_page_table_idx() -> usize {
 pub fn get_page_table_addr(idx: usize) -> usize {
     if MAX_PAGE_TABLE < idx {
         return 0;
+    }
+    unsafe { transmute(&PAGE_TABLE_ARRAY[idx]) }
+}
+
+pub fn get_new_page_table_addr() -> usize {
+    let idx = get_new_page_table_idx();
+    if MAX_PAGE_TABLE < idx {
+        panic!("get_new_page_table_addr: out of range");
     }
     unsafe { transmute(&PAGE_TABLE_ARRAY[idx]) }
 }
