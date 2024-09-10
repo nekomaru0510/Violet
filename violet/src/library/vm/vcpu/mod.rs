@@ -64,7 +64,7 @@ pub struct VirtualCpu {
     vcpuid: usize,
     pub context: <Hyp as HypervisorT>::Context,
     status: VcpuStatus,
-    vregs: VirtualRegisterMap,
+    pub vregs: VirtualRegisterMap,
 }
 
 impl VirtualCpu {
@@ -80,6 +80,10 @@ impl VirtualCpu {
     pub fn run(&mut self, regs: &mut <<Hyp as HypervisorT>::Context as TraitContext>::Registers) {
         // Restore registers
         self.context.switch(regs);
+    }
+
+    pub fn get_vcpuid(&self) -> usize {
+        self.vcpuid
     }
 
     pub fn register<U: VirtualRegisterT + 'static>(&mut self, id: usize, vreg: U) {
@@ -127,14 +131,14 @@ fn test_vcpumap() -> Result<(), &'static str> {
 }
 
 #[cfg(test)]
-use vreg::vmhartid::Vmhartid;
+use vreg::vmhartid::Vreg;
 
 #[test_case]
 fn test_vcpu() -> Result<(), &'static str> {
     let mut vcpu = VirtualCpu::new(0);
-    let vmhartid = Vmhartid::new(0x128);
+    let vreg = Vreg::new(0x128);
 
-    vcpu.register(1, vmhartid);
+    vcpu.register(1, vreg);
     if vcpu.read(1) == Some(0x128) {
         return Ok(());
     } else {

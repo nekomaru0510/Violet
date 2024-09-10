@@ -1,12 +1,12 @@
-//! Virtual mhartid csr
+//! Virtual register returning a fixed value
 
 use crate::library::vm::vcpu::vreg::VirtualRegisterT;
 
-pub struct Vmhartid {
+pub struct Vreg {
     val: u64,
 }
 
-impl VirtualRegisterT for Vmhartid {
+impl VirtualRegisterT for Vreg {
     //type Regsize = u64;
 
     fn write(&mut self, val: u64) {
@@ -18,8 +18,8 @@ impl VirtualRegisterT for Vmhartid {
     }
 }
 
-impl Vmhartid {
+impl Vreg {
     pub fn new(vcpuid: u64) -> Self {
-        Vmhartid { val: vcpuid }
+        Vreg { val: vcpuid }
     }
 }

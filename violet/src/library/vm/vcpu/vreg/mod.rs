@@ -75,14 +75,14 @@ impl VirtualRegisterMap {
 }
 
 #[cfg(test)]
-use vmhartid::Vmhartid;
+use vmhartid::Vreg;
 
 #[test_case]
 fn test_vreg() -> Result<(), &'static str> {
     let mut map = VirtualRegisterMap::new();
-    let vmhartid = Vmhartid::new(0);
+    let vreg = Vreg::new(0);
 
-    map.register(1, vmhartid);
+    map.register(1, vreg);
 
     let result = match map.find(1) {
         None => Err("Fail to find vreg"),
