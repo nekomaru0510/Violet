@@ -7,7 +7,6 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 pub trait VirtualRegisterT {
-    //type Regsize; /* VirtualRegister型で型を指定する必要がでてくるため、u64で固定 */
     fn write(&mut self, val: u64);
     fn read(&mut self) -> u64;
 }
@@ -48,7 +47,7 @@ impl VirtualRegisterMap {
     }
 
     pub fn unregister<T: VirtualRegisterT + 'static>(&mut self, id: usize, vreg: T) {
-        // [todo fix] 実装する
+        // [todo fix] implement unregister
     }
 
     pub fn get(&self, id: usize) -> Option<&dyn VirtualRegisterT> {

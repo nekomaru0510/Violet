@@ -1,4 +1,4 @@
-//! 例外・割込みのトラップ
+//! Trap interrupt/exception
 pub mod exc;
 pub mod int;
 
@@ -9,7 +9,7 @@ use super::trap::exc::Exception;
 use super::trap::int::Interrupt;
 use crate::arch::traits::TraitArch;
 
-/* 割込み・例外ベクタ */
+// Interrupt/Exception vector
 pub struct TrapVector {
     handler: TrapHandler,
 }
@@ -138,12 +138,10 @@ impl TrapHandler {
     }
 }
 
-// 割込み・例外ハンドラ
+// Interrupt/Exception vector
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
 pub extern "C" fn trap_handler(regs: *mut usize) {
-    /* 割込み・例外要因 */
-    //cpu().trap.call_vector(scause.get() as usize, regs);
     let _ = Rv64::call_vector(Scause::get() as usize, regs);
 }
 
@@ -153,25 +151,27 @@ pub extern "C" fn trap_handler(regs: *mut usize) {
 pub extern "C" fn _start_trap() {
     unsafe {
         asm! ("
-        // from kernel
         .align 8
-
-            // SPの退避
             csrrw tp, sscratch, tp
             sd  sp, 8(tp)
             sd  t0, 16(tp)
             
-            // スタックサイズをspに格納
+            // Set the stack size
             li  t0, 1
             ld  sp, 24(tp)
-            // コア番号の取得
+            
+            // Get core id
             ld  t0, 0(tp)
-            mul t0, t0, sp          // mulを使うかは要検討
-            // SPの設定
+
+            // [todo fix] mul instruction is not wanted, 
+            // but if only shift operation is used, 
+            // sp will be broken by optimization
+            mul t0, t0, sp
+
             la  sp, __KERNEL_TRAP_SP_BOTTOM
             sub sp, sp, t0
             
-            // t0の復帰
+            // Restore t0
             ld  t0, 16(tp)
 
             addi sp, sp, -32*8
@@ -210,11 +210,11 @@ pub extern "C" fn _start_trap() {
             sd   x30, 30*8(sp)
             sd   x31, 31*8(sp)
 
-            // spの復帰・格納
+            // Restore sp
             ld   t0, 8(tp)
             sd   t0, 2*8(sp)
 
-            // tpの復帰・sscratchの復帰
+            // Restore tp and sscratch
             csrrw tp, sscratch, tp
             sd   tp, 4*8(sp) /* tp */
 
@@ -262,7 +262,6 @@ pub extern "C" fn _start_trap() {
             ld   x31, 31*8(sp)
             
             ld   x2, 2*8(sp) /* sp */
-            //addi sp, sp, 32*8
 
             sret
         ",

@@ -1,4 +1,4 @@
-//! 汎用レジスタ群のトレイト
+//! Trait for general-purpose registers
 
 pub trait TraitRegisters: Copy {
     fn switch(&mut self, regs: &mut Self);

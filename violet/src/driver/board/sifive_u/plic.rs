@@ -2,7 +2,6 @@
 
 use core::ptr::{read_volatile, write_volatile};
 
-/* ドライバ用トレイト */
 use crate::driver::traits::intc::TraitIntc;
 
 use crate::arch::traits::TraitArch;
@@ -14,32 +13,30 @@ pub struct Plic {
 }
 
 const INT_PRIO_SOURCE0: usize = 0;
-const INT_ENABLE0_HART_OFFSET: usize = 0x100; //0x80;
+const INT_ENABLE0_HART_OFFSET: usize = 0x100;
 const INT_ENABLE0_CONTEXT0: usize = 0x2080;
-const PRIO_THRESHOLD_HART_OFFSET: usize = 0x2000; //0x1000;
-const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000; //0x20_0000;//0x20_1000;
+const PRIO_THRESHOLD_HART_OFFSET: usize = 0x2000;
+const PRIO_THRESHOLD_CONTEXT0: usize = 0x20_1000;
 const PRIO_THRESHOLD_CONTEXT1: usize = PRIO_THRESHOLD_CONTEXT0 + PRIO_THRESHOLD_HART_OFFSET;
-const CLAIM_COMPLETE_HART_OFFSET: usize = 0x2000; //0x1000;
-const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004; //0x20_0004;//0x20_1004;
+const CLAIM_COMPLETE_HART_OFFSET: usize = 0x2000;
+const CLAIM_COMPLETE_CONTEXT0: usize = 0x20_1004;
 const CLAIM_COMPLETE_CONTEXT1: usize = CLAIM_COMPLETE_CONTEXT0 + CLAIM_COMPLETE_HART_OFFSET;
 
 impl TraitIntc for Plic {
-    /* 割込みの有効化 */
     fn enable_interrupt(&self, id: u32) {
         self.set_enable(id);
     }
 
-    /* 割込みの無効化 */
     fn disable_interrupt(&self, id: u32) {
         self.clear_enable(id);
     }
 
-    /* 最高優先度のペンディング状態の割込み番号を取得 */
+    // Get the interrupt number of the highest priority pending state
     fn get_pend_int(&self) -> u32 {
         self.get_claim_complete()
     }
 
-    /* 処理完了した割込み番号を格納 */
+    // Store the interrupt number that has been processed
     fn set_comp_int(&self, id: u32) {
         self.set_claim_complete(id);
     }
@@ -78,7 +75,7 @@ impl Plic {
         }
     }
 
-    /* [todo fix] clear処理にする */
+    // [todo fix] Make it a clear process
     pub fn clear_enable(&self, id: u32) {
         let offset = ((id / 32) * 4) as usize/* + INT_ENABLE0_HART_OFFSET * get_cpuid()*/;
         let val = 0x01 << (id % 32) as u32;

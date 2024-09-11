@@ -1,11 +1,9 @@
-//! QEMU sifive_u向け UARTドライバ
+//! QEMU UART driver
 
 use core::fmt::{self, Write};
 use core::ptr::{read_volatile, write_volatile};
-/* ドライバ用トレイト */
 use crate::driver::traits::serial::TraitSerial;
 
-/* 構造体 */
 #[derive(Clone)]
 pub struct Uart {
     base: usize,

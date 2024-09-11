@@ -3,7 +3,6 @@
 use crate::arch::rv64;
 use rv64::csr::stval::*;
 
-/* 例外 */
 #[derive(Clone, Copy)]
 pub struct Exception();
 

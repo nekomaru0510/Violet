@@ -5,4 +5,4 @@ pub mod vmstatus;
 pub mod vmie;
 pub mod vmcause;
 pub mod vmepc;
-
+pub mod vmtvec;

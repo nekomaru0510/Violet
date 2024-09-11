@@ -1,7 +1,6 @@
-//! slabアロケータ
-extern crate alloc;
-use alloc::alloc::Layout;
+//! Slab allocator
 
+use alloc::alloc::Layout;
 use crate::kernel::heap::TraitHeap;
 
 pub const NUM_OF_SLABS: usize = 8;
@@ -55,7 +54,7 @@ impl SlabAllocator {
             "Heap size should be a multiple of minimum heap size"
         );
 
-        // ヒープ領域を8(NUM_OF_SLABS)等分する
+        // Divide the heap area into 8(NUM_OF_SLABS) equal parts
         let slab_size = heap_size / NUM_OF_SLABS;
         SlabAllocator {
             slab_64_bytes: Slab::new(heap_start_addr, slab_size, 64),

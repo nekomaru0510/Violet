@@ -1,4 +1,4 @@
-//! イベント(割込みや例外)管理機能
+//! Evnet(interrupt or exception) manager
 
 pub struct EventManager {
     
@@ -9,7 +9,7 @@ pub struct Event {
 }
 
 pub enum GeneralEventNumber {
-    /* 汎用イベント */
+    // General event
     NoneEvent = 0,
     Nmi,
     Ipi,

@@ -1,4 +1,4 @@
-//! init_calls関連処理
+//! init_calls
 
 #[link_section = ".init_calls.1.end"]
 #[no_mangle]

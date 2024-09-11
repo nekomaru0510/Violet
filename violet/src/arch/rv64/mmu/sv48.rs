@@ -1,29 +1,29 @@
-//! Sv48用ページエントリ・ページテーブル
+//! Page entry and page table for Sv48
 
 extern crate core;
 use core::intrinsics::transmute;
 
-use super::BitField;
+use crate::library::bitfield::BitField;
 use crate::arch::rv64::mmu::{get_new_page_table_idx, get_page_table_addr};
 use crate::arch::traits::mmu::{TraitPageEntry, TraitPageTable};
 
-const PAGE_TABLE_LEVEL: usize = 4; /* ページテーブルの段数 */
-const NUM_OF_PAGE_ENTRY: usize = 512; /* 1テーブルあたりのページエントリ数 */
+const PAGE_TABLE_LEVEL: usize = 4;      // Number of page table levels
+const NUM_OF_PAGE_ENTRY: usize = 512;   // Number of page entries per table
 
-// 仮想アドレスのビットフィールド
+// Virtual address bit field
 pub struct VirtualAddressFieldSv48 {
     pub page_offset: BitField,
     pub vpn: [BitField; 4],
 }
 
-// 物理アドレスのビットフィールド
+// Physical address bit field
 pub struct PhysicalAddressFieldSv48 {
     pub page_offset: BitField,
     pub ppn: [BitField; 4],
     pub ppn_all: BitField,
 }
 
-//ページエントリのビットフィールド
+// Page entry bit field
 pub struct PageEntryFieldSv48 {
     pub v: BitField,
     pub r: BitField,
@@ -147,7 +147,7 @@ pub const SV48_ENTRY: PageEntryFieldSv48 = PageEntryFieldSv48 {
     n: BitField {
         offset: 63,
         width: 1,
-    }, //
+    },
 };
 
 fn vaddr_to_vpn(vaddr: u64, idx: usize) -> u64 {
@@ -158,7 +158,7 @@ fn paddr_to_ppn(paddr: u64) -> u64 {
     SV48_PA.ppn_all.mask(paddr) as u64
 }
 
-// ページエントリ(Sv48)
+// Page entry(Sv48)
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct PageEntrySv48 {
@@ -185,13 +185,13 @@ impl TraitPageEntry for PageEntrySv48 {
         self.set_ppn(paddr_to_ppn(paddr as u64));
     }
 
-    /* 当該ページ物理アドレスor次のテーブルのアドレスを設定する */
+    // Set the physical address of the page or the address of the next table
     fn set_ppn(&mut self, ppn: u64) {
-        self.entry &= !SV48_ENTRY.ppn.pattern(0xffff_ffff_ffff_ffff); // PPN0クリア
+        self.entry &= !SV48_ENTRY.ppn.pattern(0xffff_ffff_ffff_ffff); // Clear PPN0
         self.entry |= SV48_ENTRY.ppn.pattern(ppn);
     }
 
-    /* 当該ページ物理アドレスor次のテーブルのアドレスを設定する */
+    // Get the physical address of the page or the address of the next table
     fn get_ppn(&self) -> u64 {
         SV48_ENTRY.ppn.mask(self.entry)
     }
@@ -200,14 +200,12 @@ impl TraitPageEntry for PageEntrySv48 {
         SV48_ENTRY.v.mask(self.entry) == 1
     }
 
-    /* 当該ページの有効化 */
     fn valid(&mut self) {
         self.entry |= SV48_ENTRY.v.pattern(1);
     }
 
-    /* 当該ページの無効化 */
     fn invalid(&mut self) {
-        self.entry &= !SV48_ENTRY.v.pattern(0xffff_ffff_ffff_ffff); // PPN0クリア
+        self.entry &= !SV48_ENTRY.v.pattern(0xffff_ffff_ffff_ffff); // Clear PPN0
     }
 
     fn writable(&mut self) {
@@ -215,13 +213,11 @@ impl TraitPageEntry for PageEntrySv48 {
         self.entry |= SV48_ENTRY.r.pattern(1);
         self.entry |= SV48_ENTRY.x.pattern(1);
         self.entry |= SV48_ENTRY.u.pattern(1); //test
-                                               //self.entry |= SV48_ENTRY.g.pattern(1);
     }
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)] //危険か？
-//#[repr(align(4096))]
+#[derive(Copy, Clone)]
 #[repr(align(16384))]
 pub struct PageTableSv48 {
     pub entry: [PageEntrySv48; NUM_OF_PAGE_ENTRY],
@@ -230,7 +226,7 @@ pub struct PageTableSv48 {
 impl PageTableSv48 {
     pub const fn empty() -> Self {
         PageTableSv48 {
-            entry: [PageEntrySv48::empty(); 512], //entry: [0; 512]
+            entry: [PageEntrySv48::empty(); 512],
         }
     }
 }
@@ -239,33 +235,28 @@ impl TraitPageTable for PageTableSv48 {
     type Entry = PageEntrySv48;
     type Table = PageTableSv48;
 
-    // 初期化
     fn new() -> Self {
         PageTableSv48 {
             entry: [PageEntrySv48::new(); NUM_OF_PAGE_ENTRY],
         }
     }
 
-    // ページエントリを取得
-    //fn get_entry(&mut self, vpn: u64) -> &mut <Self as PageTable>::Entry {
     fn get_entry(&mut self, vaddr: usize, table_level: usize) -> &mut <Self as TraitPageTable>::Entry {
         let idx = PAGE_TABLE_LEVEL - table_level;
         &mut self.entry[vaddr_to_vpn(vaddr as u64, idx) as usize]
     }
 
-    // ページエントリのアドレスを取得
     fn get_entry_ppn(&self, vpn: u64) -> u64 {
         let e = self.entry[vpn as usize];
         e.get_ppn()
     }
 
-    // 仮想アドレスからページエントリを取得
     fn get_page_entry(&mut self, vaddr: usize) -> Option<&mut <Self as TraitPageTable>::Entry> {
         let vpn = SV48_VA.vpn[0].mask(vaddr as u64);
         let mut table: &mut PageTableSv48 = self;
 
         for i in (1..PAGE_TABLE_LEVEL).rev() {
-            // 次のテーブルを取得
+            // Get next table
             match (*table).get_next_table(vaddr, i) {
                 None => return None,
                 Some(t) => table = t,
@@ -274,7 +265,6 @@ impl TraitPageTable for PageTableSv48 {
         Some(&mut ((*table).entry[vpn as usize]))
     }
 
-    // 次のページテーブルを取得
     fn get_next_table(&self, vaddr: usize, idx: usize) -> Option<&mut <Self as TraitPageTable>::Table> {
         let vpn = SV48_VA.vpn[idx].mask(vaddr as u64);
         let ret = (*self).get_entry_ppn(vpn) << 12;
@@ -285,7 +275,8 @@ impl TraitPageTable for PageTableSv48 {
         Some(t)
     }
 
-    /* ページエントリの作成　途中のページテーブルが存在しなかった場合は、その段数をエラーとして返す */
+    // Create a page entry
+    // If the intermediate page table does not exist, return the number of stages as an error
     fn create_page_entry(&mut self, paddr: usize, vaddr: usize) -> Result<(), usize> {
         let mut table: &mut PageTableSv48 = self;
         for i in (1..PAGE_TABLE_LEVEL).rev() {
@@ -304,14 +295,14 @@ impl TraitPageTable for PageTableSv48 {
         Ok(())
     }
 
-    /* 指定段目のページテーブルを取得 */
+    // Get the specified page table
     fn get_table(&mut self, vaddr: usize, idx: usize) -> Option<&mut <Self as TraitPageTable>::Table> {
         let vpn = SV48_VA.vpn[0].mask(vaddr as u64);
         let mut table: &mut PageTableSv48 = self;
         let idx = idx - 1;
 
         for i in ((PAGE_TABLE_LEVEL - idx)..PAGE_TABLE_LEVEL).rev() {
-            // 次のテーブルを取得
+            // Get next table
             match (*table).get_next_table(vaddr, i) {
                 None => return None,
                 Some(t) => table = t,

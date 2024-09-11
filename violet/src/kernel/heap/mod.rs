@@ -1,4 +1,4 @@
-//! ヒープアロケータ
+//! Heap Allocator
 
 pub mod slab;
 
@@ -11,7 +11,8 @@ use slab::SlabAllocator;
 #[global_allocator]
 static ALLOCATOR: HeapOperator = HeapOperator::new();
 
-/* 初期ヒープ(初期化時、ルートコンテナのカーネルで利用される) */
+// Initial heap
+// Initial heap used by the kernel of the root container at initialization
 pub static mut HEAP: SlabAllocator = SlabAllocator::empty();
 
 pub fn init_allocater(start: usize, end: usize) {
@@ -20,7 +21,7 @@ pub fn init_allocater(start: usize, end: usize) {
     }
 }
 
-/* ヒープ取得・解放操作時にコンテナを参照して、利用するヒープを選択する */
+// Select the heap to use by referring to the container when acquiring and releasing the heap
 pub struct HeapOperator {}
 
 impl HeapOperator {
@@ -47,7 +48,7 @@ unsafe impl GlobalAlloc for HeapOperator {
     }
 }
 
-/* ヒープアロケータ用のトレイト */
+// Trait for heap allocator
 pub trait TraitHeap {
     fn allocate(&mut self, layout: Layout) -> *mut u8;
     unsafe fn deallocate(&mut self, ptr: *mut u8, layout: Layout);

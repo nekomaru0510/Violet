@@ -41,7 +41,7 @@ pub enum Csr {
 impl Csr {
     pub fn from_val(inst: usize) -> Self {
         if (LFormat { inst }.opcode() == Csrrw::OPCODE) {
-            /* CSR命令のオペコードは共通 */
+            // The opcode of the CSR instruction is common
             match (LFormat { inst }.funct3()) {
                 Csrrw::FUNCT3 => Csr::Csrrw(Csrrw::new(inst)),
                 Csrrs::FUNCT3 => Csr::Csrrs(Csrrs::new(inst)),
@@ -56,7 +56,7 @@ impl Csr {
         }
     }
 
-    /* CSRアクセスにおけるCSR番号を取得 */
+    // Get the CSR number when accessing CSR
     pub fn csr(&self) -> usize {
         match self {
             Csr::Csrrw(csrrw) => csrrw.csr(),
@@ -69,7 +69,7 @@ impl Csr {
         }
     }
 
-    /* CSRアクセス時のrdのインデックスを取得 */
+    // Get the index of rd when accessing CSR
     pub fn dst(&self) -> usize {
         match self {
             Csr::Csrrw(csrrw) => csrrw.rd(),
@@ -82,7 +82,7 @@ impl Csr {
         }
     }
 
-    /* CSRアクセス時のrs1のインデックスを取得 */
+    // Get the index of rs1 when accessing CSR
     pub fn src(&self) -> usize {
         match self {
             Csr::Csrrw(csrrw) => csrrw.rs1(),
@@ -95,7 +95,7 @@ impl Csr {
         }
     }
 
-    /* 演算に使用する即値を取得する */
+    // Get the immediate value used in the operation
     pub fn imm(&self, regs: &mut Registers) -> usize {
         match self {
             Csr::Csrrw(csrrw) => regs.reg[csrrw.rs1()],
@@ -108,7 +108,7 @@ impl Csr {
         }
     }
 
-    /* CSRに書き込む値を取得する */
+    // Get the value to write to CSR
     pub fn write_val(&self, csr: usize, imm:usize) -> usize {
         match self {
             Csr::Csrrw(csrrw) => imm,

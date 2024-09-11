@@ -1,4 +1,4 @@
-//! 最小構成ディスパッチャ
+//! Minimal dispatcher
 
 use crate::kernel::traits::dispatcher::TraitDispatcher;
 use crate::kernel::traits::task::TraitTask;

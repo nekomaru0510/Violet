@@ -2,7 +2,6 @@
 
 use core::ptr::{read_volatile, write_volatile};
 
-/* ドライバ用トレイト */
 use crate::driver::traits::timer::TraitTimer;
 
 #[derive(Clone)]

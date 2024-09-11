@@ -16,13 +16,13 @@ register!(
         // M-mode Interrupt Enable
         MIE       OFFSET(3)  NUMBITS(1) [],
 
-        // xPIE ... xは割込みがトラップされているモード
+        // xPIE ... x-mode is Previous mode that is trapped interrupt
         UPIE      OFFSET(4)  NUMBITS(1) [],
         SPIE      OFFSET(5)  NUMBITS(1) [],
         //WPRI      OFFSET(6)  NUMBITS(1) [],
         MPIE      OFFSET(7)  NUMBITS(1) [],
 
-        // xPP ... 割込み元の特権モード
+        // xPP ... Original privilege mode that is trapped interrupt
         SPP       OFFSET(8)  NUMBITS(1) [],
         //WPRI      OFFSET(9)  NUMBITS(2) [],
         MPP       OFFSET(11) NUMBITS(2) [
@@ -33,7 +33,6 @@ register!(
         ],
         FS        OFFSET(13) NUMBITS(2) [],
         XS        OFFSET(15) NUMBITS(2) [],
-        // Memory Privilege(1の際、MMUが有効化)
         MPRV      OFFSET(17) NUMBITS(1) [],
         SUM       OFFSET(18) NUMBITS(1) [],
         MXR       OFFSET(19) NUMBITS(1) [],

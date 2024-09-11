@@ -1,10 +1,9 @@
-//! RV64用 CPU内割込み機能モジュール
+//! Risc-V Interrupt
 
 use crate::arch::rv64;
 use rv64::csr::sie::*;
 use rv64::csr::sstatus::*;
 
-/* 割込み */
 #[derive(Clone, Copy)]
 pub struct Interrupt();
 
@@ -24,25 +23,25 @@ impl Interrupt {
         1 << val
     }
 
-    /* supervisorモードの割込みを有効化 */
+    // Enable S-mode interrupt
     pub fn enable_s() {
         Sstatus::write(SIE, SIE::SET);
     }
 
-    /* supervisorモードの割込みを無効化 */
+    // Disable S-mode interrupt
     pub fn disable_s() {
         Sstatus::write(SIE, SIE::CLEAR);
     }
 
-    /* supervisorモードの指定割込みを有効化 */
+    // Enable specified interrupt in S-mode
     pub fn enable_mask_s(int_mask: usize) {
-        let sint_mask = 0x222 & int_mask; // sieの有効ビットでマスク
-        Sie::set(Sie::get() | sint_mask as u64); // [todo fix]csrrs系命令を用いる
+        let sint_mask = 0x222 & int_mask;
+        Sie::set(Sie::get() | sint_mask as u64);
     }
 
-    /* supervisorモードの指定割込みを無効化 */
+    // Disable specified interrupt in S-mode
     pub fn disable_mask_s(int_mask: usize) {
-        let sint_mask = 0x222 & int_mask; // sieの有効ビットでマスク
+        let sint_mask = 0x222 & int_mask;
         Sie::set(Sie::get() & !(sint_mask as u64));
     }
 }

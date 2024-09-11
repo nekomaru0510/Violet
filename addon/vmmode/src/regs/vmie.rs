@@ -25,13 +25,13 @@ impl VirtualRegisterT for Vmie {
         bitfield!(MTIE:[7,7]);
         bitfield!(SEIE:[9,9]);
         bitfield!(MEIE:[11,11]);
-        /* MSIEの値をSSIEに設定 */
+        // MSIE -> SSIE
         let msie = bit_extract!(val, MSIE);
         self.val = bit_set!(self.val, SSIE, msie);
-        /* MTIEの値をSTIEに設定 */
+        // MTIE -> STIE
         let mtie = bit_extract!(val, MTIE);
         self.val = bit_set!(self.val, STIE, mtie);
-        /* MEIEの値をSEIEに設定 */
+        // MEIE -> SEIE
         let meie = bit_extract!(val, MEIE);
         self.val = bit_set!(self.val, SEIE, meie);
 
@@ -47,15 +47,15 @@ impl VirtualRegisterT for Vmie {
         bitfield!(MEIE:[11,11]);
         
         self.val = Vsie::get();
-        /* vsieのSSIEをMSIEに設定 */
+        // vsie::SSIE -> MSIE
         let ssie = bit_extract!(self.val, SSIE);
         self.val = bit_set!(self.val, MSIE, ssie);
 
-        /* vsieのSTIEをMTIEに設定 */
+        // vsie::STIE -> MTIE
         let stie = bit_extract!(self.val, STIE);
         self.val = bit_set!(self.val, MTIE, stie);
 
-        /* vsieのSEIEをMEIEに設定 */
+        // vsie::SEIE -> MEIE
         let seie = bit_extract!(self.val, SEIE);
         self.val = bit_set!(self.val, MEIE, seie);
         

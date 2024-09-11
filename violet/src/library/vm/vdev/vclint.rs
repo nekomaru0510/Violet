@@ -1,4 +1,4 @@
-//! 仮想CLINT
+//! Virtual CLINT
 
 use super::VirtualDeviceT;
 use super::read_raw;
@@ -19,7 +19,7 @@ const MTIMECMP_OFFSET: usize = 0x4000;
 
 const BASE_ADDRESS: usize = 0x200_0000; /* [todo delete] */
 const ADDRESS_RANGE: usize = 0x1_0000;
-const MASK: usize = 0xffff; /* [todo fix] 上記要素から算出できるように */
+const MASK: usize = 0xffff;
 
 impl VClint {
     pub const fn new() -> Self {
@@ -34,12 +34,12 @@ impl VClint {
     }
 
     fn mtime_read(&mut self, addr: usize) -> u64 {
-        self.mtime = self.mtime + 1; /* 参照されるたびに時刻を加算 */
+        self.mtime = self.mtime + 1; // Add time every time it is referenced
         return self.mtime
     }
     
     fn mtimecmp_write(&mut self, addr: usize, val: u64) {
-        /* ゲストタイマ割込みをフラッシュ */
+        // Flush guest timer interrupt
         Hext::flush_vsmode_interrupt(Interrupt::bit(
             Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
         ));
@@ -60,7 +60,7 @@ impl VClint {
 
 impl VirtualDeviceT for VClint {
     fn write(&mut self, addr: usize, val: usize) {
-        /* [todo fix] レジスタ取得を関数にまとめたい */
+        // [todo fix] Consolidate register acquisition into a function
         match addr & MASK {
             MTIME_OFFSET => self.mtime_write(addr, val as u64),
             MTIMECMP_OFFSET => self.mtimecmp_write(addr, val as u64),

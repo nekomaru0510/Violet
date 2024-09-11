@@ -74,8 +74,6 @@ impl Rv64Mmu {
         Rv64Mmu {}
     }
 
-    //MMU 関連
-    // ページングモードの設定
     pub fn set_paging_mode(mode: PagingMode) {
         match mode {
             PagingMode::Bare => {
@@ -93,7 +91,6 @@ impl Rv64Mmu {
         };
     }
 
-    // ページングモードの取得
     pub fn get_paging_mode() -> PagingMode {
         match Satp::read(MODE) {
             MODE::BARE => PagingMode::Bare,
@@ -104,43 +101,14 @@ impl Rv64Mmu {
         }
     }
 
-    // ページテーブルのアドレスを設定
     pub fn set_table_addr(&self, table_addr: usize) {
         Satp::write(PPN, PPN::CLEAR);
         let current = Satp::get();
         Satp::set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
     }
 
-    // ページテーブルのアドレスを取得
     pub fn get_table_addr() -> usize {
         (Satp::read(PPN) << 12) as usize
     }
 }
 
-// ビットフィールド操作用[todo fix 場所の変更]
-pub struct BitField {
-    pub offset: u8,
-    pub width: u8,
-}
-impl BitField {
-    pub fn new() -> Self {
-        BitField {
-            offset: 0,
-            width: 0,
-        }
-    }
-
-    /* offsetとwidthに沿ったビットパターンを生成 */
-    /* valはT型にしたい */
-    pub fn pattern(&self, val: u64) -> u64 {
-        let mask = (2 << (self.width - 1)) - 1;
-        (val & mask) << self.offset
-    }
-
-    /* offsetとwidthに沿ったビットパターンを抽出 */
-    /* valはT型にしたい */
-    pub fn mask(&self, val: u64) -> u64 {
-        let mask = (2 << (self.width - 1)) - 1;
-        (val >> self.offset) & mask
-    }
-}

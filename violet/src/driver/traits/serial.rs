@@ -1,4 +1,4 @@
-//! シリアルデバイス用のトレイト
+//! Serial device trait
 
 use core::fmt::{self, Write};
 

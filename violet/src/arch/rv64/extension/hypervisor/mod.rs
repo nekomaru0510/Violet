@@ -181,12 +181,12 @@ impl Hext {
         Hie::set(Hie::get() & !(hint_mask as u64));
     }
 
-    /* VS-modeへの割込み移譲を設定 */
+    // Set interrupt delegation to VS-mode
     pub fn set_delegation_int(int_mask: usize) {
         Hideleg::set(Hideleg::get() | int_mask as u64);
     }
 
-    /* VS-modeへの割込み移譲を解除 */
+    // Clear interrupt delegation to VS-mode
     pub fn clear_delegation_int(int_mask: usize) {
         Hideleg::set(Hideleg::get() & !(int_mask as u64));
     }

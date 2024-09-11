@@ -12,7 +12,6 @@ use crate::driver::board::sifive_u::clint_timer::ClintTimer;
 use crate::driver::board::sifive_u::plic::Plic;
 use crate::driver::board::sifive_u::uart::Uart;
 
-/* CPUコア数 */
 pub const NUM_OF_CPUS: usize = 2;
 pub const STACK_SIZE: usize = 0x4000;
 
@@ -21,8 +20,8 @@ static UART_BASE: usize = 0x1000_0000;
 static CLINT_TIMER_BASE: usize = 0x0200_0000;
 static PLIC_BASE: usize = 0x0C00_0000;
 
-pub type Arch = Rv64; /* CPUの型 */
-pub type Hyp = Hext; /* Hypervisorの型 */
+pub type Arch = Rv64;
+pub type Hyp = Hext; // Hypervisor Extension
 type Intc = Plic;
 type Timer = ClintTimer;
 type Serial = Uart;
@@ -61,26 +60,6 @@ pub fn shutdown() {
     );
 }
 
-/*
-use crate::arch::rv64::get_cpuid;
-
-pub fn cpu() -> &'static dyn TraitCpu {
-    if let BorrowResource::Cpu(x) = get_resources().get(ResourceType::Cpu, get_cpuid()) {
-        x.as_ref()
-    } else {
-        panic!("Fail to get CPU resource");
-    }
-}
-
-/* CPU取得関数 */
-pub fn cpu_mut() -> &'static mut dyn TraitCpu {
-    if let BorrowMutResource::Cpu(x) = get_mut_resources().get_mut(ResourceType::Cpu, get_cpuid()) {
-        x.as_mut()
-    } else {
-        panic!("Fail to get CPU resource");
-    }
-}
-*/
 extern crate alloc;
 use alloc::boxed::Box;
 

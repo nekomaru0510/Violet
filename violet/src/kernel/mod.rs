@@ -18,6 +18,7 @@ use crate::resource::{get_resources, BorrowResource, ResourceType};
 #[cfg(test)]
 use crate::test_entry;
 
+use core::intrinsics::transmute;
 use dispatcher::minimal_dispatcher::MinimalDispatcher;
 use heap::init_allocater;
 use init_calls::*;
@@ -31,10 +32,6 @@ use traits::sched::TraitSched;
 use crate::arch::rv64::boot::_start_ap; // [todo delete]
 use crate::arch::rv64::instruction::Instruction; // [todo delete]
 use crate::arch::rv64::sbi; // [todo delete]
-                                    //use crate::driver::traits::cpu::TraitCpu;
-
-extern crate core;
-use core::intrinsics::transmute;
 
 extern "C" {
     static __HEAP_BASE: usize;
@@ -43,7 +40,7 @@ extern "C" {
 
 #[no_mangle]
 pub extern "C" fn boot_init(cpu_id: usize) {
-    /* メモリアロケータの初期化 */
+    // Initialize memory allocator
     unsafe {
         init_allocater(transmute(&__HEAP_BASE), transmute(&__HEAP_END));
     }
@@ -58,10 +55,10 @@ pub extern "C" fn boot_init(cpu_id: usize) {
     #[cfg(test)]
     test_entry();
 
-    // CPU0にinit_callsを実行させる
+    // Run init_calls on CPU0
     create_task(1, do_app_calls, 0);
 
-    // 他CPUをすべて起動させる
+    // Wake up all CPUs
     wakeup_all_cpus(cpu_id);
 
     main_loop(cpu_id);
@@ -84,7 +81,7 @@ fn init_ap(cpu_id: usize) {
 fn wakeup_all_cpus(cpu_id: usize) {
     for i in 0..NUM_OF_CPUS {
         if i as usize != cpu_id {
-            sbi::sbi_hart_start(i as u64, _start_ap as u64, init_ap as u64); /* [todo fix] CPU起床は抽象かする */
+            sbi::sbi_hart_start(i as u64, _start_ap as u64, init_ap as u64); /* [todo fix] don't use sbi */
         }
     }
 }
@@ -119,7 +116,7 @@ pub fn get_mut_kernel() -> &'static mut Kernel {
     &mut get_mut_container().kernel
 }
 
-/* [todo fix] 本来はコアごと？にスケジューラ、ディスパッチャを指定したい */
+// [todo fix] Select scheduler and dispatcher for each core
 pub static mut SCHEDULER: [FifoScheduler<Task>; 2] = [FifoScheduler::new(), FifoScheduler::new()];
 
 pub static mut DISPATCHER: [MinimalDispatcher; 2] =

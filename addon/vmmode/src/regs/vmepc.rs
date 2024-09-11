@@ -18,7 +18,6 @@ impl VirtualRegisterT for Vmepc {
     //type Regsize = u64;
     
     fn write(&mut self, val: u64) {
-        //Vsepc.set(self.val);
         Vsepc::set(val);
     }
 

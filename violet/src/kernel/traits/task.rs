@@ -1,4 +1,4 @@
-//! タスクトレイト
+//! Task Trait
 
 pub trait TraitTask {
     fn new(id: u64, func: fn()) -> Self;

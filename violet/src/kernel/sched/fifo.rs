@@ -1,4 +1,4 @@
-//! FIFOスケジューラ
+//! FIFO scheduler
 extern crate alloc;
 use alloc::vec::Vec;
 
@@ -28,7 +28,6 @@ impl<T: TraitTask> TraitSched<T> for FifoScheduler<T> {
     }
 
     fn register(&mut self, task: T) {
-        //self.task_queue.push(Some(task));
         self.task_queue.insert(0, Some(task));
     }
 

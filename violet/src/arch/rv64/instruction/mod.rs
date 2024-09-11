@@ -1,6 +1,6 @@
-//! RISC-V用命令
+//! RISC-V instructions
+
 use core::arch::asm;
-//use core::ptr::read_volatile;
 use core::ptr::read_unaligned;
 
 pub mod csr;
@@ -96,7 +96,6 @@ impl Instruction {
                         addi a1, {2}, 0
                         sret
                 ",
-                //"r"(next_addr), "r"(arg1), "r"(arg2) 
                 in(reg) next_addr, in(reg) arg1, in(reg) arg2,
                 options(nostack)
                 );

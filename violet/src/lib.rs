@@ -3,12 +3,12 @@
 #![feature(stmt_expr_attributes)]
 #![feature(alloc_error_handler)]
 #![feature(const_mut_refs)] /* [todo remove] */
-/* テスト用 */
+// For test
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
-/* warning抑制 */
+// Ignore warnings
 #![allow(dead_code)]
 #![allow(unused_macros)]
 #![allow(unused_variables)]

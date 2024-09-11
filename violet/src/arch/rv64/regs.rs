@@ -1,8 +1,8 @@
-//! RISC-V 汎用レジスタ
+//! RISC-V General Purpose Registers
 
 use crate::arch::traits::registers::TraitRegisters;
 
-/* 割込み・例外元のコンテキストを示す */
+// Context of interrupt or exception source
 #[derive(Clone, Copy)]
 pub struct Registers {
     pub reg: [usize; 32],
@@ -59,7 +59,7 @@ impl Registers {
 }
 
 impl TraitRegisters for Registers {
-    // レジスタの退避
+    // Store registers
     fn switch(&mut self, regs: &mut Self) {
         let tmp: Registers = *regs;
         *regs = *self;

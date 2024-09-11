@@ -47,7 +47,7 @@ impl Load {
     pub fn from_val(inst: usize) -> Self {
         if Instruction::is_compressed(inst) {
             if (CLFormat { inst }.op() == Clw::OPCODE) {
-                /* Store命令のオペコードは共通 */
+                // The opcode of the Load instruction is common
                 match (CLFormat { inst }.funct3()) {
                     Clw::FUNCT3 => Load::Clw(Clw::new(inst)),
                     Cld::FUNCT3 => Load::Cld(Cld::new(inst)),
@@ -59,7 +59,7 @@ impl Load {
             }
         } else {
             if (LFormat { inst }.opcode() == Lb::OPCODE) {
-                /* Store命令のオペコードは共通 */
+                // The opcode of the Load instruction is common
                 match (LFormat { inst }.funct3()) {
                     Lb::FUNCT3 => Load::Lb(Lb::new(inst)),
                     Lh::FUNCT3 => Load::Lh(Lh::new(inst)),
@@ -73,16 +73,16 @@ impl Load {
         }
     }
 
-    /* rdレジスタのインデックスを取得 */
+    // Get the index of the rd register
     pub fn dst(&self) -> usize {
         match self {
             Load::Lb(lb) => lb.rd(),
             Load::Lh(lh) => lh.rd(),
             Load::Lw(lw) => lw.rd(),
             Load::Ld(ld) => ld.rd(),
-            Load::Clw(clw) => clw.rd() + 8, /* 圧縮命令は、s0-a5までしか表現できない */
-            Load::Cld(cld) => cld.rd() + 8, /* 圧縮命令は、s0-a5までしか表現できない */
-            Load::Clq(clq) => clq.rd() + 8, /* 圧縮命令は、s0-a5までしか表現できない */
+            Load::Clw(clw) => clw.rd() + 8, // Compressed instructions can only express s0-a5
+            Load::Cld(cld) => cld.rd() + 8,
+            Load::Clq(clq) => clq.rd() + 8,
             _ => 0,
         }
     }
@@ -90,7 +90,6 @@ impl Load {
 
 #[cfg(test)]
 use crate::arch::rv64::regs;
-//use regs::Registers;
 #[test_case]
 fn test_load() -> Result<(), &'static str> {
     let inst = 0x618c; /* ld      a1,0(a1) */

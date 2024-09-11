@@ -9,12 +9,6 @@ pub struct Vmstatus {
     val: u64,
 }
 
-/*
-bitfield!(SPIE:[5,5]);
-bitfield!(UBE:[6,6]);
-bitfield!(MPIE:[7,7]);
-bitfield!(SPP:[8,8]);
-*/
 impl Vmstatus {
     pub fn new() -> Self {
         Vmstatus { val: 0 }
@@ -32,17 +26,17 @@ impl VirtualRegisterT for Vmstatus {
         bitfield!(SPP:[8,8]);
         bitfield!(MPP:[12,11]);
 
-        /* MIEの値をSIEに設定 */
+        // MIE -> SIE
         let mie = bit_extract!(val, MIE);
         self.val = bit_set!(self.val, SIE, mie);
         self.val = bit_set!(self.val, MIE, 0);
     
-        /* MPIEの値をSPIEに設定 */
+        // MPIE -> SPIE
         let mpie = bit_extract!(val, MPIE);
         self.val = bit_set!(self.val, SPIE, mpie);
         self.val = bit_set!(self.val, MPIE, 0);
 
-        /* MPPの値をSPPに変換し、設定 */
+        // MPP -> SPP
         let mpp = bit_extract!(val, MPP);
         self.val = bit_set!(self.val, SPP, mpp);
         self.val = bit_set!(self.val, MPP, 0);
@@ -57,18 +51,18 @@ impl VirtualRegisterT for Vmstatus {
         bitfield!(MPIE:[7,7]);
         bitfield!(MPP:[12,11]);
 
-        /* vsstatusのSIEをMIEに設定 */
+        // vsstatus::SIE -> MIE
         self.val = Vsstatus::get();
-        let sie = bit_extract!(self.val, SIE);//vsstatus.read(vsstatus::SIE);
+        let sie = bit_extract!(self.val, SIE);
         self.val = bit_set!(self.val, MIE, sie);
-        self.val = bit_set!(self.val, SIE, 0); /* SIEをクリア */
+        self.val = bit_set!(self.val, SIE, 0);      // Clear SIE
 
-        /* vsstatus.SPIEをMPIEに設定 */
-        let spie = bit_extract!(self.val, SPIE);//vsstatus.read(vsstatus::SIE);
+        // vsstatus::SPIE -> MPIE
+        let spie = bit_extract!(self.val, SPIE);
         self.val = bit_set!(self.val, MPIE, spie);
-        self.val = bit_set!(self.val, SPIE, 0); /* SPIEをクリア */
+        self.val = bit_set!(self.val, SPIE, 0);     // Clear SPIE
 
-        /* MPPは0b11固定 */
+        // MPP is fixed to 0b11
         self.val = bit_set!(self.val, MPP, 0x3);
 
         self.val

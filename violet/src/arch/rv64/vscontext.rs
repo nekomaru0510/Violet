@@ -1,4 +1,4 @@
-//! RISC-V用 ゲストOS用コンテキスト
+//! RISC-V Guest OS Context
 
 use super::instruction::Instruction;
 use super::regs::Registers;
@@ -27,7 +27,6 @@ impl TraitContext for VsContext {
     fn switch(&mut self, regs: &mut Self::Registers) {
         self.regs.switch(regs);
 
-        /* [todo fix] switchする機械語命令(csrrw)があるので、それを使いたい */
         let tmp_epc: usize = Sepc::get() as usize;
         Sepc::set(self.sepc as u64);
         self.sepc = tmp_epc;

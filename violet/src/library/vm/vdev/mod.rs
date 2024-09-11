@@ -1,4 +1,4 @@
-//! 仮想デバイス
+//! Virtual Device
 
 pub mod vplic;
 pub mod vclint;
@@ -18,7 +18,8 @@ pub trait VirtualRegister {
     type Register;
 
     fn write(&mut self, addr: usize, val: Self::Register);
-    fn read(&mut self, addr: usize) -> Self::Register; /* 読み出し時にレジスタ値を変更するものも存在するため、mutable */
+    // There are cases where the register value is changed when reading, so mutable
+    fn read(&mut self, addr: usize) -> Self::Register; 
 }
 
 pub struct VirtualDevice {
@@ -57,7 +58,7 @@ impl VirtualDevMap {
         size: usize,
         vdev: T,
     ) {
-        // [todo fix] 実装する
+        // [todo fix] implement
     }
 
     fn sort(&mut self) {

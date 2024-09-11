@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use crate::arch::traits::TraitArch;
 use crate::environment::Arch;
 use crate::kernel::Kernel;
-use crate::resource::{Resource, ResourceManager}; // [todo delete] //test
+use crate::resource::{Resource, ResourceManager}; // [todo delete]
 
 use crate::environment::NUM_OF_CPUS;
 
@@ -49,12 +49,12 @@ impl ContainerTable {
     }
 
     pub fn get(&self, id: usize) -> &Container {
-        /* idのチェックはしない。自コンテナ以外へのアクセスはpanicでよいため。 */
+        // Do not check id. It is okay to panic for access to other containers.
         &self.containers[id]
     }
 
     pub fn get_mut(&mut self, id: usize) -> &mut Container {
-        /* idのチェックはしない。自コンテナ以外へのアクセスはpanicでよいため。 */
+        // Do not check id. It is okay to panic for access to other containers.
         &mut self.containers[id]
     }
 
@@ -71,7 +71,6 @@ impl ContainerTable {
     }
 }
 
-/* IF関数 */
 pub fn create_container() -> usize {
     unsafe { CONTAINER_TABLE.create() }
 }
@@ -93,13 +92,12 @@ pub fn is_ready_container() -> bool {
 }
 
 const MAX_NUM_OF_RESOURCE: usize = 8;
-/* コンテナ生成要求 */
+
 pub struct ContainerParam {
     pub resource: ResourceParam,
     pub kernel: KernelParam,
-    /* appのエントリ */
 }
-/* resource ... 種類、型、個数、ベースアドレス(引数) */
+
 pub struct ResourceParam {
     pub resource: [Resource; MAX_NUM_OF_RESOURCE],
 }

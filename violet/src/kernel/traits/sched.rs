@@ -1,4 +1,5 @@
-//! スケジューラ用のトレイト
+//! Scheduler trait
+
 use crate::kernel::traits::task::TraitTask;
 
 pub trait TraitSched<T: TraitTask> {

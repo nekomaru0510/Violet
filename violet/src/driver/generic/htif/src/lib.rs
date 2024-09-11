@@ -1,6 +1,3 @@
-//use core::ptr::{write_volatile, read_volatile};
-#![no_std]
-
 #[link_section = ".htif"]
 #[no_mangle]
 static mut tohost: u64 = 0;//0x80030000;
@@ -55,7 +52,7 @@ impl HTIF {
         self.console_buf
     }
 
-    //debug
+    // For debug
     pub fn get_fromhost(&self) -> u64 {
         unsafe {
             fromhost
@@ -64,7 +61,7 @@ impl HTIF {
 
     fn set_tohost(&mut self, dev: u64, cmd: u64, data: [u64; 8]) {
         unsafe {
-            // tohostが空になるまで待つ
+            // Wait until tohost is empty
             while tohost != 0 {
                 self.check_fromhost();
             }
@@ -72,10 +69,10 @@ impl HTIF {
         }
     }
 
-    // ダサい実装なので、あとで修正
+    // [todo fix] This is a dirty implementation, so fix it later.
     pub fn set_tohost_raw(&mut self, dev: u64, cmd: u64, data: u64) {
         unsafe {
-            // tohostが空になるまで待つ
+            // Wait until tohost is empty
             while tohost != 0 {
                 self.check_fromhost();
             }

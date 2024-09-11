@@ -1,4 +1,4 @@
-//! ゲスト用仮想メモリの管理
+//! Virtual Memory Management
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -13,16 +13,14 @@ impl VirtualMemoryMap {
     }
 
     pub fn register(&mut self, vaddr: usize, paddr: usize, size: usize) {
-        /* [todo fix] メモリマップが被らないか確認 */
+        // [todo fix] Check if memory maps overlap
         self.map.push(VirtualMemoryArea::new(vaddr, paddr, size));
         //self.sort();
     }
 
-    /* [todo fix] 実装する */
-    /*
     pub fn unregister() {
-
-    }*/
+        // [todo fix] impliment
+    }
 
     fn sort(&mut self) {
         self.map.sort_by(|a, b| b.vaddr.cmp(&a.vaddr))
@@ -68,7 +66,7 @@ impl VirtualMemoryArea {
     }
 
     pub fn get_paddr(&self, vaddr: usize) -> Option<usize> {
-        /* メモリマップ外 */
+        // Out of memory map
         if vaddr < self.vaddr || self.vaddr + self.size <= vaddr {
             return None;
         }

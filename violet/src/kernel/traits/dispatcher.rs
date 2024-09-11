@@ -1,4 +1,4 @@
-//! ディスパッチャ用のトレイト
+//! Dispatcher trait
 use crate::kernel::traits::task::TraitTask;
 
 pub trait TraitDispatcher<T: TraitTask> {

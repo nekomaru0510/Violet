@@ -1,4 +1,4 @@
-//!タスク
+//! Task module
 use crate::kernel::traits::task::TraitTask;
 
 pub struct Task {

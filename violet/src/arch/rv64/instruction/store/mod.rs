@@ -47,7 +47,7 @@ impl Store {
     pub fn from_val(inst: usize) -> Self {
         if Instruction::is_compressed(inst) {
             if (CSFormat { inst }.op() == Csw::OPCODE) {
-                /* Store命令のオペコードは共通 */
+                // The opcode of the Store instruction is common
                 match (CSFormat { inst }.funct3()) {
                     Csw::FUNCT3 => Store::Csw(Csw::new(inst)),
                     Csd::FUNCT3 => Store::Csd(Csd::new(inst)),
@@ -59,7 +59,7 @@ impl Store {
             }
         } else {
             if (SFormat { inst }.opcode() == Sb::OPCODE) {
-                /* Store命令のオペコードは共通 */
+                // The opcode of the Store instruction is common
                 match (SFormat { inst }.funct3()) {
                     Sb::FUNCT3 => Store::Sb(Sb::new(inst)),
                     Sh::FUNCT3 => Store::Sh(Sh::new(inst)),
@@ -73,16 +73,16 @@ impl Store {
         }
     }
 
-    /* ソースレジスタのインデックスを取得 */
+    // Get the index of the source register
     pub fn src(&self) -> usize {
         match self {
             Store::Sb(sb) => sb.rs2(),
             Store::Sh(sh) => sh.rs2(),
             Store::Sw(sw) => sw.rs2(),
             Store::Sd(sd) => sd.rs2(),
-            Store::Csw(csw) => csw.rs2() + 8, /* 圧縮命令は、s0-a5までしか表現できない */
-            Store::Csd(csd) => csd.rs2() + 8, /* 圧縮命令は、s0-a5までしか表現できない */
-            Store::Csq(csq) => csq.rs2() + 8, /* 圧縮命令は、s0-a5までしか表現できない */
+            Store::Csw(csw) => csw.rs2() + 8, // Compressed instructions can only express s0-a5
+            Store::Csd(csd) => csd.rs2() + 8,
+            Store::Csq(csq) => csq.rs2() + 8,
             _ => 0,
         }
     }
