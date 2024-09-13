@@ -44,10 +44,12 @@ impl VClint {
             Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
         ));
         
-        let current = u64::from_be(read_raw::<u64>(0x0200_bff8)) + 1000;
+        // If an interrupt is generated with the relative time requested by the Guest OS, an infinite loop will occur due to the interrupt.
+        // This is because the processing time due to virtualization overhead is longer than the tick of the guest OS.
+        // Therefore, get the time when the interrupt occurs and generate the interrupt based on that time.
+        // # 3000 is an arbitrary value, and the actual value depends on the execution environment.
+        let current = u64::from_be(read_raw::<u64>(0x0200_bff8)) + 3000;
         sbi::sbi_set_timer((current) as u64);
-        //let current = val;
-        //sbi::sbi_set_timer(val);
 
         self.mtimecmp = val;
         self.mtime = (current) as u64;
