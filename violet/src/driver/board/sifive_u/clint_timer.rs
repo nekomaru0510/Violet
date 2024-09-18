@@ -9,8 +9,8 @@ pub struct ClintTimer {
     base: usize,
 }
 
-const MTIMECMP0: usize = 0x0;
-const MTIME0: usize = 0x7ff8;
+const MTIMECMP0: usize = 0x4000;
+const MTIME0: usize = 0xbff8;
 
 impl TraitTimer for ClintTimer {
     fn write(&self, t: u64) {
@@ -56,6 +56,8 @@ impl ClintTimer {
     }
 
     pub fn read_mtime(&self) -> u64 {
-        unsafe { read_volatile((self.base + MTIME0) as *const u64) }
+        unsafe {
+            u64::from_be(read_volatile((self.base + MTIME0) as *const u64))
+        }
     }
 }
