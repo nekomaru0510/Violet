@@ -82,6 +82,10 @@ impl VirtualCpu {
         self.context.switch(regs);
     }
 
+    pub fn set_vcpuid(&mut self, vcpuid: usize) {
+        self.vcpuid = vcpuid;
+    }
+
     pub fn get_vcpuid(&self) -> usize {
         self.vcpuid
     }
