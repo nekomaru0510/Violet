@@ -12,6 +12,7 @@ enum LogLevel {
 pub struct LogManager<T> {
     logs: Vec<Log<T>>,
     enable: bool,
+    get_time: fn()->u64,
 }
 
 #[derive(Debug)]
@@ -20,12 +21,14 @@ pub struct Log<T> {
     value: T,
 }
 
+#[macro_export]
 macro_rules! log_define {
-    ($name:ident, $type:ty) => {
-        static mut $name: LogManager<$type> = LogManager::new();
+    ($name:ident, $type:ty, $func:ident) => {
+        static mut $name: LogManager<$type> = LogManager::new($func);
     };
 }
 
+#[macro_export]
 macro_rules! log_record {
     ($name:ident, $value:expr) => {
         unsafe {
@@ -34,39 +37,36 @@ macro_rules! log_record {
     };
 }
 
+#[macro_export]
 macro_rules! log_get {
     ($name:ident, $idx:expr) => {
         unsafe {
-            match $name.get($idx) {
-                Some(log) => Some(*log),
-                None => None,
-            }
+            $name.get($idx)
         }
     };
 }
 
 impl<T> LogManager<T> {
-    pub const fn new() -> Self {
+    pub const fn new(func: fn()->u64) -> Self {
         LogManager {
             logs: Vec::new(),
             enable: true,
+            get_time: func,
         }
     }
 
     pub fn log(&mut self, value: T) {
         if self.enable {
+            
             self.logs.push(Log {
-                time: 0,
+                time: (self.get_time)(),
                 value,
             });
         }
     }
 
-    pub fn get(&self, index: usize) -> Option<&T> {
-        match self.logs.get(index) {
-            Some(log) => Some(log.get()),
-            None => None,
-        }
+    pub fn get(&self, index: usize) -> Option<&Log<T>> {
+        self.logs.get(index)
     }
 
 }
@@ -86,18 +86,29 @@ impl<T> Log<T> {
     pub fn get(&self) -> &T {
         &self.value
     }
+
+    pub fn get_time(&self) -> u64 {
+        self.time
+    }
 }
 
 #[cfg(test)]
-log_define!(TEST, u64);
+fn get_time() -> u64 {
+    0
+}
+
+#[cfg(test)]
+log_define!(TEST, u64, get_time);
 
 #[test_case]
 fn test_logging() -> Result<(), &'static str> {
+
     log_record!(TEST, 0x1234);
     log_record!(TEST, 0x5678);
+
     match log_get!(TEST, 0) {
         Some(log) => {
-            if log == 0x1234 {
+            if *(log.get()) == 0x1234 && log.get_time() == 0 {
                 Ok(())
             } else {
                 Err("Fail to get log")
