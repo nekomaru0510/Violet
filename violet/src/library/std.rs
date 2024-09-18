@@ -39,3 +39,11 @@ pub fn memcpy(dst: usize, src: usize, size: usize) {
         }
     }
 }
+
+pub fn get_tick() -> u64 {
+    if let BorrowResource::Timer(t) = get_resources().get(ResourceType::Timer, 0) {
+        t.read()
+    } else {
+        0
+    }
+}
