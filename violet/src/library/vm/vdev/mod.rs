@@ -1,5 +1,6 @@
 //! Virtual Device
 
+pub mod access_logger;
 pub mod vplic;
 pub mod vclint;
 
