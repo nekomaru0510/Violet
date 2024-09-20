@@ -86,6 +86,19 @@ impl Load {
             _ => 0,
         }
     }
+
+    pub fn size(&self) -> usize {
+        match self {
+            Load::Lb(_) => 1,
+            Load::Lh(_) => 2,
+            Load::Lw(_) => 4,
+            Load::Ld(_) => 8,
+            Load::Clw(_) => 4,
+            Load::Cld(_) => 8,
+            Load::Clq(_) => 16,
+            _ => 0,
+        }
+    }
 }
 
 #[cfg(test)]

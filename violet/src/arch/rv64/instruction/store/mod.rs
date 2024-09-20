@@ -90,6 +90,19 @@ impl Store {
     pub fn store_value(&self, regs: &Registers) -> usize {
         regs.reg[self.src()]
     }
+
+    pub fn size(&self) -> usize {
+        match self {
+            Store::Sb(_) => 1,
+            Store::Sh(_) => 2,
+            Store::Sw(_) => 4,
+            Store::Sd(_) => 8,
+            Store::Csw(_) => 4,
+            Store::Csd(_) => 8,
+            Store::Csq(_) => 16,
+            _ => 0,
+        }
+    }
 }
 
 #[test_case]
