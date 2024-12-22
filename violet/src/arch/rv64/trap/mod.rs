@@ -1,3 +1,6 @@
+//SPDX-License-Identifier: MIT 
+//SPDX-FileCopyrightText: 2025 Ryosuke Yamamoto <yama05rymy@gmail.com> 
+
 //! Trap interrupt/exception
 pub mod exc;
 pub mod int;

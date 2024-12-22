@@ -1,3 +1,6 @@
+//SPDX-License-Identifier: MIT 
+//SPDX-FileCopyrightText: 2025 Ryosuke Yamamoto <yama05rymy@gmail.com> 
+
 //! Hypervisor guest external interrupt-enable register (hgeie)
 
 use crate::register;

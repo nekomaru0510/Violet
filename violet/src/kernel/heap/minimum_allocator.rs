@@ -1,3 +1,6 @@
+//SPDX-License-Identifier: MIT 
+//SPDX-FileCopyrightText: 2025 Ryosuke Yamamoto <yama05rymy@gmail.com> 
+
 //! Minimal allocator
 // Allocate memory as much as requested
 // Can't free memory

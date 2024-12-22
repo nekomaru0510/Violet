@@ -1,3 +1,6 @@
+//SPDX-License-Identifier: MIT 
+//SPDX-FileCopyrightText: 2025 Ryosuke Yamamoto <yama05rymy@gmail.com> 
+
 //! Violet Hypervisor
 #![feature(naked_functions)]
 #![feature(stmt_expr_attributes)]

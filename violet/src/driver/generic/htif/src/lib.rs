@@ -1,3 +1,6 @@
+//SPDX-License-Identifier: MIT 
+//SPDX-FileCopyrightText: 2025 Ryosuke Yamamoto <yama05rymy@gmail.com> 
+
 #[link_section = ".htif"]
 #[no_mangle]
 static mut tohost: u64 = 0;//0x80030000;

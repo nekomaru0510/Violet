@@ -1,3 +1,6 @@
+//SPDX-License-Identifier: MIT 
+//SPDX-FileCopyrightText: 2025 Ryosuke Yamamoto <yama05rymy@gmail.com> 
+
 //! Sifive Core-Local Interruptor(CLINT)'s timer module
 
 use core::ptr::{read_volatile, write_volatile};
