@@ -11,6 +11,7 @@ pub mod registers;
 // Processor Core specific processing
 pub trait TraitCpu {
     fn setup(&self);
+    fn get_core() -> &'static Self where Self: Sized;
 }
 
 // Architecture specific processing

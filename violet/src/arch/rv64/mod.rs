@@ -71,6 +71,17 @@ impl TraitCpu for Rv64 {
         self.set_default_vector();
         Rv64::enable_interrupt();
     }
+
+    fn get_core() -> &'static Self where Self: Sized{
+        unsafe {
+            let scratch: &Rv64 = transmute(Sscratch::get());
+            if Sscratch::get() == 0 {
+                panic!("CPU structure is not found.");
+            } else {
+                scratch
+            }
+        }
+    }
 }
 
 impl TraitArch for Rv64 {
@@ -196,8 +207,31 @@ impl Rv64 {
 // Executed immediately after boot
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
-pub extern "C" fn setup_cpu(cpu_id: usize) {
+pub extern "C" fn setup_boot(cpu_id: usize) {
+    /* 
+     * Rv64 structure is created on the stack. 
+     * This stack isn't destroyed until finish hypervisor.
+     * That's why we can use this structure before heap initialization.
+     */
+    let cpu = Rv64::new(cpu_id as u64);
+    cpu.setup();
+
     boot_init(cpu_id);
+}
+
+// Executed immediately after boot
+#[cfg(target_arch = "riscv64")]
+#[no_mangle]
+pub extern "C" fn setup_ap(cpu_id: usize, next: fn()) {
+    /* 
+     * Rv64 structure is created on the stack. 
+     * This stack isn't destroyed until finish hypervisor.
+     * That's why we can use this structure before heap initialization.
+     */
+    let cpu = Rv64::new(cpu_id as u64);
+    cpu.setup();
+
+    next();
 }
 
 #[test_case]

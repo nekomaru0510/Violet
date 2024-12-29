@@ -6,6 +6,8 @@
 #![no_std]
 #![feature(used_with_arg)]
 
+pub mod setup;
+
 extern crate violet;
 
 use violet::library::vm::vdev::vplic::VPlic;
@@ -24,9 +26,6 @@ use violet::arch::traits::context::TraitContext;
 
 use violet::kernel::syscall::vsi::create_task;
 use violet::resource::{get_resources, BorrowResource, ResourceType};
-
-use violet::app_init;
-app_init!(main);
 
 pub fn do_ecall_from_vsmode(sp: *mut usize) {
     let regs = Registers::from(sp);

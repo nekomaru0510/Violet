@@ -27,7 +27,7 @@ pub extern "C" fn _start() {
                 la      sp, __KERNEL_SP_BOTTOM
                 add     sp, sp, t0
 
-                j       setup_cpu
+                j       setup_boot
         ",
         options(noreturn)
         );
@@ -54,7 +54,7 @@ pub extern "C" fn _start_ap() {
                 la      sp, __KERNEL_SP_BOTTOM
                 add     sp, sp, t0
 
-                jalr    a1
+                j setup_ap
         ",
         options(noreturn)
         );

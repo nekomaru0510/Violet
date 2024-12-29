@@ -13,8 +13,14 @@ use crate::resource::{Resource, ResourceManager}; // [todo delete]
 
 use crate::environment::NUM_OF_CPUS;
 
+pub enum ContainerState {
+    Stopped,
+    Running,
+}
+
 pub struct Container {
     id: usize,
+    state: ContainerState,
     pub kernel: Kernel,
     pub rm: ResourceManager,
 }
@@ -23,8 +29,25 @@ impl Container {
     pub fn new(id: usize) -> Self {
         Container {
             id,
+            state : ContainerState::Stopped,
             kernel: Kernel::create_custom_kernel(id),
             rm: ResourceManager::new(),
+        }
+    }
+
+    pub fn run(&mut self) {
+        self.state = ContainerState::Running;
+        self.kernel.run();
+    }
+
+    pub fn entry(&self) {
+        self.kernel.entry();
+    }
+
+    pub fn is_running(&self) -> bool {
+        match self.state {
+            ContainerState::Running => true,
+            _ => false,
         }
     }
 }
@@ -46,7 +69,7 @@ impl ContainerTable {
     }
 
     pub fn create(&mut self) -> usize {
-        let id: usize = self.containers.len();
+        let id: usize = self.containers.len()+1;
         self.containers.push(Container::new(id));
         id
     }
@@ -76,6 +99,10 @@ impl ContainerTable {
 
 pub fn create_container() -> usize {
     unsafe { CONTAINER_TABLE.create() }
+}
+
+pub fn does_container_exist() -> bool {
+    return current_container_id() == 0;
 }
 
 pub fn get_container() -> &'static Container {

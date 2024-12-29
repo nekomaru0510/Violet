@@ -14,7 +14,7 @@ use crate::driver::traits::serial::TraitSerial;
 use crate::driver::traits::timer::TraitTimer;
 
 pub struct ResourceManager {
-    cpu: Vec<Box<dyn TraitCpu>>,
+    cpu: Vec<&'static dyn TraitCpu>,
     intc: Vec<Box<dyn TraitIntc>>,
     timer: Vec<Box<dyn TraitTimer>>,
     serial: Vec<Box<dyn TraitSerial>>,
@@ -131,7 +131,7 @@ pub enum ResourceType {
 }
 
 pub enum Resource {
-    Cpu(Box<dyn TraitCpu>),
+    Cpu(&'static dyn TraitCpu),
     Intc(Box<dyn TraitIntc>),
     Timer(Box<dyn TraitTimer>),
     Serial(Box<dyn TraitSerial>),
@@ -139,7 +139,7 @@ pub enum Resource {
 }
 
 pub enum BorrowResource<'a> {
-    Cpu(&'a Box<dyn TraitCpu>),
+    Cpu(&'a &'static dyn TraitCpu),
     Intc(&'a Box<dyn TraitIntc>),
     Timer(&'a Box<dyn TraitTimer>),
     Serial(&'a Box<dyn TraitSerial>),
@@ -147,7 +147,7 @@ pub enum BorrowResource<'a> {
 }
 
 pub enum BorrowMutResource<'a> {
-    Cpu(&'a mut Box<dyn TraitCpu>),
+    Cpu(&'a mut &'static dyn TraitCpu),
     Intc(&'a mut Box<dyn TraitIntc>),
     Timer(&'a mut Box<dyn TraitTimer>),
     Serial(&'a mut Box<dyn TraitSerial>),

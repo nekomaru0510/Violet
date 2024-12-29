@@ -12,8 +12,8 @@ pub mod syscall;
 pub mod task;
 pub mod traits;
 
-use crate::container::{get_container, get_mut_container};
-use crate::environment::init_environment;
+use crate::container::{get_container, get_mut_container, does_container_exist};
+//use crate::environment::init_environment;
 use crate::environment::NUM_OF_CPUS;
 use crate::print;
 use crate::println;
@@ -28,6 +28,8 @@ use init_calls::*;
 use sched::fifo::FifoScheduler;
 use syscall::vsi::create_task;
 use task::Task;
+use crate::environment::Arch;
+use crate::arch::traits::TraitArch;
 
 use traits::dispatcher::TraitDispatcher;
 use traits::sched::TraitSched;
@@ -43,28 +45,32 @@ extern "C" {
 
 #[no_mangle]
 pub extern "C" fn boot_init(cpu_id: usize) {
+    
+    // System initialization
     // Initialize memory allocator
     unsafe {
         init_allocater(transmute(&__HEAP_BASE), transmute(&__HEAP_END));
     }
+    // Wake up all CPUs
+    //wakeup_all_cpus(cpu_id);
 
-    init_environment();
-    do_driver_calls();
-
-    init_bsp(cpu_id);
-
-    println!("Hello I'm {} ", "Violet Hypervisor");
+    //println!("Hello I'm {} ", "Violet Hypervisor");
 
     #[cfg(test)]
     test_entry();
 
+    // Setup containers
     // Run init_calls on CPU0
-    create_task(1, do_app_calls, 0);
-
-    // Wake up all CPUs
+    if does_container_exist() {
+        do_app_calls();
+    } else {
+        get_container().entry();
+    }
+    // [todo delete]
     wakeup_all_cpus(cpu_id);
-
-    main_loop(cpu_id);
+    
+    // Run self container
+    get_mut_container().run();
 }
 
 fn init_bsp(cpu_id: usize) {
@@ -74,11 +80,15 @@ fn init_bsp(cpu_id: usize) {
 }
 
 fn init_ap(cpu_id: usize) {
+    
+    while !get_container().is_running() {};
+
     if let BorrowResource::Cpu(c) = get_resources().get(ResourceType::Cpu, cpu_id) {
         c.setup();
     }
 
-    main_loop(cpu_id);
+    get_container().entry();
+
 }
 
 fn wakeup_all_cpus(cpu_id: usize) {
@@ -108,6 +118,14 @@ impl Kernel {
 
     pub fn create_custom_kernel(container_id: usize) -> Self {
         Kernel::new(Box::new(unsafe { &mut HEAP }))
+    }
+
+    pub fn run(&self) {
+        main_loop(Arch::get_cpuid());
+    }
+
+    pub fn entry(&self) {
+        main_loop(Arch::get_cpuid());
     }
 }
 
