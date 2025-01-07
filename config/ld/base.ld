@@ -45,6 +45,13 @@ SECTIONS
         *(.init_calls.2.end);
     } > RAM
 
+    /* system_config: system configuration */
+    .system_config :
+    {
+        __SYSTEM_CONFIG_START = .;
+        *(.system_config.start);
+    } > RAM
+
     .bss :
     {
         *(.bss .bss.*);

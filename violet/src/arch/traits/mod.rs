@@ -12,6 +12,9 @@ pub mod registers;
 pub trait TraitCpu {
     fn setup(&self);
     fn get_core() -> &'static Self where Self: Sized;
+    fn get_mut_core() -> &'static mut Self where Self: Sized;
+    fn set_container_id(&mut self, id: usize);
+    fn get_container_id(&self) -> usize;
 }
 
 // Architecture specific processing

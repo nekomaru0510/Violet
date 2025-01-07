@@ -12,6 +12,7 @@ use alloc::boxed::Box;
 extern crate violet;
 
 use violet::container::create_container;
+use violet::system::config::{SystemConfig, ContainerConfig};
 use violet::kernel::syscall::vsi::create_task;
 
 use violet::container::*;
@@ -46,6 +47,32 @@ use super::boot_linux;
 use violet::app_init;
 app_init!(setup);
 
+pub const NUM_OF_CONTAINERS: usize = 1;
+pub const NUM_OF_CORES: usize = 2;
+pub const CORE0_SHIFT: usize = 0;
+pub const CORE1_SHIFT: usize = 1;
+
+#[used(linker)]
+#[link_section = ".system_config.start"]
+pub static system_config: SystemConfig<NUM_OF_CONTAINERS, NUM_OF_CORES> = SystemConfig {
+    num_of_cpus: NUM_OF_CORES,
+    num_of_containers: 1,
+    core2container: [
+        1, // Core 0
+        1, // Core 1
+    ],
+    container: [
+        ContainerConfig {
+            id: 1,
+            num_of_cpus: 2,
+            cores: 
+                1 << CORE0_SHIFT | 
+                1 << CORE1_SHIFT,
+            bsp: 0,
+        },
+    ],
+};
+
 pub fn setup() {
     create_container();
     init_environment();
@@ -55,8 +82,10 @@ pub fn setup() {
 }
 
 pub fn init_environment() {
+    
+    //Arch::get_mut_core().set_container_id(1);
+    
     let resources = get_mut_resources();
-
     let result = resources.register(Resource::Cpu(Arch::get_core()));
 
     let result = resources.register(Resource::Serial(Box::new(Uart::new(UART_BASE))));

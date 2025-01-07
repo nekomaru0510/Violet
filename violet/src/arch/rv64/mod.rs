@@ -13,7 +13,8 @@ pub mod sbi;
 pub mod trap;
 pub mod vscontext;
 
-use crate::kernel::boot_init;
+use crate::system::boot_init;
+use crate::system::system_init;
 
 use super::traits::TraitCpu;
 use super::traits::TraitArch;
@@ -55,6 +56,7 @@ pub struct Rv64 {
     sp: usize,
     tmp0: usize,
     status: CpuStatus,
+    container_id: usize,
     trap: TrapVector,
 }
 
@@ -81,6 +83,25 @@ impl TraitCpu for Rv64 {
                 scratch
             }
         }
+    }
+
+    fn get_mut_core() -> &'static mut Self where Self: Sized{
+        unsafe {
+            let mut scratch: &'static mut Rv64 = transmute(Sscratch::get());
+            if Sscratch::get() == 0 {
+                panic!("CPU structure is not found.");
+            } else {
+                scratch
+            }
+        }
+    }
+
+    fn set_container_id(&mut self, id: usize) {
+        self.container_id = id;
+    }
+
+    fn get_container_id(&self) -> usize {
+        self.container_id
     }
 }
 
@@ -161,6 +182,7 @@ impl Rv64 {
             sp: 0x0,
             tmp0: 0x0,
             status: CpuStatus::STARTED,
+            container_id: 0,
             trap: TrapVector::new(),
         }
     }
@@ -216,13 +238,14 @@ pub extern "C" fn setup_boot(cpu_id: usize) {
     let cpu = Rv64::new(cpu_id as u64);
     cpu.setup();
 
-    boot_init(cpu_id);
+    //boot_init(cpu_id);
+    system_init(cpu_id);
 }
 
 // Executed immediately after boot
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
-pub extern "C" fn setup_ap(cpu_id: usize, next: fn()) {
+pub extern "C" fn setup_ap(cpu_id: usize, next: fn(usize)) {
     /* 
      * Rv64 structure is created on the stack. 
      * This stack isn't destroyed until finish hypervisor.
@@ -231,7 +254,7 @@ pub extern "C" fn setup_ap(cpu_id: usize, next: fn()) {
     let cpu = Rv64::new(cpu_id as u64);
     cpu.setup();
 
-    next();
+    next(cpu_id);
 }
 
 #[test_case]

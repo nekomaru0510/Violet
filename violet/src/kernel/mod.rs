@@ -13,18 +13,9 @@ pub mod task;
 pub mod traits;
 
 use crate::container::{get_container, get_mut_container, does_container_exist};
-//use crate::environment::init_environment;
-use crate::environment::NUM_OF_CPUS;
-use crate::print;
-use crate::println;
-use crate::resource::{get_resources, BorrowResource, ResourceType};
-#[cfg(test)]
-use crate::test_entry;
+//use crate::{print, println};
 
-use core::intrinsics::transmute;
 use dispatcher::minimal_dispatcher::MinimalDispatcher;
-use heap::init_allocater;
-use init_calls::*;
 use sched::fifo::FifoScheduler;
 use syscall::vsi::create_task;
 use task::Task;
@@ -34,70 +25,8 @@ use crate::arch::traits::TraitArch;
 use traits::dispatcher::TraitDispatcher;
 use traits::sched::TraitSched;
 
-use crate::arch::rv64::boot::_start_ap; // [todo delete]
 use crate::arch::rv64::instruction::Instruction; // [todo delete]
-use crate::arch::rv64::sbi; // [todo delete]
 
-extern "C" {
-    static __HEAP_BASE: usize;
-    static __HEAP_END: usize;
-}
-
-#[no_mangle]
-pub extern "C" fn boot_init(cpu_id: usize) {
-    
-    // System initialization
-    // Initialize memory allocator
-    unsafe {
-        init_allocater(transmute(&__HEAP_BASE), transmute(&__HEAP_END));
-    }
-    // Wake up all CPUs
-    //wakeup_all_cpus(cpu_id);
-
-    //println!("Hello I'm {} ", "Violet Hypervisor");
-
-    #[cfg(test)]
-    test_entry();
-
-    // Setup containers
-    // Run init_calls on CPU0
-    if does_container_exist() {
-        do_app_calls();
-    } else {
-        get_container().entry();
-    }
-    // [todo delete]
-    wakeup_all_cpus(cpu_id);
-    
-    // Run self container
-    get_mut_container().run();
-}
-
-fn init_bsp(cpu_id: usize) {
-    if let BorrowResource::Cpu(c) = get_resources().get(ResourceType::Cpu, cpu_id) {
-        c.setup();
-    }
-}
-
-fn init_ap(cpu_id: usize) {
-    
-    while !get_container().is_running() {};
-
-    if let BorrowResource::Cpu(c) = get_resources().get(ResourceType::Cpu, cpu_id) {
-        c.setup();
-    }
-
-    get_container().entry();
-
-}
-
-fn wakeup_all_cpus(cpu_id: usize) {
-    for i in 0..NUM_OF_CPUS {
-        if i as usize != cpu_id {
-            sbi::sbi_hart_start(i as u64, _start_ap as u64, init_ap as u64); /* [todo fix] don't use sbi */
-        }
-    }
-}
 
 fn idle_core() {
     Instruction::wfi();
