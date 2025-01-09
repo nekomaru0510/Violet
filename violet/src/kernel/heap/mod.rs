@@ -6,8 +6,6 @@
 pub mod slab;
 
 extern crate alloc;
-use crate::container::is_ready_container;
-use crate::kernel::get_mut_kernel;
 use alloc::alloc::{GlobalAlloc, Layout};
 use slab::SlabAllocator;
 
@@ -36,23 +34,10 @@ impl HeapOperator {
 unsafe impl GlobalAlloc for HeapOperator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         HEAP.allocate(layout)
-        /*
-        if is_ready_container() {
-            get_mut_kernel().heap.as_mut().allocate(layout)
-        } else {
-            HEAP.allocate(layout)
-        }*/
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         HEAP.deallocate(ptr, layout);
-        /*
-        if is_ready_container() {
-            get_mut_kernel().heap.as_mut().deallocate(ptr, layout);
-        } else {
-            HEAP.deallocate(ptr, layout);
-        }
-        */
     }
 }
 

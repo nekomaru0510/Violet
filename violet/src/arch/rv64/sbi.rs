@@ -98,3 +98,12 @@ pub fn sbi_hart_suspend(suspend_type: u32, resume_addr: u64, opaque: u64) -> (us
 
     Instruction::ecall(ext, fid, a0, a1, a2, 0, 0, 0)
 }
+
+pub fn sbi_system_reset(reset_type: u32, reset_reason: u32) -> (usize, usize) {
+    let ext = Extension::SystemReset as i32;
+    let fid = 0 as i32;
+    let a0 = reset_type as usize;
+    let a1 = reset_reason as usize;
+
+    Instruction::ecall(ext, fid, a0, a1, 0, 0, 0, 0)
+}

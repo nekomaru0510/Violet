@@ -6,13 +6,10 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::arch::traits::TraitArch;
 use crate::arch::traits::TraitCpu;
 use crate::environment::Arch;
 use crate::kernel::Kernel;
 use crate::resource::{Resource, ResourceManager}; // [todo delete]
-
-use crate::environment::NUM_OF_CPUS;
 
 pub enum ContainerState {
     Stopped,
@@ -58,14 +55,12 @@ static mut CONTAINER_TABLE: ContainerTable = ContainerTable::new();
 
 struct ContainerTable {
     containers: Vec<Container>,
-    cpu2container: [usize; NUM_OF_CPUS],
 }
 
 impl ContainerTable {
     pub const fn new() -> Self {
         ContainerTable {
             containers: Vec::new(),
-            cpu2container: [1; NUM_OF_CPUS],
         }
     }
 
@@ -83,10 +78,6 @@ impl ContainerTable {
     pub fn get_mut(&mut self, id: usize) -> &mut Container {
         // Do not check id. It is okay to panic for access to other containers.
         &mut self.containers[Self::id2idx(id)]
-    }
-
-    pub fn current_id(&self) -> usize {
-        self.cpu2container[Arch::get_cpuid()]
     }
 
     pub fn is_exist(&self, id: usize) -> bool {

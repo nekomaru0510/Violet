@@ -2,25 +2,23 @@
 //SPDX-FileCopyrightText: 2025 Ryosuke Yamamoto <yama05rymy@gmail.com> 
 
 pub const MAX_CONTAINERS: usize = 1; // todo fix
-pub const MAX_CORES: usize = 2; // todo delete
 
 #[allow(improper_ctypes)]
 extern "C" {
-    static mut __SYSTEM_CONFIG_START: SystemConfig<MAX_CONTAINERS, MAX_CORES>;
+    static mut __SYSTEM_CONFIG_START: SystemConfig<MAX_CONTAINERS>;
 }
 
 /* 
- * システム全体に関する情報
+ * Configuration about the entire system
  */
-pub struct SystemConfig<const NUM_OF_CONTAINERS: usize, const NUM_OF_CORES: usize> {
+pub struct SystemConfig<const NUM_OF_CONTAINERS: usize> {
     pub num_of_cpus: usize,
     pub num_of_containers: usize,
-    pub core2container: [usize; NUM_OF_CORES],              // todo delete
     pub container: [ContainerConfig; NUM_OF_CONTAINERS],
 }
 
 /* 
- * コンテナ生成時に参照される情報 
+ * Configuration referenced when creating a container
  */
 pub struct ContainerConfig {
     pub id: usize,          // Container ID
@@ -29,10 +27,19 @@ pub struct ContainerConfig {
     pub bsp: usize,         // BootStrap Processor in Container
 }
 
+/* 
+ * Get Container ID from Core ID
+ * notice: Use only when creating a container
+ */
 pub fn get_container_id(core_id: usize) -> usize {
     unsafe {
         let config = &__SYSTEM_CONFIG_START;
-        config.core2container[core_id]
+        match config.container
+            .iter()
+            .find(|c| (c.cores & (1 << core_id as u64) != 0)) {
+                Some(c) => c.id,
+                None => 0,
+            }
     }
 }
 
@@ -43,5 +50,9 @@ pub fn get_container_bsp(container_id: usize) -> usize {
     }
 }
 
-
-
+pub fn get_num_of_cpus() -> usize {
+    unsafe {
+        let config = &__SYSTEM_CONFIG_START;
+        config.num_of_cpus
+    }
+}

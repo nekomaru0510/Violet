@@ -12,12 +12,11 @@ pub mod syscall;
 pub mod task;
 pub mod traits;
 
-use crate::container::{get_container, get_mut_container, does_container_exist};
+use crate::container::{get_container, get_mut_container};
 //use crate::{print, println};
 
 use dispatcher::minimal_dispatcher::MinimalDispatcher;
 use sched::fifo::FifoScheduler;
-use syscall::vsi::create_task;
 use task::Task;
 use crate::environment::Arch;
 use crate::arch::traits::TraitArch;

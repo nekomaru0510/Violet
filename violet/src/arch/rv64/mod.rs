@@ -13,11 +13,14 @@ pub mod sbi;
 pub mod trap;
 pub mod vscontext;
 
-use crate::system::boot_init;
-use crate::system::system_init;
+use crate::system::init_system;
+use crate::system::enter_container;
+use crate::system::config;
 
 use super::traits::TraitCpu;
 use super::traits::TraitArch;
+
+use boot::_start_ap;
 
 use instruction::Instruction;
 use trap::TrapVector;
@@ -87,7 +90,7 @@ impl TraitCpu for Rv64 {
 
     fn get_mut_core() -> &'static mut Self where Self: Sized{
         unsafe {
-            let mut scratch: &'static mut Rv64 = transmute(Sscratch::get());
+            let scratch: &'static mut Rv64 = transmute(Sscratch::get());
             if Sscratch::get() == 0 {
                 panic!("CPU structure is not found.");
             } else {
@@ -237,9 +240,11 @@ pub extern "C" fn setup_boot(cpu_id: usize) {
      */
     let cpu = Rv64::new(cpu_id as u64);
     cpu.setup();
+    set_container_id(cpu_id);
 
-    //boot_init(cpu_id);
-    system_init(cpu_id);
+    wakeup_all_cpus(cpu_id);
+
+    init_system(cpu_id);
 }
 
 // Executed immediately after boot
@@ -253,8 +258,30 @@ pub extern "C" fn setup_ap(cpu_id: usize, next: fn(usize)) {
      */
     let cpu = Rv64::new(cpu_id as u64);
     cpu.setup();
+    set_container_id(cpu_id);
 
     next(cpu_id);
+}
+
+fn wakeup_all_cpus(cpu_id: usize) {
+
+    let num_of_cpus = config::get_num_of_cpus();
+    for i in 0..num_of_cpus {
+        if i as usize != cpu_id {
+            sbi::sbi_hart_start(i as u64, _start_ap as u64, enter_container as u64);
+        }
+    }
+}
+
+fn set_container_id(cpu_id: usize) {
+    let mut container_id = 0;
+
+    // Get Container ID from System Configuration
+    while (container_id) == 0 {
+        container_id = config::get_container_id(cpu_id);
+    };
+    // Set Container ID
+    Rv64::get_mut_core().set_container_id(container_id);
 }
 
 #[test_case]
