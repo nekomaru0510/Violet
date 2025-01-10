@@ -14,9 +14,6 @@ use violet::kernel::syscall::vsi::create_task;
 
 use violet::resource::*;
 
-use violet::arch::rv64::Rv64;
-use violet::arch::traits::TraitCpu;
-
 /* Device Driver */
 use violet::driver::board::sifive_u::clint_timer::ClintTimer;
 use violet::driver::board::sifive_u::plic::Plic;
@@ -56,22 +53,17 @@ pub static SYSTEM_CONFIG: SystemConfig<NUM_OF_CONTAINERS> = SystemConfig {
     ],
 };
 
-pub fn setup() {
+fn setup() {
     create_container();
-    init_environment();
 
-    // Boot Linux on core 1
-    create_task(2, boot_linux, 1);
+    init_environment();
+    init_kernel();
+    init_task();
 }
 
-pub fn init_environment() {
+fn init_environment() {
 
     let resources = get_mut_resources();
-
-    match resources.register(Resource::Cpu(Rv64::get_core())) {
-        Ok(_) => (),
-        Err(e) => panic!("Failed to register CPU: {:?}", e),
-    }
 
     match resources.register(Resource::Serial(Box::new(Uart::new(UART_BASE)))) {
         Ok(_) => (),
@@ -88,4 +80,13 @@ pub fn init_environment() {
         Err(e) => panic!("Failed to register Timer: {:?}", e),
     }
 
+}
+
+fn init_kernel() {
+    // todo
+}
+
+fn init_task() {
+    // Boot Linux on core 1
+    create_task(2, boot_linux, 1);
 }

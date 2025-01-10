@@ -121,7 +121,6 @@ pub fn get_mut_container_by_id(id: usize) -> &'static mut Container {
 }
 
 pub fn current_container_id() -> usize {
-    //unsafe { CONTAINER_TABLE.current_id() }
     Arch::get_core().get_container_id()
 }
 

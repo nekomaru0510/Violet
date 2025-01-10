@@ -247,10 +247,12 @@ pub extern "C" fn setup_boot(cpu_id: usize) {
     init_system(cpu_id);
 }
 
+type ExternFn = extern "C" fn(usize);
+
 // Executed immediately after boot
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
-pub extern "C" fn setup_ap(cpu_id: usize, next: fn(usize)) {
+pub extern "C" fn setup_ap(cpu_id: usize, next: ExternFn) {
     /* 
      * Rv64 structure is created on the stack. 
      * This stack isn't destroyed until finish hypervisor.

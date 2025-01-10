@@ -13,7 +13,6 @@ pub mod task;
 pub mod traits;
 
 use crate::container::{get_container, get_mut_container};
-//use crate::{print, println};
 
 use dispatcher::minimal_dispatcher::MinimalDispatcher;
 use sched::fifo::FifoScheduler;
