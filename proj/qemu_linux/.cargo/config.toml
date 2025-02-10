@@ -5,9 +5,9 @@ opt-level = 0
 runner = "./tools/run.sh "
 
 [build]
-target = "../../env/qemu_virt/qemu_virt.json"
+target = "../../violet/src/environment/qemu_virt/qemu_virt.json"
 rustflags = [
-    "-C", "link-arg=-T../../env/qemu_virt/qemu_virt.ld", 
+    "-C", "link-arg=-T../../violet/src/environment/qemu_virt/qemu_virt.ld", 
 ]
 
 [unstable]
