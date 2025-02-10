@@ -1,0 +1,3 @@
+[submodule "vpg"]
+	path = vpg
+	url = git@github.com:nekomaru0510/vpg.git
