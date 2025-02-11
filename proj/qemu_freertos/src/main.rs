@@ -8,6 +8,8 @@
 #![feature(used_with_arg)]
 #![allow(static_mut_refs)] /* [todo remove] */
 
+pub mod setup;
+
 extern crate violet;
 extern crate vmmode;
 
@@ -24,9 +26,6 @@ use violet::arch::rv64::trap::int::Interrupt;
 use violet::arch::rv64::trap::TrapVector;
 use violet::arch::rv64::vscontext::*;
 use violet::arch::traits::context::TraitContext;
-
-use violet::app_init;
-app_init!(main);
 
 pub fn do_guest_store_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
