@@ -7,6 +7,9 @@ use crate::{print, println};
 use core::intrinsics::transmute;
 
 #[cfg(test)]
+mod setup;
+
+#[cfg(test)]
 pub fn test_runner(tests: &[&dyn Fn() -> Result<(), &'static str>]) {
     let mut success = 0;
     println!("Running {} tests", tests.len());
