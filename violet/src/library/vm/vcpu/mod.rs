@@ -55,6 +55,10 @@ impl VirtualCpuMap {
     pub fn find_mut(&mut self, vcpuid: usize) -> Option<&mut VirtualCpu> {
         self.vcpus.iter_mut().find(|e| e.vcpuid == vcpuid)
     }
+
+    pub fn len(&self) -> usize {
+        self.vcpus.len()
+    }
 }
 
 pub enum VcpuStatus {

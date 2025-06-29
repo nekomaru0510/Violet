@@ -111,6 +111,10 @@ impl VirtualDevMap {
             Some(d) => Some(d.read(addr) as usize),
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.map.len()
+    }
 }
 
 pub fn read_raw<T>(addr: usize) -> T {

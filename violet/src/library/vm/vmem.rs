@@ -55,6 +55,10 @@ impl VirtualMemoryMap {
             Some(m) => m.get_paddr(vaddr),
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.map.len()
+    }
 }
 
 pub struct VirtualMemoryArea {
