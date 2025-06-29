@@ -11,7 +11,6 @@ use alloc::vec::Vec;
 use crate::arch::traits::context::TraitContext;
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::TraitArch;
-use crate::environment::NUM_OF_CPUS;
 use vreg::{VirtualRegisterMap, VirtualRegisterT};
 
 use crate::environment::Hyp;
@@ -19,25 +18,31 @@ use crate::environment::Arch;
 
 pub struct VirtualCpuMap {
     vcpus: Vec<VirtualCpu>,
-    p2v_cpu: [usize; NUM_OF_CPUS],
+    /// Mapping from physical CPU ID to vCPU ID (per VM, dynamic size)
+    p2v_cpu: Vec<Option<usize>>,
 }
 
 impl VirtualCpuMap {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         VirtualCpuMap {
             vcpus: Vec::new(),
-            p2v_cpu: [0; NUM_OF_CPUS],
+            p2v_cpu: Vec::new(),
         }
     }
 
     pub fn register(&mut self, vcpuid: usize, pcpuid: usize) {
-        self.p2v_cpu[pcpuid] = vcpuid;
+        // Dynamically resize mapping if needed
+        if self.p2v_cpu.len() <= pcpuid {
+            self.p2v_cpu.resize(pcpuid + 1, None);
+        }
+        self.p2v_cpu[pcpuid] = Some(vcpuid);
         self.vcpus.push(VirtualCpu::new(vcpuid));
     }
 
-    // Return the ID of the virtual CPU currently running
+    /// Return the ID of the virtual CPU currently running
     pub fn get_vcpuid(&self) -> usize {
-        self.p2v_cpu[Arch::get_cpuid()]
+        let pcpuid = Arch::get_cpuid();
+        self.p2v_cpu.get(pcpuid).and_then(|x| *x).unwrap_or(0)
     }
 
     pub fn get(&self, vcpuid: usize) -> Option<&VirtualCpu> {
