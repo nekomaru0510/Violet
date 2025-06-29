@@ -7,8 +7,10 @@ use super::VirtualDeviceT;
 use super::{read_raw, write_raw};
 use crate::arch::rv64::Rv64;
 use crate::arch::traits::TraitArch;
-use crate::environment::NUM_OF_CPUS;
 use crate::environment::resource::{get_resources, BorrowResource, ResourceType}; /* [todo delete] */
+
+// [todo fix] This should be configurable per hardware implementation
+const NUM_OF_CPUS: usize = 8; 
 
 #[repr(C)]
 #[repr(align(4096))]
