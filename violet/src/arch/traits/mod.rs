@@ -15,6 +15,8 @@ pub trait TraitCpu {
     fn get_mut_core() -> &'static mut Self where Self: Sized;
     fn set_container_id(&mut self, id: usize);
     fn get_container_id(&self) -> usize;
+    fn set_vm_id(&mut self, vm_id: usize);
+    fn get_vm_id(&self) -> usize;
 }
 
 // Architecture specific processing

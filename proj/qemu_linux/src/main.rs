@@ -25,7 +25,7 @@ use violet::arch::rv64::vscontext::*;
 use violet::arch::traits::context::TraitContext;
 
 use violet::kernel::syscall::vsi::create_task;
-use violet::resource::{get_resources, BorrowResource, ResourceType};
+use violet::environment::resource::{get_resources, BorrowResource, ResourceType};
 
 pub fn do_ecall_from_vsmode(sp: *mut usize) {
     let regs = Registers::from(sp);

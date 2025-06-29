@@ -17,10 +17,9 @@ use trap::TrapMap;
 
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::context::TraitContext;
-use crate::arch::traits::TraitArch;
+use crate::arch::traits::TraitCpu;
 use crate::environment::Arch;
 use crate::environment::Hyp;
-use crate::environment::NUM_OF_CPUS;
 
 /// VirtualMachine represents a single virtual machine instance.
 pub struct VirtualMachine {
@@ -32,16 +31,19 @@ pub struct VirtualMachine {
     pub dev: VirtualDevMap,
     /// Trap handler map for this VM
     pub trap: TrapMap,
+    /// Virtual machine ID
+    pub vm_id: usize,
 }
 
 impl VirtualMachine {
-    /// Create a new VirtualMachine instance.
-    pub fn new() -> VirtualMachine {
+    /// Create a new VirtualMachine instance with the given VM ID.
+    pub fn new(vm_id: usize) -> VirtualMachine {
         VirtualMachine {
             cpu: VirtualCpuMap::new(),
             mem: VirtualMemoryMap::new(),
             dev: VirtualDevMap::new(),
             trap: TrapMap::new(),
+            vm_id,
         }
     }
 
@@ -53,6 +55,8 @@ impl VirtualMachine {
 
     /// Run the virtual machine (jump to the current vCPU context).
     pub fn run(&mut self) {
+        // Set the VM ID to the current CPU before running
+        Arch::get_mut_core().set_vm_id(self.vm_id);
         match self.cpu.get(self.cpu.get_vcpuid()) {
             None => (),
             Some(v) => v.context.jump(),
@@ -94,8 +98,6 @@ static mut VIRTUAL_MACHINE_TABLE: VirtualMachineTable = VirtualMachineTable::new
 struct VirtualMachineTable {
     /// List of all virtual machines
     vms: Vec<VirtualMachine>,
-    /// Mapping from physical CPU to VM ID
-    cpu2vm: [usize; NUM_OF_CPUS],
 }
 
 impl VirtualMachineTable {
@@ -103,14 +105,13 @@ impl VirtualMachineTable {
     pub const fn new() -> Self {
         VirtualMachineTable {
             vms: Vec::new(),
-            cpu2vm: [0; NUM_OF_CPUS],
         }
     }
 
     /// Create a new virtual machine and return its ID.
     pub fn create(&mut self) -> usize {
         let id: usize = self.vms.len();
-        self.vms.push(VirtualMachine::new());
+        self.vms.push(VirtualMachine::new(id));
         id
     }
 
@@ -129,8 +130,10 @@ impl VirtualMachineTable {
     }
 
     /// Get the current virtual machine ID for the running CPU.
+    ///
+    /// Returns the VM ID mapped to the current physical CPU core.
     pub fn current_id(&self) -> usize {
-        self.cpu2vm[Arch::get_cpuid()]
+        current_vm_id()
     }
 
     /// Check if at least one virtual machine is ready.
@@ -161,7 +164,15 @@ pub fn get_mut_virtual_machine() -> &'static mut VirtualMachine {
 
 /// Get the current virtual machine ID for the running CPU.
 pub fn current_vm_id() -> usize {
-    unsafe { VIRTUAL_MACHINE_TABLE.current_id() }
+    Arch::get_core().get_vm_id()
+}
+
+/// Set the current virtual machine ID for the running CPU.
+///
+/// # Arguments
+/// * `vm_id` - Virtual machine ID to assign to the current physical CPU core
+pub fn set_current_vm_id(vm_id: usize) {
+    Arch::get_mut_core().set_vm_id(vm_id);
 }
 
 /// Check if at least one virtual machine is ready.
@@ -176,7 +187,7 @@ mod tests {
     /// Test VirtualMachine::new() creates a VM with empty maps
     #[test_case]
     fn test_vm_new() -> Result<(), &'static str> {
-        let vm = VirtualMachine::new();
+        let vm = VirtualMachine::new(0);
         // Check that maps are initialized (not None)
         if vm.cpu.len() != 0 {
             return Err("test_vm_new: cpu map should be empty");
@@ -186,6 +197,9 @@ mod tests {
         }
         if vm.dev.len() != 0 {
             return Err("test_vm_new: dev map should be empty");
+        }
+        if vm.vm_id != 0 {
+            return Err("test_vm_new: vm_id should be 0");
         }
         Ok(())
     }
@@ -201,6 +215,9 @@ mod tests {
             }
             if vm.cpu.len() != 0 {
                 return Err("test_vm_table_create_and_get: cpu map should be empty");
+            }
+            if vm.vm_id != id {
+                return Err("test_vm_table_create_and_get: vm_id should match id");
             }
         }
         Ok(())
@@ -230,7 +247,7 @@ mod tests {
     /// Test VirtualMachine::reset() does not panic
     #[test_case]
     fn test_vm_reset() -> Result<(), &'static str> {
-        let vm = VirtualMachine::new();
+        let vm = VirtualMachine::new(0);
         vm.reset();
         Ok(())
     }
@@ -238,7 +255,7 @@ mod tests {
     /// Test VirtualMachine::mmu_enable() does not panic
     #[test_case]
     fn test_vm_mmu_enable() -> Result<(), &'static str> {
-        let vm = VirtualMachine::new();
+        let vm = VirtualMachine::new(0);
         vm.mmu_enable();
         Ok(())
     }
@@ -246,7 +263,7 @@ mod tests {
     /// Test VirtualMachine::map_guest_page() with unmapped address
     #[test_case]
     fn test_vm_map_guest_page_unmapped() -> Result<(), &'static str> {
-        let mut vm = VirtualMachine::new();
+        let mut vm = VirtualMachine::new(0);
         // Should not panic
         vm.map_guest_page(0xdeadbeef);
         Ok(())
@@ -255,7 +272,7 @@ mod tests {
     /// Test VirtualMachine::map_guest_page() with mapped address
     #[test_case]
     fn test_vm_map_guest_page_mapped() -> Result<(), &'static str> {
-        let mut vm = VirtualMachine::new();
+        let mut vm = VirtualMachine::new(0);
         vm.mem.register(0x1000, 0x2000, 0x1000);
         vm.map_guest_page(0x1000);
         Ok(())

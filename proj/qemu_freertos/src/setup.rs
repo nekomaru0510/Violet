@@ -12,7 +12,7 @@ use violet::container::create_container;
 use violet::system::config::{SystemConfig, ContainerConfig};
 use violet::kernel::syscall::vsi::create_task;
 
-use violet::resource::*;
+use violet::environment::resource::*;
 
 /* Device Driver */
 use violet::driver::board::sifive_u::clint_timer::ClintTimer;

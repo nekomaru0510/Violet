@@ -61,6 +61,8 @@ pub struct Rv64 {
     status: CpuStatus,
     container_id: usize,
     trap: TrapVector,
+    /// Virtual machine ID mapped to this physical CPU core.
+    pub vm_id: usize,
 }
 
 #[derive(Copy, Clone)]
@@ -105,6 +107,16 @@ impl TraitCpu for Rv64 {
 
     fn get_container_id(&self) -> usize {
         self.container_id
+    }
+
+    /// Set the virtual machine ID mapped to this CPU core.
+    fn set_vm_id(&mut self, vm_id: usize) {
+        self.vm_id = vm_id;
+    }
+
+    /// Get the virtual machine ID mapped to this CPU core.
+    fn get_vm_id(&self) -> usize {
+        self.vm_id
     }
 }
 
@@ -187,6 +199,7 @@ impl Rv64 {
             status: CpuStatus::STARTED,
             container_id: 0,
             trap: TrapVector::new(),
+            vm_id: 0, // Default: no VM assigned
         }
     }
 
