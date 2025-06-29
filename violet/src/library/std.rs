@@ -3,7 +3,7 @@
 
 //! Standard library functions
 
-use crate::resource::{
+use crate::environment::resource::{
     get_mut_resources, get_resources, BorrowMutResource, BorrowResource, ResourceType,
 };
 use core::fmt::{self};

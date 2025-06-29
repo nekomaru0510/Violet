@@ -10,7 +10,7 @@ use crate::container::create_container;
 use crate::system::config::{SystemConfig, ContainerConfig};
 use crate::kernel::syscall::vsi::create_task;
 
-use crate::resource::*;
+use crate::environment::resource::*;
 
 /* Device Driver */
 use crate::driver::board::sifive_u::clint_timer::ClintTimer;

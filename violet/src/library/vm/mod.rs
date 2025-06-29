@@ -172,7 +172,6 @@ pub fn is_ready_virtual_machine() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::library::vm::vdev::vplic::VPlic;
 
     /// Test VirtualMachine::new() creates a VM with empty maps
     #[test_case]

@@ -28,11 +28,12 @@ pub mod driver;
 pub mod environment;
 pub mod kernel;
 pub mod library;
-pub mod resource;
 pub mod utils;
 pub mod system;
 #[cfg(test)]
 pub mod test;
+
+pub use crate::environment::resource::*;
 
 /*
  * [todo fix] I want to place "test_entry" in the test module, 

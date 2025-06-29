@@ -8,8 +8,9 @@ use alloc::vec::Vec;
 
 use crate::arch::traits::TraitCpu;
 use crate::environment::Arch;
+use crate::environment::resource::{Resource, ResourceManager}; // [todo delete]
 use crate::kernel::Kernel;
-use crate::resource::{Resource, ResourceManager}; // [todo delete]
+
 
 pub enum ContainerState {
     Stopped,
