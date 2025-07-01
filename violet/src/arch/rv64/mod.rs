@@ -36,8 +36,6 @@ use csr::sstatus;
 use csr::sstatus::*;
 use csr::stvec::Stvec;
 
-use crate::log_record;
-
 #[derive(Clone, Copy)]
 pub enum PrivilegeMode {
     ModeM,
@@ -256,9 +254,9 @@ pub extern "C" fn setup_boot(cpu_id: usize) {
     let cpu = Rv64::new(cpu_id as u64);
     cpu.setup();
     set_container_id(cpu_id);
-    log_record!(100);
+
     wakeup_all_cpus(cpu_id);
-    log_record!(101);
+
     init_system(cpu_id);
 }
 
@@ -276,7 +274,7 @@ pub extern "C" fn setup_ap(cpu_id: usize, next: ExternFn) {
     let cpu = Rv64::new(cpu_id as u64);
     cpu.setup();
     set_container_id(cpu_id);
-    log_record!(201);
+
     next(cpu_id);
 }
 
