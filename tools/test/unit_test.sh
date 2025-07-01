@@ -21,7 +21,7 @@ function log_checker () {
     fi
 }
 
-cd $(cd $(dirname $0); pwd)
+cd $(cd $(dirname $0); pwd)/../../violet
 
 # Run cargo build to ensure the project is built
 cargo build
