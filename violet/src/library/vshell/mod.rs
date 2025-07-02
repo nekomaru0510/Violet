@@ -26,8 +26,8 @@ pub struct VShell {
 pub struct Command {
     /// Command name (as typed by the user)
     pub name: String,
-    /// Function pointer to the command implementation
-    pub func: fn(),
+    /// Function pointer to the command implementation (accepts command-line arguments)
+    pub func: fn(args: &[&str]),
 }
 
 const DEL: u8 = 0x7F;
@@ -70,13 +70,16 @@ impl VShell {
         loop {
             print!("{} ", self.prompt);
             let line: String = self.get_line();
-            match self.search_cmd(&line) {
-                Some(x) => self.execute_cmd(x),
+            let argv: Vec<&str> = line.split_whitespace().collect();
+            let cmd_name = argv.get(0).unwrap_or(&"");
+            let args = if argv.len() > 1 { &argv[1..] } else { &[] };
+            match self.search_cmd(cmd_name) {
+                Some(x) => self.execute_cmd(x, args),
                 None => {
-                    if &line == "exit" {
+                    if cmd_name == &"exit" {
                         break;
-                    } else if !line.is_empty() {
-                        println!("Command not found: {}", line);
+                    } else if !cmd_name.is_empty() {
+                        println!("Command not found: {}", cmd_name);
                     }
                 }
             }
@@ -119,14 +122,14 @@ impl VShell {
         None
     }
 
-    /// Execute a command.
-    fn execute_cmd(&mut self, cmd: Command) {
-        (cmd.func)();
+    /// Execute a command with arguments.
+    fn execute_cmd(&mut self, cmd: Command, args: &[&str]) {
+        (cmd.func)(args);
     }
 }
 
 /// Built-in help command.
-pub fn help() {
+pub fn help(_args: &[&str]) {
     println!("Help is Working now ... ");
 }
 
@@ -134,7 +137,9 @@ pub fn help() {
 mod tests {
     use super::*;
 
-    fn dummy_cmd() {}
+    fn dummy_cmd(args: &[&str]) {
+        assert_eq!(args, ["foo", "bar"]);
+    }
 
     #[test_case]
     fn test_add_and_search_cmd() -> Result<(), &'static str> {
@@ -146,6 +151,17 @@ mod tests {
         shell.add_cmd(cmd.clone());
         assert_eq!(shell.search_cmd("dummy"), Some(cmd));
         assert_eq!(shell.search_cmd("notfound"), None);
+        Ok(())
+    }
+
+    #[test_case]
+    fn test_execute_cmd_with_args() -> Result<(), &'static str> {
+        let mut shell = VShell::new();
+        let cmd = Command {
+            name: String::from("dummy"),
+            func: dummy_cmd,
+        };
+        shell.execute_cmd(cmd, &["foo", "bar"]);
         Ok(())
     }
 
