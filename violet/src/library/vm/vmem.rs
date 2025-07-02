@@ -59,6 +59,11 @@ impl VirtualMemoryMap {
     pub fn len(&self) -> usize {
         self.map.len()
     }
+
+    /// Returns an iterator over all virtual memory areas.
+    pub fn iter(&self) -> core::slice::Iter<'_, VirtualMemoryArea> {
+        self.map.iter()
+    }
 }
 
 pub struct VirtualMemoryArea {

@@ -180,6 +180,16 @@ pub fn is_ready_virtual_machine() -> bool {
     unsafe { VIRTUAL_MACHINE_TABLE.is_ready() }
 }
 
+/// Get a reference to a virtual machine by its ID.
+pub fn get_virtual_machine_by_id(id: usize) -> &'static VirtualMachine {
+    unsafe { VIRTUAL_MACHINE_TABLE.get(id) }
+}
+
+/// Get the number of registered virtual machines.
+pub fn get_virtual_machine_count() -> usize {
+    unsafe { VIRTUAL_MACHINE_TABLE.vms.len() }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -5,6 +5,8 @@
 //!
 //! This module implements a simple shell for the Violet hypervisor, allowing users to register and execute commands interactively.
 
+pub mod vm;
+
 extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -12,6 +14,8 @@ use alloc::vec::Vec;
 use crate::library::std::getc;
 use crate::print;
 use crate::println;
+
+use vm::{vm_list, vm_vcpu_count, vm_mem_map};
 
 /// Violet Shell structure
 ///
@@ -43,6 +47,18 @@ impl VShell {
         vec.push(Command {
             name: String::from("help"),
             func: help,
+        });
+        vec.push(Command {
+            name: String::from("vm_list"),
+            func: vm_list,
+        });
+        vec.push(Command {
+            name: String::from("vm_vcpu_count"),
+            func: vm_vcpu_count,
+        });
+        vec.push(Command {
+            name: String::from("vm_mem_map"),
+            func: vm_mem_map,
         });
         VShell {
             prompt: String::from("Violet%"),
