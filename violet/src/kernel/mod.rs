@@ -12,7 +12,7 @@ pub mod syscall;
 pub mod task;
 pub mod traits;
 
-use crate::container::{get_container, get_mut_container};
+use crate::system::container::{get_container, get_mut_container};
 
 use dispatcher::minimal_dispatcher::MinimalDispatcher;
 use sched::fifo::FifoScheduler;

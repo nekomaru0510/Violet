@@ -11,9 +11,10 @@ use core::intrinsics::transmute;
 use crate::system::config::{get_container_id, get_container_bsp};
 use crate::kernel::heap::init_allocater;
 use crate::kernel::init_calls::do_app_calls;
-use crate::container::{get_container, get_mut_container, is_ready_container};
+use crate::system::container::{get_container, get_mut_container, is_ready_container};
 
 pub mod config;
+pub mod container;
 
 extern "C" {
     /// Start address of the heap (provided by linker script)

@@ -23,7 +23,6 @@ extern crate core;
 extern crate alloc;
 
 pub mod arch;
-pub mod container;
 pub mod driver;
 pub mod environment;
 pub mod kernel;

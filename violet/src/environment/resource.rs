@@ -6,7 +6,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::container::{get_container, get_mut_container};
+use crate::system::container::{get_container, get_mut_container};
 
 use crate::arch::traits::TraitCpu;
 use crate::driver::traits::intc::TraitIntc;
