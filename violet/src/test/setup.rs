@@ -8,7 +8,6 @@ use alloc::boxed::Box;
 
 use crate::system::container::create_container;
 use crate::system::config::{SystemConfig, ContainerConfig};
-use crate::kernel::syscall::vsi::create_task;
 
 use crate::environment::resource::*;
 
