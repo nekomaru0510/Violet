@@ -1,5 +1,5 @@
-[submodule "vpg"]
-	path = vpg
+[submodule "tools/vpg"]
+	path = tools/vpg
 	url = git@github.com:nekomaru0510/vpg.git
 [submodule "tools/vht"]
 	path = tools/vht
