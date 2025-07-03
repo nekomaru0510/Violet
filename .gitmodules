@@ -1,3 +1,6 @@
 [submodule "vpg"]
 	path = vpg
 	url = git@github.com:nekomaru0510/vpg.git
+[submodule "tools/vht"]
+	path = tools/vht
+	url = git@github.com:nekomaru0510/vht.git
