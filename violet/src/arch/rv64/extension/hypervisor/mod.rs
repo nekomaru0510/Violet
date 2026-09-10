@@ -10,7 +10,7 @@ use crate::arch::traits::mmu::{TraitPageTable};
 use rv64::Rv64;
 use rv64::regs::Registers;
 use rv64::mmu::{sv39, sv48};
-use rv64::mmu::get_new_page_table_addr;
+use rv64::mmu::get_new_root_page_table_addr_x4;
 use rv64::trap::exc::Exception;
 use rv64::trap::int::Interrupt;
 use rv64::trap::TrapVector;
@@ -65,7 +65,7 @@ impl HypervisorT for Hext {
     }
 
     fn mmu_enable() {
-        Self::set_table_addr(get_new_page_table_addr());
+        Self::set_table_addr(get_new_root_page_table_addr_x4());
         Self::set_paging_mode(PagingMode::Sv48x4);
     }
 
@@ -203,7 +203,7 @@ impl Hext {
 
     // Raise a virtual interrupt to VS-mode
     pub fn assert_vsmode_interrupt(int_mask: usize) {
-        Hvip::set(int_mask as u64);
+        Hvip::set(Hvip::get() | int_mask as u64);
     }
 
     // Clear the interrupt of VS-mode

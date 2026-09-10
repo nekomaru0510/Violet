@@ -218,7 +218,7 @@ impl TraitPageEntry for PageEntrySv48 {
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-#[repr(align(16384))]
+#[repr(align(4096))]
 pub struct PageTableSv48 {
     pub entry: [PageEntrySv48; NUM_OF_PAGE_ENTRY],
 }

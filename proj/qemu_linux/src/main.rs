@@ -6,7 +6,7 @@
 extern crate violet;
 
 use violet::library::vm::vdev::vplic::VPlic;
-use violet::library::vm::{create_virtual_machine, get_mut_virtual_machine};
+use violet::library::vm::{create_virtual_machine, get_virtual_machine};
 
 use violet::arch::rv64::extension::hypervisor::Hext;
 use violet::arch::rv64::instruction::load::Load;
@@ -77,14 +77,14 @@ fn topaddr(epc: usize) -> usize {
 
 pub fn do_guest_store_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
-    let vm = get_mut_virtual_machine();
+    let vm = get_virtual_machine();
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
-    let inst = Instruction::fetch(topaddr(regs.epc));
+    let inst = Instruction::fetch_in_vm(regs.epc);
     let val = Store::from_val(inst).store_value(regs);
 
-    match vm.dev.write(fault_paddr, val) {
+    match vm.dev.write().write(fault_paddr, val) {
         None => {
-            vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
+            let _ = vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
         },
         Some(()) => {
             regs.epc = regs.epc + Instruction::len(inst);
@@ -92,33 +92,33 @@ pub fn do_guest_store_page_fault(sp: *mut usize) {
                 Interrupt::VIRTUAL_SUPERVISOR_EXTERNAL_INTERRUPT,
             ));
         }
-    }
+    };
 }
 
 pub fn do_guest_load_page_fault(sp: *mut usize) {
     let regs = Registers::from(sp);
-    let vm = get_mut_virtual_machine();
+    let vm = get_virtual_machine();
     let fault_paddr = Hext::get_vs_fault_paddr() as usize;
-    let inst = Instruction::fetch(topaddr(regs.epc));
+    let inst = Instruction::fetch_in_vm(regs.epc);
 
-    match vm.dev.read(fault_paddr) {
+    match vm.dev.write().read(fault_paddr) {
         None => {
-            vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
+            let _ = vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
         },
         Some(x) => {
             regs.reg[Load::from_val(inst).dst()] = x;
             regs.epc = regs.epc + Instruction::len(inst);
         }
-    }
+    };
 }
 
 pub fn do_guest_instruction_page_fault(_sp: *mut usize) {
-    let vm = get_mut_virtual_machine();
-    vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
+    let vm = get_virtual_machine();
+    let _ = vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
 }
 
 pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
-    let vm = get_mut_virtual_machine();
+    let vm = get_virtual_machine();
     // Read and clear the pending bit from the physical PLIC
     let int_id = if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
         i.get_pend_int()
@@ -127,7 +127,7 @@ pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
     };
 
     // write to virtual plic
-    match vm.dev.get_mut(0x0c20_1000) {
+    match vm.dev.write().get_mut(0x0c20_1000) {
         // [todo fix] Make it possible to search by interrupt number
         None => (),
         Some(d) => {
@@ -161,33 +161,44 @@ pub fn boot_linux() {
     
     /* Setup virtual machine */
     create_virtual_machine();
-    let vm = get_mut_virtual_machine();
+    let vm = get_virtual_machine();
     vm.reset();
 
     /* CPU */
-    vm.cpu.register(0, boot_core); /* vcpu0 ... pcpu1 */
-    match vm.cpu.get_mut(0) {
-        None => (),
-        Some(v) => {
-            v.context.set(JUMP_ADDR, 0x8020_0000);
-            v.context.set(ARG0, 0);
-            v.context.set(ARG1, 0x8220_0000);
+    {
+        let mut cpu = vm.cpu.write();
+        cpu.register(0, boot_core); /* vcpu0 ... pcpu1 */
+        match cpu.get_mut(0) {
+            None => (),
+            Some(v) => {
+                v.context.set(JUMP_ADDR, 0x8020_0000);
+                v.context.set(ARG0, 0);
+                v.context.set(ARG1, 0x8220_0000);
+            }
         }
-    }
-
+    } // Drop cpu guard
+    
     /* RAM */
-    vm.mem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
-    vm.mem.register(0x8220_0000, 0x8220_0000, 0x2_0000);    // FDT is mapped to physical memory.
-    vm.mem.register(0x8810_0000, 0x8810_0000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
+    {
+        let mut vmem = vm.mem.write();
+        vmem.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
+        vmem.register(0x8220_0000, 0x8220_0000, 0x2_0000);    // FDT is mapped to physical memory.
+        vmem.register(0x8810_0000, 0x8810_0000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
+        // Passthrough
+        vmem.register(0x00, 0x00, 0x8000_0000);
+    } // Drop vmem guard
+    
     vm.mmu_enable();
 
     /* MMIO */
-    let mut vplic = VPlic::new();
-    vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
-    vm.dev.register(0x0c00_0000, 0x0400_0000, vplic);
+    {
+        let mut vplic = VPlic::new();
+        vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
+        vm.dev.write().register(0x0c00_0000, 0x0400_0000, vplic);
+    } // Drop dev guard
     
     /* Register interrupt/exception handler */
-    if vm.trap.register_traps(
+    if vm.trap.write().register_traps(
         &[
             (TrapVector::SUPERVISOR_TIMER_INTERRUPT, do_supervisor_timer_interrupt),
             (TrapVector::SUPERVISOR_EXTERNAL_INTERRUPT, do_supervisor_external_interrupt),

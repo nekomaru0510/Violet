@@ -2,7 +2,7 @@
 use crate::kernel::traits::task::TraitTask;
 
 pub struct Task {
-    id: u64,
+    pub id: u64,
     func: fn(),
     prio: u64,
 }

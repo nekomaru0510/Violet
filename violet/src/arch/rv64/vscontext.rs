@@ -9,6 +9,7 @@ use crate::arch::rv64::Rv64;
 use crate::arch::traits::context::TraitContext;
 use crate::arch::traits::registers::TraitRegisters;
 
+#[derive(Clone, Copy)]
 pub struct VsContext {
     regs: Registers,
     sepc: usize,
@@ -56,7 +57,7 @@ impl TraitContext for VsContext {
         }
     }
 
-    fn jump(&self) {
+    fn jump(&self) -> ! {
         Rv64::set_next_mode(PrivilegeMode::ModeVS);
         Instruction::sret(self.get(JUMP_ADDR), self.get(ARG0), self.get(ARG1));
     }

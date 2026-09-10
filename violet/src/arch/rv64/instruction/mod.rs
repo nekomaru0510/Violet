@@ -1,6 +1,7 @@
 //! RISC-V instructions
 
 use core::arch::asm;
+use core::arch::riscv64::hlvx_wu;
 use core::ptr::read_unaligned;
 
 pub mod csr;
@@ -16,6 +17,30 @@ pub enum Instruction {}
 impl Instruction {
     pub fn fetch(addr: usize) -> usize {
         Self::mask(unsafe { read_unaligned(addr as *const usize) })
+    }
+
+    pub fn fetch_in_vm(addr: usize) -> usize {
+        // Check alignment
+        if addr & 0x3 == 0 {
+            Self::mask(unsafe { hlvx_wu(addr as *const u32) as usize})
+        } else {
+            // Emulate unaligned access
+            let diff = addr & 0x3;
+            let low_addr = addr & 0xffff_ffff_ffff_fffc;
+            let high_addr = low_addr + 4;
+            let low = unsafe { hlvx_wu(low_addr as *const u32) };
+            let high = unsafe { hlvx_wu(high_addr as *const u32) };
+            let low = low >> (diff * 8);
+            let high_mask: u32 = match diff {
+                0 => 0x0000_0000,
+                1 => 0x0000_00ff,
+                2 => 0x0000_ffff,
+                3 => 0x00ff_ffff,
+                _ => panic!("Unreachable"),
+            };
+            let high = ((high & high_mask)) << ((4 - diff) * 8);
+            Self::mask((low | high) as usize)
+        }
     }
 
     pub fn len(inst: usize) -> usize {
@@ -73,7 +98,7 @@ impl Instruction {
         }
     }
 
-    pub fn sret(next_addr: usize, arg1: usize, arg2: usize) {
+    pub fn sret(next_addr: usize, arg1: usize, arg2: usize) -> !{
         if next_addr == 0 {
             unsafe {
                 asm! ("
@@ -84,7 +109,7 @@ impl Instruction {
                 1:
                         nop
                 ",
-                options(nostack)
+                options(nostack, noreturn)
                 );
             }
         } else {
@@ -97,7 +122,7 @@ impl Instruction {
                         sret
                 ",
                 in(reg) next_addr, in(reg) arg1, in(reg) arg2,
-                options(nostack)
+                options(nostack, noreturn)
                 );
             }
         }

@@ -23,6 +23,7 @@ use dispatcher::minimal_dispatcher::MinimalDispatcher;
 use heap::init_allocater;
 use init_calls::*;
 use sched::fifo::FifoScheduler;
+use spin::Mutex;
 use syscall::vsi::create_task;
 use task::Task;
 
@@ -95,12 +96,12 @@ use alloc::boxed::Box;
 use heap::{TraitHeap, HEAP};
 
 pub struct Kernel {
-    heap: Box<&'static mut (dyn TraitHeap + 'static)>,
+    heap: Mutex<Box<&'static mut (dyn TraitHeap + 'static)>>,
 }
 
 impl Kernel {
     pub fn new(heap: Box<&'static mut (dyn TraitHeap + 'static)>) -> Self {
-        Kernel { heap }
+        Kernel { heap: Mutex::new(heap) }
     }
 
     pub fn create_custom_kernel(container_id: usize) -> Self {
@@ -117,10 +118,9 @@ pub fn get_mut_kernel() -> &'static mut Kernel {
 }
 
 // [todo fix] Select scheduler and dispatcher for each core
-pub static mut SCHEDULER: [FifoScheduler<Task>; 2] = [FifoScheduler::new(), FifoScheduler::new()];
+pub static mut SCHEDULER: [FifoScheduler<Task>; NUM_OF_CPUS] = [const { FifoScheduler::new() }; NUM_OF_CPUS];
 
-pub static mut DISPATCHER: [MinimalDispatcher; 2] =
-    [MinimalDispatcher::new(), MinimalDispatcher::new()];
+pub static mut DISPATCHER: [MinimalDispatcher; NUM_OF_CPUS] = [const { MinimalDispatcher::new() }; NUM_OF_CPUS];
 
 pub fn main_loop(cpu_id: usize) {
     loop {

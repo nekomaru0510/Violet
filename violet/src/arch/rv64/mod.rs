@@ -10,6 +10,7 @@ pub mod sbi;
 pub mod trap;
 pub mod vscontext;
 
+use crate::environment::STACK_SIZE;
 use crate::kernel::boot_init;
 
 use super::traits::TraitCpu;
@@ -47,10 +48,12 @@ pub enum PagingMode {
     Sv57x4 = 10,
 }
 
+#[repr(C)]
 pub struct Rv64 {
     cpu_id: u64,
     sp: usize,
     tmp0: usize,
+    stacksize: usize,
     status: CpuStatus,
     trap: TrapVector,
 }
@@ -146,6 +149,7 @@ impl Rv64 {
             cpu_id: id,
             sp: 0x0,
             tmp0: 0x0,
+            stacksize: STACK_SIZE,
             status: CpuStatus::STARTED,
             trap: TrapVector::new(),
         }

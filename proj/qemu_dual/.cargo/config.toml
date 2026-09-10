@@ -1,0 +1,16 @@
+[profile.dev]
+opt-level = 0
+
+[target.qemu_virt]
+runner = "./tools/run.sh "
+
+[build]
+target = "../../env/qemu_virt/qemu_virt.json"
+rustflags = [
+    "-C", "link-arg=-T../../env/qemu_virt/qemu_virt.ld", 
+]
+
+[unstable]
+build-std = ["core", "compiler_builtins", "alloc"]
+build-std-features = ["compiler-builtins-mem"]
+unstable-options = true

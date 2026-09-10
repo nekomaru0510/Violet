@@ -13,7 +13,7 @@ use crate::driver::board::sifive_u::plic::Plic;
 use crate::driver::board::sifive_u::uart::Uart;
 
 pub const NUM_OF_CPUS: usize = 2;
-pub const STACK_SIZE: usize = 0x4000;
+pub const STACK_SIZE: usize = 0x8000;
 
 /* MMIO */
 static UART_BASE: usize = 0x1000_0000;

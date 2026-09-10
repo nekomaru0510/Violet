@@ -125,7 +125,8 @@ use crate::library::vm::vdev::vplic::VPlic;
 #[test_case]
 fn test_get() -> Result<(), &'static str> {
     let mut map = VirtualDevMap::new();
-    let vplic = VPlic::new();
+    let mut vplic = VPlic::new();
+    vplic.set_vcpu_config([0, 1]);
     map.register(0x0c00_0000, 0x0400_0000, vplic);
 
     let mut result = match map.get(0x0c00_0000) {
