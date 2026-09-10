@@ -7,7 +7,9 @@ runner = "qemu-system-riscv64 -cpu rv64 -M virt -nographic -m 2G -smp 1 -bios /o
 [build]
 target = "riscv64imac-unknown-none-elf"
 rustflags = [
+    "--cfg", "target_device=\"qemu_virt\"",
     "-C", "link-arg=-T../config/ld/test.ld", 
+    "--cfg", "target_device=\"qemu_virt\""
 ]
 
 [unstable]

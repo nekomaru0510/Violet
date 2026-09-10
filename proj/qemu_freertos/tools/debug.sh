@@ -1,7 +1,7 @@
 #!/bin/bash
 
 RISCV_PATH="/opt/riscv"
-OPENSBI_PATH="${RISCV_PATH}/opensbi/build/platform/generic/firmware/fw_jump.elf"
+OPENSBI_PATH="${OPENSBI_PATH:-${RISCV_PATH}/opensbi/build/platform/generic/firmware/fw_jump.elf}"
 FREERTOS_PATH="${RISCV_PATH}/FreeRTOS/FreeRTOS/Demo/RISC-V-Qemu-virt64_GCC/build/RTOSDemo.bin"
 KERNEL_PATH="target/qemu_virt/debug/qemu_freertos"
 

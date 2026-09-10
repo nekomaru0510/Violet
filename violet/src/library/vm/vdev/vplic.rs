@@ -115,6 +115,11 @@ impl VPlic {
         let vcpuid = context / 2;
         let word_idx = (addr - BASE_ADDRESS - INT_ENABLE0_CONTEXT0 - INT_ENABLE0_CONTEXT_OFFSET * context) / 4;
 
+        if self.v2p_cpu[vcpuid] == usize::MAX {
+            // If the vcpu is not configured, do nothing
+            return;
+        }
+
         self.enable[context][word_idx] = val;
 
         /* Set all interrupts to trigger into HS-mode */
@@ -138,6 +143,11 @@ impl VPlic {
         let context = (addr - BASE_ADDRESS - PRIO_THRESHOLD_CONTEXT0) / PRIO_THRESHOLD_CONTEXT_OFFSET;
         let vcpuid = context / 2;
         self.priority_threshold[context] = val;
+
+        if self.v2p_cpu[vcpuid] == usize::MAX {
+            // If the vcpu is not configured, do nothing
+            return;
+        }
 
         /* Set all interrupts to trigger into HS-mode */
         write_raw(

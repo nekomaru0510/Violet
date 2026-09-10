@@ -1,0 +1,14 @@
+[profile.dev]
+opt-level = 3
+overflow-checks = false
+
+[build]
+target = "../../env/hifive_premier_p550/hifive_premier_p550.json"
+rustflags = [
+    "-C", "link-arg=-Tlds/hifive_premier_p550.ld", 
+]
+
+[unstable]
+build-std = ["core", "compiler_builtins", "alloc"]
+build-std-features = ["compiler-builtins-mem"]
+unstable-options = true

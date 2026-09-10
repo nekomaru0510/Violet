@@ -6,7 +6,7 @@ EXTERN(abort);
 SECTIONS
 {
     __HEAP_SIZE = 0x20000;
-    __STACK_SHIFT = 15; /* 0x8000 per core */
+    __STACK_SHIFT = 16; /* 0x10000 per core */
     __STACK_SIZE = (1 << __STACK_SHIFT);
 
     .reset : 
@@ -47,7 +47,16 @@ SECTIONS
 
     .bss (NOLOAD) :
     {
+        __BSS_START = .;
         *(.bss .bss.*);
+        __BSS_END = .;
+    } > RAM
+
+    .sbss (NOLOAD) :
+    {
+        __SBSS_START = .;
+        *(.sbss .sbss.*);
+        __SBSS_END = .;
     } > RAM
 
     .heap (NOLOAD) :

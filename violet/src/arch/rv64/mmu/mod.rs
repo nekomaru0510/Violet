@@ -13,7 +13,7 @@ use crate::arch::traits::mmu::TraitMmu;
 type PageTable = PageTableSv48;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-pub const MAX_PAGE_TABLE: usize = 32;
+pub const MAX_PAGE_TABLE: usize = 4096;
 static mut PAGE_TABLE_ARRAY: [PageTable; MAX_PAGE_TABLE] =
     [PageTable::empty(); MAX_PAGE_TABLE];
 static PAGE_TABLE_IDX: AtomicUsize = AtomicUsize::new(0);

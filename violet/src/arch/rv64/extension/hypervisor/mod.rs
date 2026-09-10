@@ -1,11 +1,14 @@
 //! Hypervisor Extension
 
+use core::arch::riscv64::{hfence_gvma_all, hfence_gvma_gaddr, hfence_vvma_all};
 use core::intrinsics::transmute;
 
 use crate::arch::rv64;
+use crate::arch::rv64::csr::vsip::Vsip;
+use crate::arch::rv64::csr::vsscratch::Vsscratch;
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::TraitArch;
-use crate::arch::traits::mmu::{TraitPageTable};
+use crate::arch::traits::mmu::{PageEntryAttribute, TraitPageEntry, TraitPageTable};
 
 use rv64::Rv64;
 use rv64::regs::Registers;
@@ -50,9 +53,19 @@ impl HypervisorT for Hext {
         Hext::init();
     }
     
-    // Reset virtual machine registers
+    // Reset virtual machine registers (TODO: fix this)
     fn reset() {
-        Hext::set_vs_pagetable(0);
+        // Reset vs-mode registers
+        Vsatp::set(0);
+        Vsstatus::set(0);
+        Vsie::set(0);
+        Vsip::set(0);
+        Vstvec::set(0);
+        Vsscratch::set(0);
+        Vsepc::set(0);
+        Vscause::set(0);
+        Vstval::set(0);
+        unsafe { hfence_vvma_all() };
     }
 
     fn hook(vecid: usize, func: fn(regs: *mut usize)) {
@@ -83,6 +96,90 @@ impl HypervisorT for Hext {
                     transmute::<usize, &mut sv48::PageTableSv48>(
                         Hext::get_table_addr()
                     ).map_vaddr(paddr, vaddr);
+                }
+            }
+            _ => {}
+        }
+        // Flush TLB
+        unsafe { hfence_gvma_gaddr(vaddr >> 2); }
+    }
+
+    fn set_attribute(vaddr: usize, attr: PageEntryAttribute) {
+        match Hext::get_paging_mode() {
+            PagingMode::Sv39x4 => {
+                let entry = unsafe {
+                    transmute::<usize, &mut sv39::PageTableSv39>(
+                        Hext::get_table_addr()
+                    ).get_page_entry(vaddr)
+                };
+
+                match entry {
+                    Some(e) => {
+                        e.set_attribute(attr);
+                        // Flush TLB
+                         unsafe { hfence_gvma_gaddr(vaddr >> 2) };
+                    }
+                    None => {}
+                }
+
+            }
+            PagingMode::Sv48x4 => {
+                let entry = unsafe {
+                    transmute::<usize, &mut sv48::PageTableSv48>(
+                        Hext::get_table_addr()
+                    ).get_page_entry(vaddr)
+                };
+
+                match entry {
+                    Some(e) => {
+                        e.set_attribute(attr);
+                        // Flush TLB
+                        unsafe { hfence_gvma_gaddr(vaddr >> 2) };
+                    }
+                    None => {}
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn set_attributes(vaddr: usize, attrs: &[PageEntryAttribute]) {
+        match Hext::get_paging_mode() {
+            PagingMode::Sv39x4 => {
+                let entry = unsafe {
+                    transmute::<usize, &mut sv39::PageTableSv39>(
+                        Hext::get_table_addr()
+                    ).get_page_entry(vaddr)
+                };
+
+                match entry {
+                    Some(e) => {
+                        for attr in attrs {
+                            e.set_attribute(*attr);
+                        }
+                        // Flush TLB
+                         unsafe { hfence_gvma_gaddr(vaddr >> 2) };
+                    }
+                    None => {}
+                }
+
+            }
+            PagingMode::Sv48x4 => {
+                let entry = unsafe {
+                    transmute::<usize, &mut sv48::PageTableSv48>(
+                        Hext::get_table_addr()
+                    ).get_page_entry(vaddr)
+                };
+
+                match entry {
+                    Some(e) => {
+                        for attr in attrs {
+                            e.set_attribute(*attr);
+                        }
+                        // Flush TLB
+                        unsafe { hfence_gvma_gaddr(vaddr >> 2) };
+                    }
+                    None => {}
                 }
             }
             _ => {}
@@ -150,6 +247,8 @@ impl HypervisorT for Hext {
 
 impl Hext {
     pub fn init() {
+        Self::clear_delegation_exc_all();
+        Self::clear_delegation_int_all();
         Self::set_delegation_exc(
             Exception::bit(Exception::INSTRUCTION_ADDRESS_MISALIGNED)
                 | Exception::bit(Exception::BREAKPOINT)
@@ -191,6 +290,11 @@ impl Hext {
         Hideleg::set(Hideleg::get() & !(int_mask as u64));
     }
 
+    // Clear all interrupt delegation to VS-mode
+    pub fn clear_delegation_int_all() {
+        Hideleg::set(0);
+    }
+
     // Set exception delegation to VS-mode
     pub fn set_delegation_exc(exc_mask: usize) {
         Hedeleg::set(Hedeleg::get() | exc_mask as u64);
@@ -199,6 +303,11 @@ impl Hext {
     // Clear exception delegation to VS-mode
     pub fn clear_delegation_exc(exc_mask: usize) {
         Hedeleg::set(Hedeleg::get() & !(exc_mask as u64));
+    }
+
+    // Clear all exception delegation to VS-mode
+    pub fn clear_delegation_exc_all() {
+        Hedeleg::set(0);
     }
 
     // Raise a virtual interrupt to VS-mode
@@ -248,6 +357,8 @@ impl Hext {
                 Hgatp::write(hgatp::MODE, hgatp::MODE::SV57X4);
             }
         };
+        // Flush TLB
+        unsafe { hfence_gvma_all() };
     }
 
     // Get the mode of the page table provided by HS-mode
@@ -263,9 +374,11 @@ impl Hext {
 
     // Set the address of the page table provided by HS-mode
     pub fn set_table_addr(table_addr: usize) {
+        unsafe { hfence_gvma_all(); };
         Hgatp::write(hgatp::PPN, hgatp::PPN::CLEAR);
         let current = Hgatp::get();
         Hgatp::set(current | ((table_addr as u64 >> 12) & 0x3f_ffff));
+        unsafe { hfence_gvma_all(); }; // Flush TLB
     }
 
     // Get the address of the page table provided by HS-mode

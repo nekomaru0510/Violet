@@ -1,23 +1,26 @@
 //! VirtualMachine
+use core::arch::riscv64::hfence_gvma_gaddr;
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
+pub mod trap;
 pub mod vcpu;
 pub mod vdev;
 pub mod vmem;
-pub mod trap;
 
 use spin::RwLock;
 use vcpu::VirtualCpuMap;
 use vdev::VirtualDevMap;
 use vmem::VirtualMemoryMap;
-use trap::TrapMap;
+
+use crate::library::vm::trap::TrapMap;
 
 use crate::arch::rv64::mmu::get_new_root_page_table_addr_x4;
 use crate::arch::rv64::PagingMode;
 use crate::arch::traits::hypervisor::HypervisorT;
 use crate::arch::traits::context::TraitContext;
+use crate::arch::traits::mmu::PageEntryAttribute;
 use crate::arch::traits::TraitArch;
 use crate::environment::Arch;
 use crate::environment::Hyp;
@@ -45,6 +48,7 @@ impl VirtualMachine {
     pub fn reset(&self) {
         // Default setup before guest boot
         Hyp::init();
+        Hyp::reset();
     }
 
     pub fn run(&self) {
@@ -93,6 +97,18 @@ impl VirtualMachine {
         }
     }
 
+    pub fn set_guest_page_attribute(&self, guest_paddr: usize, attr: PageEntryAttribute) {
+        Hyp::set_attribute(guest_paddr, attr);
+    }
+
+    pub fn set_guest_page_attributes(&self, guest_paddr: usize, attrs: &[PageEntryAttribute]) {
+        for attr in attrs {
+            Hyp::set_attribute(guest_paddr, *attr);
+        }
+        // Flush TLB
+        unsafe { hfence_gvma_gaddr(guest_paddr >> 2) };
+    }
+    
     pub fn get_pcpuid(&self, vcpuid: usize) -> usize {
         self.cpu.read().get_pcpuid(vcpuid)
     }

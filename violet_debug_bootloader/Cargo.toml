@@ -1,0 +1,5 @@
+[package]
+name = "violet_debug_bootloader"
+version = "0.1.0"
+edition = "2021"
+authors = ["petitstrawberry"]

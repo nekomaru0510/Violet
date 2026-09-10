@@ -1,0 +1,4 @@
+.git
+**/target
+violet_debug_bootloader/dist
+.deps

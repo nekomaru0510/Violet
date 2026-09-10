@@ -30,7 +30,7 @@ pub mod hvip;
 //pub mod hevcfgh;
 pub mod hgatp;
 //pub mod hcontext;
-//pub mod htimedelta;
+pub mod htimedelta;
 //pub mod htimedeltah;
 
 /* 0x200-0x280 */
@@ -43,6 +43,11 @@ pub mod vscause;
 pub mod vsepc;
 pub mod vsip;
 pub mod vstval;
+
+/* 0xC00-0xC80 */
+// pub mod cycle;
+pub mod time;
+// pub mod instret;
 
 /* 0xF11- */
 pub mod mcause;

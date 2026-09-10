@@ -1,5 +1,7 @@
 //! wfi Instruction
 
+use core::option;
+
 use crate::arch::rv64::instruction;
 use instruction::format::rformat::RFormat;
 
@@ -20,6 +22,18 @@ impl Wfi {
 
     fn funct7(&self) -> usize {
         self.inst.funct7()
+    }
+
+    pub fn from_value(inst: usize) -> Option<Self> {
+        if inst & 0b1111111 == Self::OPCODE
+            && inst >> 12 & 0b111 == Self::FUNCT3
+            && inst >> 20 & 0b11111 == Self::RS2
+            && inst >> 25 & 0b1111111 == Self::FUNCT7
+        {
+            Some(Self::new(inst))
+        } else {
+            None
+        }
     }
 }
 

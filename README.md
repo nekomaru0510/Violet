@@ -35,6 +35,8 @@ Add the Rust riscv64 toolchain in the constructed environment:
 % rustup target add riscv64imac-unknown-none-elf
 ```
 
+For HiFive Premier P550, see [P550 setup](docs/p550-setup.md).
+
 ## Build and Test Instructions
 Please refer to the README.md of each project (under [`proj`]("/workspaces/Violet/proj")) for build and test instructions.
 To run tests for the [`violet`]("/workspaces/Violet/violet") crate, execute [`cargo test`]("Go to definition") in the [`violet`]("/workspaces/Violet/violet") directory:

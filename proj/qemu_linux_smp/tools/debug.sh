@@ -1,7 +1,7 @@
 #!/bin/bash
 
 RISCV_PATH="/opt/riscv"
-OPENSBI_PATH="${RISCV_PATH}/opensbi/build/platform/generic/firmware/fw_jump.elf"
+OPENSBI_PATH="${OPENSBI_PATH:-${RISCV_PATH}/opensbi/build/platform/generic/firmware/fw_jump.elf}"
 BUSYBOX_PATH="${RISCV_PATH}/busybox/rootfs.img"
 LINUX_PATH="${RISCV_PATH}/linux/vmlinux.bin"
 

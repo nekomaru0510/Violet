@@ -1,0 +1,10 @@
+[package]
+name = "premier_p550"
+version = "0.1.0"
+authors = ["petitstrawberry"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+violet = { path = "../../violet" }

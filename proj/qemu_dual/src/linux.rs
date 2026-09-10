@@ -171,12 +171,16 @@ pub fn boot_linux() {
     {
         let mut vmem_map = vm.mem.write();
         vmem_map.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
-        vmem_map.register(0x8220_0000, 0x8220_0000, 0x2_0000);    // FDT is mapped to physical memory.
         vmem_map.register(0x8810_0000, 0x8810_0000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
         // Passthrough
         vmem_map.register(0x00, 0x00, 0x8000_0000);
     } // Drop vmem_map
     
+    // ARG1 points to guest 0x82200000, backed by host 0x92200000.
+    let fdt = violet::kernel::get_fdt();
+    unsafe {
+        core::ptr::copy_nonoverlapping(fdt.as_ptr(), 0x9220_0000 as *mut u8, fdt.len());
+    }
     vm.mmu_enable();
 
     /* MMIO */

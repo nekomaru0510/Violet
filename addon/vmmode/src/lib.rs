@@ -1,5 +1,6 @@
 //! Virtual M-mode plugin
 #![no_std]
+#![feature(riscv_ext_intrinsics)]
 
 pub mod regs;
 
@@ -28,6 +29,7 @@ use violet::arch::rv64::instruction::ret::Ret;
 use violet::arch::traits::hypervisor::HypervisorT;
 use violet::library::vm::VirtualMachineRef;
 use core::ptr::write_unaligned;
+use core::arch::riscv64::fence_i;
 
 pub fn init(vm: &VirtualMachineRef) {
     Hext::set_delegation_exc(TrapVector::ILLEGAL_INSTRUCTION);
@@ -83,7 +85,10 @@ fn do_illegal_instruction(sp: *mut usize) {
                     // may be better to emulate mret instruction
                     // There is a possibility that the instruction alignment is not correct due to the compressed instruction
                     // -> use write_unaligned instead of write_volatile
-                    unsafe { write_unaligned(pepc as *mut u32, 0x10200073); }
+                    unsafe {
+                        write_unaligned(pepc as *mut usize, 0x10200073);
+                        fence_i();
+                    }
                     return;
                 },
                 _ => {

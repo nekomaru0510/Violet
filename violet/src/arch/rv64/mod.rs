@@ -197,8 +197,8 @@ impl Rv64 {
 // Executed immediately after boot
 #[cfg(target_arch = "riscv64")]
 #[no_mangle]
-pub extern "C" fn setup_cpu(cpu_id: usize) {
-    boot_init(cpu_id);
+pub extern "C" fn setup_cpu(cpu_id: usize, fdt_addr: usize) {
+    boot_init(cpu_id, fdt_addr);
 }
 
 #[test_case]
