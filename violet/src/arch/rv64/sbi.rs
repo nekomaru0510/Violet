@@ -95,3 +95,49 @@ pub fn sbi_hart_suspend(suspend_type: u32, resume_addr: u64, opaque: u64) -> (us
 
     Instruction::ecall(ext, fid, a0, a1, a2, 0, 0, 0)
 }
+
+pub fn sbi_remote_hfence_gvma_vmid(hart_mask: u64, hart_mask_base: u64, start_addr: u64, size: u64, vmid: u64) -> (usize, usize) {
+    let ext = Extension::Rfence as i32;
+    let fid = 0 as i32;
+    let a0 = hart_mask as usize;
+    let a1 = hart_mask_base as usize;
+    let a2 = start_addr as usize;
+    let a3 = size as usize;
+    let a4 = vmid as usize;
+
+    Instruction::ecall(ext, fid, a0, a1, a2, a3, a4, 0)
+}
+
+pub fn sbi_remote_hfence_gvma(hart_mask: u64, hart_mask_base: u64, start_addr: u64, size: u64) -> (usize, usize) {
+    let ext = Extension::Rfence as i32;
+    let fid = 1 as i32;
+    let a0 = hart_mask as usize;
+    let a1 = hart_mask_base as usize;
+    let a2 = start_addr as usize;
+    let a3 = size as usize;
+
+    Instruction::ecall(ext, fid, a0, a1, a2, a3, 0, 0)
+}
+
+pub fn sbi_remote_hfence_vvma_asid(hart_mask: u64, hart_mask_base: u64, start_addr: u64, size: u64, asid: u64) -> (usize, usize) {
+    let ext = Extension::Rfence as i32;
+    let fid = 5 as i32;
+    let a0 = hart_mask as usize;
+    let a1 = hart_mask_base as usize;
+    let a2 = start_addr as usize;
+    let a3 = size as usize;
+    let a4 = asid as usize;
+
+    Instruction::ecall(ext, fid, a0, a1, a2, a3, a4, 0)
+}
+
+pub fn sbi_remote_hfence_vvma(hart_mask: u64, hart_mask_base: u64, start_addr: u64, size: u64) -> (usize, usize) {
+    let ext = Extension::Rfence as i32;
+    let fid = 6 as i32;
+    let a0 = hart_mask as usize;
+    let a1 = hart_mask_base as usize;
+    let a2 = start_addr as usize;
+    let a3 = size as usize;
+
+    Instruction::ecall(ext, fid, a0, a1, a2, a3, 0, 0)
+}

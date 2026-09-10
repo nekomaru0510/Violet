@@ -152,6 +152,7 @@ pub extern "C" fn _start_trap() {
     unsafe {
         asm! ("
         .align 8
+            csrci sstatus, 1
             csrrw tp, sscratch, tp
             sd  sp, 8(tp)
             sd  t0, 16(tp)

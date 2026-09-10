@@ -11,48 +11,63 @@ use crate::arch::rv64::mmu::sv48::PageTableSv48;
 use crate::arch::traits::mmu::TraitMmu;
 
 type PageTable = PageTableSv48;
+use core::sync::atomic::{AtomicUsize, Ordering};
+
+pub const MAX_PAGE_TABLE: usize = 4096;
 static mut PAGE_TABLE_ARRAY: [PageTable; MAX_PAGE_TABLE] =
     [PageTable::empty(); MAX_PAGE_TABLE];
-pub const MAX_PAGE_TABLE: usize = 32; //16;
-static mut PAGE_TABLE_IDX: usize = 0;
+static PAGE_TABLE_IDX: AtomicUsize = AtomicUsize::new(0);
 
-pub fn get_new_page_table_idx() -> usize {    
-    unsafe {
-        PAGE_TABLE_IDX = PAGE_TABLE_IDX + 1;
-        if MAX_PAGE_TABLE < PAGE_TABLE_IDX {
-            panic!("get_new_page_table_idx: out of range");
-        }
-        PAGE_TABLE_IDX
-    }    
+#[repr(C, align(16384))]
+#[derive(Clone, Copy)]
+struct RootPageTable {
+    tables: [PageTable; 4],
 }
+static mut ROOT_PAGE_TABLES: [RootPageTable; crate::environment::NUM_OF_CPUS] =
+    [RootPageTable { tables: [PageTable::empty(); 4] }; crate::environment::NUM_OF_CPUS];
+static ROOT_PAGE_TABLE_IDX: AtomicUsize = AtomicUsize::new(0);
 
+fn reserve(next: &AtomicUsize, limit: usize) -> usize {
+    next.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |index| {
+        if index < limit { Some(index + 1) } else { None }
+    }).expect("Page table pool exhausted")
+}
+pub fn get_new_page_table_idx() -> usize {
+    reserve(&PAGE_TABLE_IDX, MAX_PAGE_TABLE)
+}
 pub fn get_page_table_addr(idx: usize) -> usize {
-    if MAX_PAGE_TABLE < idx {
-        return 0;
-    }
-    unsafe { transmute(&PAGE_TABLE_ARRAY[idx]) }
+    assert!(idx < MAX_PAGE_TABLE, "Page table index out of range");
+    unsafe { core::ptr::addr_of!(PAGE_TABLE_ARRAY[idx]) as usize }
 }
-
 pub fn get_new_page_table_addr() -> usize {
-    let idx = get_new_page_table_idx();
-    if MAX_PAGE_TABLE < idx {
-        panic!("get_new_page_table_addr: out of range");
-    }
-    unsafe { transmute(&PAGE_TABLE_ARRAY[idx]) }
+    get_page_table_addr(get_new_page_table_idx())
 }
-
+pub fn get_new_root_page_table_addr_x4() -> usize {
+    let index = reserve(&ROOT_PAGE_TABLE_IDX, crate::environment::NUM_OF_CPUS);
+    unsafe { core::ptr::addr_of!(ROOT_PAGE_TABLES[index]) as usize }
+}
 pub fn get_page_table(idx: usize) -> &'static PageTable {
-    if MAX_PAGE_TABLE < idx {
-        panic!("get_page_table: out of range");
-    }
-    unsafe { transmute(&PAGE_TABLE_ARRAY[idx]) }
+    unsafe { &*(get_page_table_addr(idx) as *const PageTable) }
+}
+pub fn get_mut_page_table(idx: usize) -> &'static mut PageTable {
+    unsafe { &mut *(get_page_table_addr(idx) as *mut PageTable) }
 }
 
-pub fn get_mut_page_table(idx: usize) -> &'static mut PageTable {
-    if MAX_PAGE_TABLE < idx {
-        panic!("get_page_table: out of range");
-    }
-    unsafe { transmute(&mut PAGE_TABLE_ARRAY[idx]) }
+#[test_case]
+fn page_table_layout() -> Result<(), &'static str> {
+    assert_eq!(core::mem::size_of::<PageTable>(), 4096);
+    assert_eq!(core::mem::align_of::<PageTable>(), 4096);
+    assert_eq!(core::mem::size_of::<RootPageTable>(), 16384);
+    assert_eq!(core::mem::align_of::<RootPageTable>(), 16384);
+    Ok(())
+}
+#[test_case]
+fn page_table_slot_bounds() -> Result<(), &'static str> {
+    let next = AtomicUsize::new(0);
+    assert_eq!(reserve(&next, 2), 0);
+    assert_eq!(reserve(&next, 2), 1);
+    assert_eq!(next.load(Ordering::Relaxed), 2);
+    Ok(())
 }
 
 enum Rv64PageTable {

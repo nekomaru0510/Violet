@@ -51,6 +51,9 @@ impl TraitSerial for Uart {
 
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for c in s.bytes() {
+            if c == b'\n' {
+                self.write(b'\r');
+            }
             self.write(c);
         }
         Ok(())
@@ -60,6 +63,9 @@ impl TraitSerial for Uart {
 impl Write for Uart {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for c in s.bytes() {
+            if c == b'\n' {
+                self.write(b'\r');
+            }
             self.write(c);
         }
         Ok(())

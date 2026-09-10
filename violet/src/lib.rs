@@ -3,6 +3,7 @@
 #![feature(stmt_expr_attributes)]
 #![feature(alloc_error_handler)]
 #![feature(const_mut_refs)] /* [todo remove] */
+#![feature(riscv_ext_intrinsics)]
 // For test
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]

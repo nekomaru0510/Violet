@@ -1,0 +1,11 @@
+[package]
+name = "p550_freertos"
+version = "0.1.0"
+authors = ["petitstrawberry"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+violet = { path = "../../violet" }
+vmmode = { path = "../../addon/vmmode" }

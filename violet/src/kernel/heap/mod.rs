@@ -7,6 +7,7 @@ use crate::container::is_ready_container;
 use crate::kernel::get_mut_kernel;
 use alloc::alloc::{GlobalAlloc, Layout};
 use slab::SlabAllocator;
+use spin::Mutex;
 
 #[global_allocator]
 static ALLOCATOR: HeapOperator = HeapOperator::new();
@@ -22,18 +23,18 @@ pub fn init_allocater(start: usize, end: usize) {
 }
 
 // Select the heap to use by referring to the container when acquiring and releasing the heap
-pub struct HeapOperator {}
+pub struct HeapOperator(Mutex<Option<SlabAllocator>>);
 
 impl HeapOperator {
     pub const fn new() -> HeapOperator {
-        HeapOperator {}
+        HeapOperator(Mutex::new(None))
     }
 }
 
 unsafe impl GlobalAlloc for HeapOperator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         if is_ready_container() {
-            get_mut_kernel().heap.as_mut().allocate(layout)
+            get_mut_kernel().heap.lock().as_mut().allocate(layout)
         } else {
             HEAP.allocate(layout)
         }
@@ -41,7 +42,7 @@ unsafe impl GlobalAlloc for HeapOperator {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         if is_ready_container() {
-            get_mut_kernel().heap.as_mut().deallocate(ptr, layout);
+            get_mut_kernel().heap.lock().as_mut().deallocate(ptr, layout);
         } else {
             HEAP.deallocate(ptr, layout);
         }

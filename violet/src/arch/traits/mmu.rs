@@ -1,5 +1,7 @@
 //! MMU Trait
 
+use crate::library::bitfield::BitField;
+
 pub trait TraitMmu {
     // Enable MMU
     fn enable_mmu();
@@ -34,6 +36,35 @@ pub trait TraitPageEntry {
     fn invalid(&mut self);
     fn writable(&mut self);
     // Set page attribute
+    fn set_attribute(&mut self, attr: PageEntryAttribute);
+    fn clear_attribute(&mut self, attr: PageEntryAttribute);
 }
 
+#[derive(Clone, Copy)]
+pub enum PageEntryAttribute {
+    Valid,
+    Read,
+    Write,
+    Execute,
+    User,
+    Global,
+    Accessed,
+    Dirty,
+    Reserved,
+}
 
+impl PageEntryAttribute {
+    pub fn to_bitfield(&self) -> BitField {
+        match self {
+            Self::Valid => BitField{ offset: 0, width: 1 },
+            Self::Read => BitField{ offset: 1, width: 1 },
+            Self::Write => BitField{ offset: 2, width: 1 },
+            Self::Execute => BitField{ offset: 3, width: 1 },
+            Self::User => BitField{ offset: 4, width: 1 },
+            Self::Global => BitField{ offset: 5, width: 1 },
+            Self::Accessed => BitField{ offset: 6, width: 1 },
+            Self::Dirty => BitField{ offset: 7, width: 1 },
+            Self::Reserved => BitField{ offset: 8, width: 2 },
+        }
+    }
+}

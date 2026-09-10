@@ -1,7 +1,8 @@
 //! Virtual CLINT
 
+use core::arch::asm;
+
 use super::VirtualDeviceT;
-use super::read_raw;
 
 use crate::arch::rv64::sbi;
 use crate::arch::rv64::extension::hypervisor::Hext;
@@ -34,8 +35,9 @@ impl VClint {
     }
 
     fn mtime_read(&mut self, addr: usize) -> u64 {
-        self.mtime = self.mtime + 1; // Add time every time it is referenced
-        return self.mtime
+        let current: u64;
+        unsafe { asm!("rdtime {0}", out(reg) current); }
+        return current
     }
     
     fn mtimecmp_write(&mut self, addr: usize, val: u64) {
@@ -43,16 +45,8 @@ impl VClint {
         Hext::flush_vsmode_interrupt(Interrupt::bit(
             Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
         ));
-        
-        // If an interrupt is generated with the relative time requested by the Guest OS, an infinite loop will occur due to the interrupt.
-        // This is because the processing time due to virtualization overhead is longer than the tick of the guest OS.
-        // Therefore, get the time when the interrupt occurs and generate the interrupt based on that time.
-        // # 3000 is an arbitrary value, and the actual value depends on the execution environment.
-        let current = u64::from_be(read_raw::<u64>(0x0200_bff8)) + 3000;
-        sbi::sbi_set_timer((current) as u64);
 
-        self.mtimecmp = val;
-        self.mtime = (current) as u64;
+        sbi::sbi_set_timer(val);
     }
 
     fn mtimecmp_read(&mut self, addr: usize) -> u64 {

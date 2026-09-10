@@ -1,0 +1,12 @@
+header:
+  version: 11
+  includes:
+    - repo: meta-sifive
+      file: scripts/kas/hifive-premier-p550.yml
+repos:
+  meta-sifive:
+    path: /opt/riscv/yocto/poky/dist/meta-sifive
+  meta-violet:
+    path: /opt/riscv/yocto/poky/dist/meta-violet
+target:
+  - bootchain

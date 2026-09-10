@@ -3,3 +3,4 @@ target/
 /doc
 .vscode
 .devcontainer
+/violet_debug_bootloader/dist/

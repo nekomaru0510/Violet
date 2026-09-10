@@ -24,7 +24,12 @@ impl VirtualRegisterT for Vmstatus {
         bitfield!(SPIE:[5,5]);
         bitfield!(MPIE:[7,7]);
         bitfield!(SPP:[8,8]);
+        bitfield!(VS:[10,9]);
         bitfield!(MPP:[12,11]);
+        bitfield!(FS:[14,13]);
+        bitfield!(XS:[16,15]);
+        bitfield!(SD:[63,63]);
+
 
         // MIE -> SIE
         let mie = bit_extract!(val, MIE);
@@ -36,10 +41,26 @@ impl VirtualRegisterT for Vmstatus {
         self.val = bit_set!(self.val, SPIE, mpie);
         self.val = bit_set!(self.val, MPIE, 0);
 
+        // VS
+        let vs = bit_extract!(val, VS);
+        self.val = bit_set!(self.val, VS, vs);
+        
         // MPP -> SPP
         let mpp = bit_extract!(val, MPP);
         self.val = bit_set!(self.val, SPP, mpp);
         self.val = bit_set!(self.val, MPP, 0);
+
+        // FS
+        let fs = bit_extract!(val, FS);
+        self.val = bit_set!(self.val, FS, fs);
+
+        // XS
+        let xs = bit_extract!(val, XS);
+        self.val = bit_set!(self.val, XS, xs);
+
+        // SD
+        let sd = bit_extract!(val, SD);
+        self.val = bit_set!(self.val, SD, sd);
 
         Vsstatus::set(self.val);
     }

@@ -5,7 +5,7 @@ use core::intrinsics::transmute;
 
 use crate::library::bitfield::BitField;
 use crate::arch::rv64::mmu::{get_new_page_table_idx, get_page_table_addr};
-use crate::arch::traits::mmu::{TraitPageEntry, TraitPageTable};
+use crate::arch::traits::mmu::{PageEntryAttribute, TraitPageEntry, TraitPageTable};
 
 const PAGE_TABLE_LEVEL: usize = 3;      // Number of page table levels
 const NUM_OF_PAGE_ENTRY: usize = 512;   // Number of page entries per table
@@ -187,11 +187,20 @@ impl TraitPageEntry for PageEntrySv39 {
         self.entry |= SV39_ENTRY.r.pattern(1);
         self.entry |= SV39_ENTRY.x.pattern(1);
     }
+
+    // Set page attribute
+    fn set_attribute(&mut self, attr: PageEntryAttribute) {
+        self.entry |= attr.to_bitfield().pattern(1);
+    }
+
+    fn clear_attribute(&mut self, attr: PageEntryAttribute) {
+        self.entry &= !attr.to_bitfield().pattern(1);
+    }
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-#[repr(align(16384))]
+#[repr(align(4096))]
 pub struct PageTableSv39 {
     pub entry: [PageEntrySv39; NUM_OF_PAGE_ENTRY],
 }

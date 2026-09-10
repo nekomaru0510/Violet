@@ -1,0 +1,18 @@
+[profile.dev]
+opt-level = 0
+
+[target.hifive_premier_p550]
+runner = "./tools/run.sh "
+
+
+[build]
+target = "../../env/hifive_premier_p550/hifive_premier_p550.json"
+rustflags = [
+    "-C", "link-arg=-T../../env/hifive_premier_p550/hifive_premier_p550.ld",
+    "--cfg", "target_device=\"hifive_premier_p550\"",
+]
+
+[unstable]
+build-std = ["core", "compiler_builtins", "alloc"]
+build-std-features = ["compiler-builtins-mem"]
+unstable-options = true

@@ -1,0 +1,207 @@
+//! Running Linux on virtual machine with violet
+#![no_main]
+#![no_std]
+#![feature(used_with_arg)]
+
+extern crate violet;
+
+use violet::library::vm::vdev::vplic::VPlic;
+use violet::library::vm::{create_virtual_machine, get_virtual_machine};
+
+use violet::arch::rv64::extension::hypervisor::Hext;
+use violet::arch::rv64::instruction::load::Load;
+use violet::arch::rv64::instruction::store::Store;
+use violet::arch::rv64::instruction::*;
+use violet::arch::rv64::regs::*;
+use violet::arch::rv64::sbi;
+use violet::arch::rv64::trap::int::Interrupt;
+use violet::arch::rv64::trap::TrapVector;
+use violet::arch::rv64::vscontext::*;
+use violet::arch::traits::context::TraitContext;
+
+use violet::resource::{get_resources, BorrowResource, ResourceType};
+
+pub fn do_ecall_from_vsmode(sp: *mut usize) {
+    let regs = Registers::from(sp);
+    let ext: i32 = regs.reg[A7] as i32;
+    let fid: i32 = regs.reg[A6] as i32;
+
+    match sbi::Extension::from_ext(ext) {
+        sbi::Extension::SetTimer | sbi::Extension::Timer => {
+            Hext::flush_vsmode_interrupt(Interrupt::bit(
+                Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
+            ));
+        }
+        sbi::Extension::HartStateManagement => {
+            if fid == 0 {
+                regs.reg[A0] = 0;
+                regs.reg[A1] = 0;
+                regs.epc = regs.epc + 4;
+
+                return;
+            }
+        }
+        sbi::Extension::SystemReset => loop {},
+        _ => {}
+    }
+
+    let ret = Instruction::ecall(
+        ext,
+        fid,
+        regs.reg[A0],
+        regs.reg[A1],
+        regs.reg[A2],
+        regs.reg[A3],
+        regs.reg[A4],
+        regs.reg[A5],
+    );
+
+    regs.reg[A0] = ret.0;
+    regs.reg[A1] = ret.1;
+
+    regs.epc = regs.epc + 4;
+}
+
+/* [todo delete] */
+fn topaddr(epc: usize) -> usize {
+    if epc >= 0x1_0000_0000 {
+        (epc & 0x0_ffff_ffff) + 0x1000_0000 + 0x20_0000 //after MMU start in linux
+    } else {
+        (epc & 0x0_ffff_ffff) + 0x1000_0000 //before MMU start in linux
+    }
+}
+
+pub fn do_guest_store_page_fault(sp: *mut usize) {
+    let regs = Registers::from(sp);
+    let vm = get_virtual_machine();
+    let fault_paddr = Hext::get_vs_fault_paddr() as usize;
+    let inst = Instruction::fetch_in_vm(regs.epc);
+    let val = Store::from_val(inst).store_value(regs);
+
+    let device_result = {
+        let mut dev_guard = vm.dev.write();
+        dev_guard.write(fault_paddr, val)
+    };
+
+    match device_result {
+        None => {
+            let _ = vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
+        },
+        Some(()) => {
+            regs.epc = regs.epc + Instruction::len(inst);
+        }
+    }
+}
+
+pub fn do_guest_load_page_fault(sp: *mut usize) {
+    let regs = Registers::from(sp);
+    let vm = get_virtual_machine();
+    let fault_paddr = Hext::get_vs_fault_paddr() as usize;
+    let inst = Instruction::fetch_in_vm(regs.epc);
+
+    match vm.dev.write().read(fault_paddr) {
+        None => {
+            let _ = vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
+        },
+        Some(x) => {
+            regs.reg[Load::from_val(inst).dst()] = x;
+            regs.epc = regs.epc + Instruction::len(inst);
+        }
+    };
+}
+
+pub fn do_guest_instruction_page_fault(_sp: *mut usize) {
+    let vm = get_virtual_machine();
+    vm.map_guest_page(Hext::get_vs_fault_paddr() as usize);
+}
+
+pub fn do_supervisor_external_interrupt(_sp: *mut usize) {
+    let vm = get_virtual_machine();
+    // Read and clear the pending bit from the physical PLIC
+    let int_id = if let BorrowResource::Intc(i) = get_resources().get(ResourceType::Intc, 0) {
+        i.get_pend_int()
+    } else {
+        0
+    };
+
+    // write to virtual plic
+    let mut dev_guard = vm.dev.write();
+    match dev_guard.get_mut(0x0c20_1000) {
+        // [todo fix] Make it possible to search by interrupt number
+        None => (),
+        Some(d) => {
+            d.interrupt(int_id as usize);
+        }
+    }
+}
+
+pub fn do_supervisor_timer_interrupt(_sp: *mut usize) {
+    // Disable the timer
+    sbi::sbi_set_timer(0xffff_ffff_ffff_ffff);
+
+    // Raise a timer interrupt to the guest
+    Hext::assert_vsmode_interrupt(Interrupt::bit(
+        Interrupt::VIRTUAL_SUPERVISOR_TIMER_INTERRUPT,
+    ));
+}
+
+pub fn boot_linux() {
+    let boot_core = 1;
+    
+    /* Setup virtual machine */
+    create_virtual_machine();
+    let vm = get_virtual_machine();
+    vm.reset();
+
+    /* CPU */
+    {
+        let mut vcpu_map = vm.cpu.write();
+        vcpu_map.register(0, boot_core); /* vcpu0 ... pcpu1 */
+        match vcpu_map.get_mut(0) {
+            None => (),
+            Some(v) => {
+                v.context.set(JUMP_ADDR, 0x8020_0000);
+                v.context.set(ARG0, 0);
+                v.context.set(ARG1, 0x8220_0000);
+            }
+        }
+    } // Drop vcpu_map
+
+    /* RAM */
+    {
+        let mut vmem_map = vm.mem.write();
+        vmem_map.register(0x8020_0000, 0x9020_0000, 0x1000_0000);
+        vmem_map.register(0x8810_0000, 0x8810_0000, 0x20_0000);    // initrd is also mapped to physical memory. The size is estimated from rootfs.img
+        // Passthrough
+        vmem_map.register(0x00, 0x00, 0x8000_0000);
+    } // Drop vmem_map
+    
+    // ARG1 points to guest 0x82200000, backed by host 0x92200000.
+    let fdt = violet::kernel::get_fdt();
+    unsafe {
+        core::ptr::copy_nonoverlapping(fdt.as_ptr(), 0x9220_0000 as *mut u8, fdt.len());
+    }
+    vm.mmu_enable();
+
+    /* MMIO */
+    {
+        let mut vplic = VPlic::new();
+        vplic.set_vcpu_config([boot_core, 0]); /* vcpu0 ... pcpu1 */
+        vm.dev.write().register(0x0c00_0000, 0x0400_0000, vplic);
+    } // Drop dev guard
+    
+    /* Register interrupt/exception handler */
+    if vm.trap.write().register_traps(
+        &[
+            (TrapVector::SUPERVISOR_TIMER_INTERRUPT, do_supervisor_timer_interrupt),
+            (TrapVector::SUPERVISOR_EXTERNAL_INTERRUPT, do_supervisor_external_interrupt),
+            (TrapVector::ENVIRONMENT_CALL_FROM_VSMODE, do_ecall_from_vsmode),
+            (TrapVector::LOAD_GUEST_PAGE_FAULT, do_guest_load_page_fault),
+            (TrapVector::STORE_AMO_GUEST_PAGE_FAULT, do_guest_store_page_fault),
+            (TrapVector::INSTRUCTION_GUEST_PAGE_FAULT, do_guest_instruction_page_fault),
+        ]
+    ) == Err(()) { panic!("Fail to register trap"); }
+
+    /* Run */
+    vm.run();
+}

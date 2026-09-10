@@ -23,7 +23,7 @@ impl VirtualCpuMap {
     pub const fn new() -> Self {
         VirtualCpuMap {
             vcpus: Vec::new(),
-            p2v_cpu: [0; NUM_OF_CPUS],
+            p2v_cpu: [usize::MAX; NUM_OF_CPUS],
         }
     }
 
@@ -35,6 +35,20 @@ impl VirtualCpuMap {
     // Return the ID of the virtual CPU currently running
     pub fn get_vcpuid(&self) -> usize {
         self.p2v_cpu[Arch::get_cpuid()]
+    }
+
+    // Return the ID of the physical CPU currently running
+    pub fn get_pcpuid(&self, vcpuid: usize) -> usize {
+        for i in 0..NUM_OF_CPUS {
+            if self.p2v_cpu[i] == vcpuid {
+                return i;
+            }
+        }
+        usize::MAX // Invalid
+    }
+
+    pub fn get_vcpu_count(&self) -> usize {
+        self.vcpus.len()
     }
 
     pub fn get(&self, vcpuid: usize) -> Option<&VirtualCpu> {
@@ -80,6 +94,8 @@ impl VirtualCpu {
     pub fn run(&mut self, regs: &mut <<Hyp as HypervisorT>::Context as TraitContext>::Registers) {
         // Restore registers
         self.context.switch(regs);
+        // Set the status to running
+        self.status = VcpuStatus::RUNNING;
     }
 
     pub fn get_vcpuid(&self) -> usize {

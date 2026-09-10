@@ -1,5 +1,6 @@
 //! CSR Number
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CsrNumber {
     /* Unpriviledged Floating-Point CSRs */
     Fflags = 0x001,

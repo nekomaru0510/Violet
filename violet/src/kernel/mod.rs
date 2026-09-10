@@ -23,6 +23,7 @@ use dispatcher::minimal_dispatcher::MinimalDispatcher;
 use heap::init_allocater;
 use init_calls::*;
 use sched::fifo::FifoScheduler;
+use spin::Mutex;
 use syscall::vsi::create_task;
 use task::Task;
 
@@ -38,8 +39,37 @@ extern "C" {
     static __HEAP_END: usize;
 }
 
+#[link_section = ".data"]
+static mut FDT: [u8; 1024 * 1024] = [0u8; 1024 * 1024]; // 1MiB FDT
+
+pub fn get_fdt() -> &'static [u8; 1024 * 1024] {
+    unsafe { &FDT }
+}
+
 #[no_mangle]
-pub extern "C" fn boot_init(cpu_id: usize) {
+pub extern "C" fn boot_init(cpu_id: usize, fdt_addr: usize) {
+    // relocate FDT [TODO: fix]
+    unsafe {
+        // Copy FDT to the static array
+        let fdt_ptr = FDT.as_mut_ptr();
+        let fdt_size = 1024 * 1024; // 1MiB
+        let src_ptr = fdt_addr as *const u8;
+        core::ptr::copy(src_ptr, fdt_ptr, fdt_size);
+    }
+
+    // init bss, sbss
+    extern "C" {
+        static mut __BSS_START: u8;
+        static mut __BSS_END: u8;
+        static mut __SBSS_START: u8;
+        static mut __SBSS_END: u8;
+    }
+    unsafe {
+        core::ptr::write_bytes(&mut __BSS_START, 0, &__BSS_END as *const u8 as usize - &__BSS_START as *const u8 as usize);
+        core::ptr::write_bytes(&mut __SBSS_START, 0, &__SBSS_END as *const u8 as usize - &__SBSS_START as *const u8 as usize);
+    }
+
+
     // Initialize memory allocator
     unsafe {
         init_allocater(transmute(&__HEAP_BASE), transmute(&__HEAP_END));
@@ -95,12 +125,12 @@ use alloc::boxed::Box;
 use heap::{TraitHeap, HEAP};
 
 pub struct Kernel {
-    heap: Box<&'static mut (dyn TraitHeap + 'static)>,
+    heap: Mutex<Box<&'static mut (dyn TraitHeap + 'static)>>,
 }
 
 impl Kernel {
     pub fn new(heap: Box<&'static mut (dyn TraitHeap + 'static)>) -> Self {
-        Kernel { heap }
+        Kernel { heap: Mutex::new(heap) }
     }
 
     pub fn create_custom_kernel(container_id: usize) -> Self {
@@ -117,10 +147,9 @@ pub fn get_mut_kernel() -> &'static mut Kernel {
 }
 
 // [todo fix] Select scheduler and dispatcher for each core
-pub static mut SCHEDULER: [FifoScheduler<Task>; 2] = [FifoScheduler::new(), FifoScheduler::new()];
+pub static mut SCHEDULER: [FifoScheduler<Task>; NUM_OF_CPUS] = [const { FifoScheduler::new() }; NUM_OF_CPUS];
 
-pub static mut DISPATCHER: [MinimalDispatcher; 2] =
-    [MinimalDispatcher::new(), MinimalDispatcher::new()];
+pub static mut DISPATCHER: [MinimalDispatcher; NUM_OF_CPUS] = [const { MinimalDispatcher::new() }; NUM_OF_CPUS];
 
 pub fn main_loop(cpu_id: usize) {
     loop {
