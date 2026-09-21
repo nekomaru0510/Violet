@@ -9,6 +9,7 @@ pub mod vcpu;
 pub mod vdev;
 pub mod vmem;
 pub mod trap;
+pub mod trap_dispatcher;
 
 use vcpu::VirtualCpuMap;
 use vdev::VirtualDevMap;
