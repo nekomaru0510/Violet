@@ -8,5 +8,9 @@ repos:
     path: /opt/riscv/yocto/poky/dist/meta-sifive
   meta-violet:
     path: /opt/riscv/yocto/poky/dist/meta-violet
+local_conf_header:
+  build-resources: |
+    BB_NUMBER_THREADS = "4"
+    PARALLEL_MAKE = "-j4"
 target:
   - bootchain

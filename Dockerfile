@@ -6,7 +6,7 @@ ENV PATH=$RISCV/bin:/root/.cargo/bin:$PATH
 ENV MAKEFLAGS=-j4
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR $RISCV
 
@@ -118,9 +118,9 @@ RUN apt update && \
 	apt install -y gawk wget git diffstat unzip texinfo gcc build-essential chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils iputils-ping python3-git python3-jinja2 python3-subunit zstd liblz4-tool file locales libacl1 && \
 	pip3 install kas --break-system-packages
 RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
 RUN cd ${RISCV} && \
 	mkdir yocto
@@ -142,7 +142,7 @@ USER yoctouser
 
 # Clone Yocto
 RUN cd ${RISCV}/yocto && \
-	git clone git://git.yoctoproject.org/poky && \
+	git clone https://git.yoctoproject.org/poky && \
 	cd poky && \
 	git checkout origin/scarthgap -b my-scarthgap && \
 	mkdir dist && cd dist && \
@@ -156,9 +156,28 @@ RUN cd ${RISCV}/yocto/poky/dist && \
 	kas checkout ./meta-sifive/scripts/kas/hifive-premier-p550.yml && \
 	sed -i -e "s/INHERIT += \"sanity\"/# INHERIT += \"sanity\"/g" ./openembedded-core/meta/conf/sanity.conf
 
-# Build by kas
-RUN cd ${RISCV}/yocto/poky/dist && \
-	kas build ./meta-sifive/scripts/kas/hifive-premier-p550.yml	
+# Apply the upstream BitBake 2.8 crates.io CDN fix to the pinned revision.
+RUN cd ${RISCV}/yocto/poky/dist/bitbake && \
+	curl -fL --retry 3 \
+		https://github.com/openembedded/bitbake/commit/b2404004135b669f8258c85c7b5aed4570a805c7.patch \
+		-o /tmp/bitbake-crate-cdn.patch && \
+	echo 'aa47785dbcf143632c482aa3e5ba8e58926640df12f9782e4a5e6e6d2d0c40c2  /tmp/bitbake-crate-cdn.patch' | sha256sum -c - && \
+	git apply /tmp/bitbake-crate-cdn.patch && \
+	rm /tmp/bitbake-crate-cdn.patch
+
+# Support host tar versions that use openat2 while running under pseudo.
+RUN cd ${RISCV}/yocto/poky/dist/openembedded-core/meta/recipes-devtools/pseudo && \
+	mkdir -p files && \
+	curl -fL --retry 3 \
+		'https://git.yoctoproject.org/pseudo/patch/?id=320deb309a54a1fe8c10c3e6772a8be8fbefece2' \
+		-o files/pseudo-openat2.patch && \
+	echo 'ba9aacb967e11f8a92639befaad22bad94ca6b9d71a1c84b016b3fb8658bee57  files/pseudo-openat2.patch' | sha256sum -c - && \
+	sed -i '/^Subject:/i Upstream-Status: Backport [https://git.yoctoproject.org/pseudo/commit/?id=320deb309a54a1fe8c10c3e6772a8be8fbefece2]' files/pseudo-openat2.patch && \
+	printf '\nSRC_URI += "file://pseudo-openat2.patch"\n' >> pseudo_git.bb
+
+# GnuTLS 3.8.4 enables GCC's analyzer, which crashes in the host GCC 13.
+RUN printf '\nCFLAGS:append:class-native = " -fno-analyzer"\n' >> \
+	${RISCV}/yocto/poky/dist/openembedded-core/meta/recipes-support/gnutls/gnutls_3.8.4.bb
 
 USER root
 
@@ -181,6 +200,7 @@ RUN cd /opt/riscv/violet-debug-source/violet_debug_bootloader && \
       /opt/riscv/violet-debug-bootloader/payload.bin
 COPY --chown=2000:2000 env/hifive_premier_p550/meta-violet /opt/riscv/yocto/poky/dist/meta-violet
 USER yoctouser
+# Build only the debug bootchain and its dependencies, including guest U-Boot.
 RUN cd ${RISCV}/yocto/poky/dist && kas build ./meta-violet/kas.yml
 USER root
 RUN install -m 644 \
